@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
@@ -404,7 +403,7 @@ ParsedImportedBook _parseEpub(String fileTitle, Uint8List bytes) {
   if (containerFile == null) {
     throw const FormatException('EPUB 缺少 META-INF/container.xml');
   }
-  final container = XmlDocument.parse(_decodeXmlBytes(_archiveBytes(containerFile)));
+  final container = XmlDocument.parse(_decodeXmlBytes(containerFile.content));
   final rootfile = _firstElement(container, 'rootfile');
   final opfPath = rootfile?.getAttribute('full-path');
   if (opfPath == null || opfPath.trim().isEmpty) {
@@ -416,15 +415,15 @@ ParsedImportedBook _parseEpub(String fileTitle, Uint8List bytes) {
   }
   final opfFile = archive.findFile(normalizedOpfPath);
   if (opfFile == null) throw const FormatException('EPUB 目录文件不存在');
-  final opf = XmlDocument.parse(_decodeXmlBytes(_archiveBytes(opfFile)));
+  final opf = XmlDocument.parse(_decodeXmlBytes(opfFile.content));
   final elements = opf.rootElement.descendants.whereType<XmlElement>().toList();
   final title = elements
           .where((element) => element.localName == 'title')
-          .map((element) => element.text.trim())
+          .map((element) => element.innerText.trim())
           .firstWhere((value) => value.isNotEmpty, orElse: () => fileTitle);
   final author = elements
       .where((element) => element.localName == 'creator')
-      .map((element) => element.text.trim())
+      .map((element) => element.innerText.trim())
       .firstWhere((value) => value.isNotEmpty, orElse: () => '');
   final manifest = <String, ({String href, String mediaType})>{};
   for (final element in elements.where((element) => element.localName == 'item')) {
@@ -452,7 +451,7 @@ ParsedImportedBook _parseEpub(String fileTitle, Uint8List bytes) {
     if (path.isEmpty) continue;
     final contentFile = archive.findFile(path);
     if (contentFile == null) continue;
-    final source = _decodeXmlBytes(_archiveBytes(contentFile));
+    final source = _decodeXmlBytes(contentFile.content);
     final document = html_parser.parse(source);
     final body = document.body;
     if (body == null) continue;
@@ -484,12 +483,6 @@ XmlElement? _firstElement(XmlDocument document, String localName) {
     if (element.localName == localName) return element;
   }
   return null;
-}
-
-List<int> _archiveBytes(ArchiveFile file) {
-  final content = file.content;
-  if (content is List<int>) return content;
-  throw const FormatException('EPUB 中的文件内容无法读取');
 }
 
 void _checkEpubZipLimits(Uint8List bytes) {
