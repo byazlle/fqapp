@@ -3232,6 +3232,7 @@ class _InlineVideoLayer extends StatelessWidget {
             // A card the session is not playing (yet) shows its cover only.
             if (playback.activeId.value != item.id) return cover;
             final textureId = playback.textureId.value;
+            final videoSize = playback.videoSize.value;
             final layout = PlayerVideoLayout.calculate(
               window: window,
               insets: EdgeInsets.zero,
@@ -3264,7 +3265,13 @@ class _InlineVideoLayer extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (textureId == null || !playback.firstFrame.value) cover,
+                // A first-frame event may beat the size event. Never expose a
+                // new texture through the 9:16 fallback (or stale geometry).
+                if (textureId == null ||
+                    !playback.firstFrame.value ||
+                    videoSize.width <= 0 ||
+                    videoSize.height <= 0)
+                  cover,
               ],
             );
           },

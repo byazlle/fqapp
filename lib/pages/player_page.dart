@@ -1396,9 +1396,15 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       if (_current(generation)) unawaited(_loadVideo(refresh: true));
     }
 
-    final texture = _player?.textureId;
+    final player = _player;
+    final texture = player?.textureId;
     final waiting =
-        _initVideo || texture == null || !_player!.firstFrameRendered;
+        _initVideo ||
+        texture == null ||
+        player == null ||
+        !player.firstFrameRendered ||
+        player.videoWidth <= 0 ||
+        player.videoHeight <= 0;
     return Stack(
       fit: StackFit.expand,
       children: [

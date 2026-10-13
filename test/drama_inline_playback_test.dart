@@ -45,6 +45,7 @@ class _Session {
   /// What the fake decoder reports; the inline letterbox must follow it.
   final int width;
   final int height;
+  List<Size> playerSizes = const [];
   final players = <ControlledNativePlayer>[];
   final directoryCalls = <String>[];
   final contentCalls = <String>[];
@@ -130,9 +131,12 @@ class _Session {
           hotCommentsLoader: (seriesId) async =>
               hotComments.putIfAbsent(seriesId, () => const []),
           playerFactory: () {
+            final size = players.length < playerSizes.length
+                ? playerSizes[players.length]
+                : Size(width.toDouble(), height.toDouble());
             final player = ControlledNativePlayer(hasFirstFrame: hasFirstFrame)
-              ..width = width
-              ..height = height;
+              ..width = size.width.toInt()
+              ..height = size.height.toInt();
             players.add(player);
             return player;
           },
@@ -776,10 +780,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('更多面板清晰度行：多档流在场显示，选档换流并回跳原进度', (tester) async {
+  testWidgets('更多面板清晰度换档回跳进度，并等待新档尺寸后再显示', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final session = _Session(hasFirstFrame: true)
-      ..variantNames = ['1080P', '540P'];
+      ..variantNames = ['1080P', '540P']
+      ..playerSizes = [const Size(1920, 1080), Size.zero];
     await _mount(tester, session);
     session.players.single.emitDuration(const Duration(minutes: 2));
     session.players.single.emitPosition(const Duration(seconds: 30));
@@ -792,10 +797,10 @@ void main() {
     expect(find.text('1080P'), findsOneWidget);
     expect(find.text('540P'), findsOneWidget);
 
-    // 选 540P（官方 bgw）：Toast 立即出，不等换流完成。
-    await tester.tap(find.byKey(const ValueKey('player-more-light-quality-1')));
+    // 选 1080P（官方 bgw）：Toast 立即出，不等换流完成。
+    await tester.tap(find.byKey(const ValueKey('player-more-light-quality-0')));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('清晰度已成功切换至540P'), findsOneWidget);
+    expect(find.text('清晰度已成功切换至1080P'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pump(const Duration(milliseconds: 300));
     await _flush(tester);
@@ -813,8 +818,25 @@ void main() {
         .where((call) => call.startsWith('create:'))
         .toList();
     expect(created, hasLength(1));
-    expect(created.single, endsWith('-540P.mp4'));
+    expect(created.single, endsWith('-1080P.mp4'));
     expect(session.players.last.calls, contains('seek:30000ms'));
+    // The new decoder's first-frame event can arrive before its size event.
+    // Keep the old cover in front rather than stretching the texture to the
+    // fallback ratio or reusing the previous rendition's geometry.
+    expect(
+      find.byKey(const ValueKey('drama_inline_cover_video_16-0')),
+      findsOneWidget,
+    );
+    session.players.last.emitVideoSize(1080, 1920);
+    await _flush(tester);
+    expect(
+      find.byKey(const ValueKey('drama_inline_cover_video_16-0')),
+      findsNothing,
+    );
+    final textureRect = tester.getRect(
+      find.byKey(const ValueKey('drama_inline_texture_video_16-0')),
+    );
+    expect(textureRect.width / textureRect.height, closeTo(9 / 16, .001));
     expect(tester.takeException(), isNull);
   });
 

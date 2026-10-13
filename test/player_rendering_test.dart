@@ -311,6 +311,21 @@ void main() {
     });
   }
 
+  testWidgets('the full-page texture stays covered until its size is known', (
+    tester,
+  ) async {
+    final player = await _mount(tester, videoSize: Size.zero, settle: false);
+    expect(find.byKey(const ValueKey('player-cover')), findsOneWidget);
+
+    // Native playback may report its first frame before the video-size event.
+    // The cover must remain until the layout has the real rendition geometry.
+    player.emitVideoSize(1920, 1080);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('player-cover')), findsNothing);
+    expect(find.byKey(const ValueKey('player-texture')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'texture rotation preserves portrait layout through panel animation',
     (tester) async {
@@ -419,6 +434,7 @@ Future<ControlledNativePlayer> _mount(
   Size videoSize = const Size(1080, 1920),
   ControlledNativePlayer? player,
   bool shortSeries = false,
+  bool settle = true,
 }) async {
   final activePlayer = (player ?? ControlledNativePlayer())
     ..width = videoSize.width.toInt()
@@ -455,6 +471,12 @@ Future<ControlledNativePlayer> _mount(
   );
   await tester.pump();
   await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    for (var frame = 0; frame < 8; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+  }
   return activePlayer;
 }

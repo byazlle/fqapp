@@ -474,6 +474,12 @@ class InlineVideoPlayback {
     if (identical(_player, player)) _player = null;
     _currentSource = source.withVariant(variant);
     _chosen[series.id] = variant;
+    // A replacement texture must not inherit the previous rendition's frame,
+    // size, or rotation. The layer keeps its cover until the new stream is ready.
+    textureId.value = null;
+    firstFrame.value = false;
+    videoSize.value = Size.zero;
+    rotation.value = 0;
     var release = _releases;
     NativePlayer? candidate;
     try {

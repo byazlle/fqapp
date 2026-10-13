@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 
@@ -242,6 +243,7 @@ class FakeNativePlayer extends NativePlayer {
   final completedEvents = StreamController<bool>.broadcast(sync: true);
   final bufferingEvents = StreamController<bool>.broadcast(sync: true);
   final errors = StreamController<Object>.broadcast(sync: true);
+  final videoSizes = StreamController<Size>.broadcast(sync: true);
 
   @override
   bool get isCreated => !disposed;
@@ -278,7 +280,15 @@ class FakeNativePlayer extends NativePlayer {
   @override
   Stream<bool> get bufferingStream => bufferingEvents.stream;
   @override
+  Stream<Size> get videoSizeStream => videoSizes.stream;
+  @override
   Stream<Object> get errorStream => errors.stream;
+
+  void emitVideoSize(int width, int height) {
+    this.width = width;
+    this.height = height;
+    videoSizes.add(Size(width.toDouble(), height.toDouble()));
+  }
 
   @override
   Future<int> create(String cdnUrl, String keyHex) async {
@@ -336,6 +346,7 @@ class FakeNativePlayer extends NativePlayer {
       completedEvents.close(),
       bufferingEvents.close(),
       errors.close(),
+      videoSizes.close(),
     ]);
     await super.dispose();
   }
