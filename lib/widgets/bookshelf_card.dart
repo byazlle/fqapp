@@ -1,8 +1,9 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../services/poster_cache.dart';
 import '../models/media_item.dart';
@@ -150,7 +151,7 @@ class _ShelfCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HomePalette.of(context);
-    final fallback = _FallbackCover(item: item);
+    final fallback = _DefaultCover(item: item);
     return SizedBox(
       key: const Key('bookshelf-cover'),
       width: width,
@@ -162,17 +163,12 @@ class _ShelfCover extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
             child: ColoredBox(
               color: palette.soft,
-              child: item.cover.trim().isEmpty
-                  ? fallback
-                  : CachedNetworkImage(
-                      cacheManager: PosterCache.instance,
-                      imageUrl: item.cover,
-                      fit: BoxFit.cover,
-                      memCacheWidth: math.max(1, (width * 3).round()),
-                      fadeInDuration: const Duration(milliseconds: 150),
-                      placeholder: (_, _) => fallback,
-                      errorWidget: (_, _, _) => fallback,
-                    ),
+              child: _ShelfCoverImage(
+                item: item,
+                fallback: fallback,
+                width: width,
+                height: height,
+              ),
             ),
           ),
           if (selected)
@@ -261,39 +257,230 @@ class _SelectionBox extends StatelessWidget {
   }
 }
 
-class _FallbackCover extends StatelessWidget {
+/// Resolves one shelf cover the same way for all three layouts: an empty value
+/// paints the default cover, `http(s)://` goes through the poster cache, and
+/// anything else is a local file path written by the import store.
+///
+/// This is the Flutter counterpart of Legado's `isRealCoverPath()`: the split
+/// lives in one place so a local cover and a remote one cannot drift apart.
+class _ShelfCoverImage extends StatelessWidget {
+  final MediaItem item;
+  final Widget fallback;
+  final double width;
+  final double height;
+
+  const _ShelfCoverImage({
+    required this.item,
+    required this.fallback,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final value = item.cover.trim();
+    if (value.isEmpty) return fallback;
+    final decodeWidth = math.max(1, (width * 3).round());
+    if (_isRemoteCover(value)) {
+      return CachedNetworkImage(
+        cacheManager: PosterCache.instance,
+        imageUrl: value,
+        fit: BoxFit.cover,
+        memCacheWidth: decodeWidth,
+        fadeInDuration: const Duration(milliseconds: 150),
+        placeholder: (_, _) => fallback,
+        errorWidget: (_, _, _) => fallback,
+      );
+    }
+    final file = _localCoverFile(value);
+    if (file == null) return fallback;
+    if (file.path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.file(
+        file,
+        fit: BoxFit.cover,
+        placeholderBuilder: (_) => fallback,
+      );
+    }
+    return Image.file(
+      file,
+      fit: BoxFit.cover,
+      cacheWidth: decodeWidth,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => fallback,
+    );
+  }
+}
+
+bool _isRemoteCover(String value) {
+  final lower = value.toLowerCase();
+  return lower.startsWith('http://') || lower.startsWith('https://');
+}
+
+/// `file://` values come from the platform pickers; the import store writes
+/// plain absolute paths.
+File? _localCoverFile(String value) {
+  final path = value.toLowerCase().startsWith('file://')
+      ? Uri.tryParse(value)?.toFilePath() ?? ''
+      : value;
+  return path.isEmpty ? null : File(path);
+}
+
+/// Default cover for entries without artwork: a tinted ground with the title
+/// and author painted on top.
+///
+/// Mirrors Legado's `CoverImageView.generateCoverBitmap()`: glyphs are drawn one
+/// per line (vertical text that wraps into the next column) and every glyph is
+/// painted twice — first as a stroke in the ground colour, then filled — which
+/// is what keeps it readable over the tint.
+class _DefaultCover extends StatelessWidget {
   final MediaItem item;
 
-  const _FallbackCover({required this.item});
+  const _DefaultCover({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final palette = HomePalette.of(context);
     final accent = _kindColors[item.kind] ?? scheme.primary;
     final background = Color.alphaBlend(
       accent.withValues(alpha: 0.13),
       scheme.surfaceContainerHighest,
     );
-    // The placeholder stays visual only. The card's own title line sits right
-    // below the cover, so drawing the title here as well printed it twice on
-    // every cover-less entry; the home feed's fallback cover keeps to an icon
-    // for the same reason.
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final narrow = constraints.maxWidth < 70;
-        return ColoredBox(
-          color: background,
-          child: Center(
-            child: Icon(
-              LucideIcons.book_open,
-              size: narrow ? 18 : 24,
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.72),
-            ),
-          ),
-        );
-      },
+      builder: (context, constraints) => CustomPaint(
+        size: Size(constraints.maxWidth, constraints.maxHeight),
+        painter: _DefaultCoverPainter(
+          background: background,
+          titleColor: palette.ink,
+          authorColor: palette.muted,
+          title: item.title.trim(),
+          author: item.author.trim(),
+        ),
+      ),
     );
   }
+}
+
+class _DefaultCoverPainter extends CustomPainter {
+  final Color background;
+  final Color titleColor;
+  final Color authorColor;
+  final String title;
+  final String author;
+
+  const _DefaultCoverPainter({
+    required this.background,
+    required this.titleColor,
+    required this.authorColor,
+    required this.title,
+    required this.author,
+  });
+
+  /// Legado's ratios: the name is a seventh of the cover width and the author a
+  /// tenth, with the stroke a sixth / fifth of that size.
+  static const _titleScale = 7.0;
+  static const _authorScale = 10.0;
+  static const _titleStrokeRatio = 6.0;
+  static const _authorStrokeRatio = 5.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = background);
+    // Below this the lettering would be illegible, so the ground stands alone.
+    if (size.width < 48 || size.height < 60) return;
+    _paintVertical(
+      canvas,
+      size,
+      text: title,
+      fontSize: (size.width / _titleScale).clamp(7.0, 22.0),
+      strokeRatio: _titleStrokeRatio,
+      color: titleColor,
+      bold: true,
+      columnX: size.width * 0.2,
+      startY: size.height * 0.2,
+      maxY: size.height * 0.85,
+      maxChars: 14,
+    );
+    _paintVertical(
+      canvas,
+      size,
+      text: author,
+      fontSize: (size.width / _authorScale).clamp(6.0, 14.0),
+      strokeRatio: _authorStrokeRatio,
+      color: authorColor,
+      bold: false,
+      columnX: size.width * 0.8,
+      startY: size.height * 0.3,
+      maxY: size.height * 0.95,
+      maxChars: 10,
+    );
+  }
+
+  /// Draws [text] top to bottom, wrapping into the next column to the right, the
+  /// same way Legado stacks single glyphs down a cover.
+  void _paintVertical(
+    Canvas canvas,
+    Size size, {
+    required String text,
+    required double fontSize,
+    required double strokeRatio,
+    required Color color,
+    required bool bold,
+    required double columnX,
+    required double startY,
+    required double maxY,
+    required int maxChars,
+  }) {
+    if (text.isEmpty) return;
+    final weight = bold ? FontWeight.w700 : FontWeight.w400;
+    final strokeStyle = TextStyle(
+      fontSize: fontSize,
+      fontWeight: weight,
+      foreground: Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = fontSize / strokeRatio
+        ..color = background,
+    );
+    final fillStyle = TextStyle(
+      fontSize: fontSize,
+      fontWeight: weight,
+      color: color,
+    );
+    var x = columnX;
+    var y = startY;
+    var drawn = 0;
+    for (final char in text.split('')) {
+      if (drawn >= maxChars) break;
+      if (char.trim().isEmpty) continue;
+      final stroke = TextPainter(
+        text: TextSpan(text: char, style: strokeStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final fill = TextPainter(
+        text: TextSpan(text: char, style: fillStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final origin = Offset(x - fill.width / 2, y);
+      stroke.paint(canvas, origin);
+      fill.paint(canvas, origin);
+      drawn++;
+      if (y + fill.height > maxY) {
+        x += fill.height;
+        y = startY;
+        if (x > size.width * 0.95) break;
+      } else {
+        y += fill.height;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DefaultCoverPainter oldDelegate) =>
+      oldDelegate.background != background ||
+      oldDelegate.titleColor != titleColor ||
+      oldDelegate.authorColor != authorColor ||
+      oldDelegate.title != title ||
+      oldDelegate.author != author;
 }
 
 // ---------------------------------------------------------------------------

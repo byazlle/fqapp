@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
+import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
 import 'package:xml/xml.dart';
 
@@ -19,7 +20,26 @@ const _maxEpubEntries = 4000;
 const _maxImportedChapters = 20000;
 const _bookIdPattern = r'^local_[0-9]+_[a-f0-9]+$';
 
+// Cover storage mirrors Legado: the artwork is read with a byte cap, sniffed by
+// magic number instead of trusting the declared media type, shrunk to
+// [_maxCoverImageEdge] and re-encoded — PNG while transparency survives, JPEG
+// otherwise.  SVG artwork stays verbatim and is drawn by flutter_svg.
+const _maxCoverResourceBytes = 8 * 1024 * 1024;
+const _maxCoverDocumentBytes = 1024 * 1024;
+const _maxCoverImageEdge = 1600;
+const _maxCoverAlphaScanPixels = 512 * 1000;
+const _coverJpegQuality = 90;
+const _coverFilePattern = r'^cover\.(?:png|jpg|svg)$';
+const _coverHint = r'(?:^|[/_.~\-])(cover|frontcover|titlepage|title-page)(?:$|[/_.~\-])';
+
+final _coverHintPattern = RegExp(_coverHint, caseSensitive: false);
+
 /// An imported book and its ordered local chapter catalogue.
+///
+/// [directory] is the book's own private folder and [coverFile] the cover
+/// stored inside it, or null when the source document carried none.  The
+/// absolute path handed to the shelf is derived from the two, which is how
+/// Legado keeps an extracted cover next to the book it belongs to.
 class ImportedBook {
   final String id;
   final String title;
@@ -27,6 +47,8 @@ class ImportedBook {
   final String format;
   final DateTime addedAt;
   final List<Chapter> chapters;
+  final String directory;
+  final String? coverFile;
   final List<String> _chapterFiles;
 
   ImportedBook._({
@@ -35,15 +57,29 @@ class ImportedBook {
     required this.author,
     required this.format,
     required this.addedAt,
+    required this.directory,
+    required this.coverFile,
     required List<Chapter> chapters,
     required List<String> chapterFiles,
   }) : chapters = List.unmodifiable(chapters),
        _chapterFiles = List.unmodifiable(chapterFiles);
 
+  /// Absolute path of the stored cover, or null when the book has none.
+  ///
+  /// The shelf renders it as a local file; a path that no longer resolves (data
+  /// cleared, app reinstalled) falls back to the default cover at draw time.
+  String? get coverPath {
+    final file = coverFile;
+    if (file == null) return null;
+    return '$directory${Platform.pathSeparator}$file';
+  }
+
+  /// The shelf entry for this book. A book without artwork keeps an empty
+  /// cover so the shelf paints its own default cover instead of a broken image.
   MediaItem toMediaItem() => MediaItem(
     id: id,
     title: title,
-    cover: '',
+    cover: coverPath ?? '',
     author: author,
     badge: '本地',
     ep: chapters.length.toString(),
@@ -56,6 +92,7 @@ class ImportedBook {
     'author': author,
     'format': format,
     'addedAt': addedAt.millisecondsSinceEpoch,
+    'cover': coverFile,
     'chapters': [
       for (var index = 0; index < chapters.length; index++)
         {
@@ -75,12 +112,23 @@ class ParsedBookChapter {
   const ParsedBookChapter({required this.title, required this.text});
 }
 
+/// Cover artwork decoded from the source document, in the shape it is stored
+/// in: raster artwork is re-encoded (PNG while transparency survives, JPEG
+/// otherwise) and SVG is kept verbatim for flutter_svg.
+@immutable
+class ParsedBookCover {
+  final Uint8List bytes;
+  final String extension;
+  const ParsedBookCover({required this.bytes, required this.extension});
+}
+
 /// Parsed book data, independent of Flutter and filesystem state.
 @immutable
 class ParsedImportedBook {
   final String title;
   final String author;
   final String format;
+  final ParsedBookCover? cover;
   final List<ParsedBookChapter> chapters;
 
   ParsedImportedBook({
@@ -88,6 +136,7 @@ class ParsedImportedBook {
     required this.author,
     required this.format,
     required List<ParsedBookChapter> chapters,
+    this.cover,
   }) : chapters = List.unmodifiable(chapters);
 }
 
@@ -174,16 +223,25 @@ class ImportedBookStore {
         'title': parsed.title,
         'author': parsed.author,
         'format': parsed.format,
+        'coverBytes': parsed.cover?.bytes,
+        'coverExtension': parsed.cover?.extension,
         'chapters': [
           for (final chapter in parsed.chapters)
             {'title': chapter.title, 'text': chapter.text},
         ],
       };
     });
+    final coverBytes = parsedData['coverBytes'];
     final parsed = ParsedImportedBook(
       title: parsedData['title']! as String,
       author: parsedData['author']! as String,
       format: parsedData['format']! as String,
+      cover: coverBytes is Uint8List
+          ? ParsedBookCover(
+              bytes: coverBytes,
+              extension: parsedData['coverExtension']! as String,
+            )
+          : null,
       chapters: [
         for (final chapter in parsedData['chapters']! as List)
           ParsedBookChapter(
@@ -216,12 +274,23 @@ class ImportedBookStore {
           ),
         );
       }
+      String? coverFile;
+      final cover = parsed.cover;
+      if (cover != null) {
+        final name = 'cover.${cover.extension}';
+        await File(
+          '${staging.path}${Platform.pathSeparator}$name',
+        ).writeAsBytes(cover.bytes, flush: true);
+        coverFile = name;
+      }
       final book = ImportedBook._(
         id: id,
         title: parsed.title,
         author: parsed.author,
         format: parsed.format,
         addedAt: DateTime.now(),
+        directory: target.path,
+        coverFile: coverFile,
         chapters: chapters,
         chapterFiles: files,
       );
@@ -246,7 +315,11 @@ class ImportedBookStore {
     try {
       final raw = jsonDecode(await manifest.readAsString(encoding: utf8));
       if (raw is! Map) return null;
-      return _fromManifest(raw, expectedId: id);
+      return _fromManifest(
+        raw,
+        expectedId: id,
+        directory: '${root.path}${Platform.pathSeparator}$id',
+      );
     } catch (_) {
       return null;
     }
@@ -286,7 +359,11 @@ class ImportedBookStore {
     return 'local_${timestamp}_$salt';
   }
 
-  ImportedBook? _fromManifest(Map raw, {required String expectedId}) {
+  ImportedBook? _fromManifest(
+    Map raw, {
+    required String expectedId,
+    required String directory,
+  }) {
     if (raw['id'] != expectedId || raw['chapters'] is! List) return null;
     final title = raw['title']?.toString().trim() ?? '';
     if (title.isEmpty) return null;
@@ -314,6 +391,14 @@ class ImportedBookStore {
     }
     if (chapters.isEmpty || chapters.length != files.length) return null;
     final addedAt = raw['addedAt'];
+    // The cover name is validated like the chapter files: it must be one of the
+    // names this store writes and must not contain a path separator. A stored
+    // value that no longer matches is dropped rather than trusted, so a
+    // tampered manifest can never point the shelf at an arbitrary file.
+    final rawCover = raw['cover']?.toString() ?? '';
+    final coverFile = RegExp(_coverFilePattern).hasMatch(rawCover)
+        ? rawCover
+        : null;
     return ImportedBook._(
       id: expectedId,
       title: title,
@@ -322,6 +407,8 @@ class ImportedBookStore {
       addedAt: DateTime.fromMillisecondsSinceEpoch(
         addedAt is num ? addedAt.toInt() : 0,
       ),
+      directory: directory,
+      coverFile: coverFile,
       chapters: chapters,
       chapterFiles: files,
     );
@@ -425,7 +512,8 @@ ParsedImportedBook _parseEpub(String fileTitle, Uint8List bytes) {
       .where((element) => element.localName == 'creator')
       .map((element) => element.innerText.trim())
       .firstWhere((value) => value.isNotEmpty, orElse: () => '');
-  final manifest = <String, ({String href, String mediaType})>{};
+  final manifest =
+      <String, ({String href, String mediaType, Set<String> properties})>{};
   for (final element in elements.where((element) => element.localName == 'item')) {
     final id = element.getAttribute('id');
     final href = element.getAttribute('href');
@@ -433,12 +521,16 @@ ParsedImportedBook _parseEpub(String fileTitle, Uint8List bytes) {
     manifest[id] = (
       href: href,
       mediaType: element.getAttribute('media-type') ?? '',
+      properties: _propertyTokens(element.getAttribute('properties')),
     );
   }
   final spine = elements.where((element) => element.localName == 'itemref');
   final baseDirectory = normalizedOpfPath.contains('/')
       ? normalizedOpfPath.substring(0, normalizedOpfPath.lastIndexOf('/'))
       : '';
+  // Cover extraction is best effort: a damaged artwork must not fail the whole
+  // import, so any failure here reads as "this book has no cover".
+  final cover = _extractEpubCover(elements, manifest, baseDirectory, archive);
   final chapters = <ParsedBookChapter>[];
   for (final itemRef in spine) {
     final id = itemRef.getAttribute('idref');
@@ -474,8 +566,272 @@ ParsedImportedBook _parseEpub(String fileTitle, Uint8List bytes) {
     title: title,
     author: author,
     format: 'epub',
+    cover: cover,
     chapters: chapters,
   );
+}
+
+// ---------------------------------------------------------------------------
+// EPUB cover extraction.
+//
+// The discovery order mirrors Legado's `EpubPackageParser.findCoverHref()`:
+// declared artwork first, guesswork last, and the guesswork never degrades into
+// "the first image in the manifest".
+// ---------------------------------------------------------------------------
+
+final _coverReferencePattern = RegExp(
+  '''(?:src|href)\\s*=\\s*["']([^"']+)["']''',
+  caseSensitive: false,
+);
+final _coverCssUrlPattern = RegExp(
+  '''url\\(\\s*["']?([^"')]+)["']?\\s*\\)''',
+  caseSensitive: false,
+);
+final _svgPattern = RegExp(r'<svg[\s>]', caseSensitive: false);
+
+Set<String> _propertyTokens(String? value) {
+  if (value == null) return const {};
+  return value
+      .split(RegExp(r'\s+'))
+      .map((token) => token.trim().toLowerCase())
+      .where((token) => token.isNotEmpty)
+      .toSet();
+}
+
+bool _isImageMediaType(String mediaType) =>
+    mediaType.trim().toLowerCase().startsWith('image/');
+
+bool _isCoverDocumentMediaType(String mediaType) {
+  final value = mediaType.split(';').first.trim().toLowerCase();
+  return value == 'application/xhtml+xml' ||
+      value == 'text/html' ||
+      value == 'image/svg+xml';
+}
+
+/// Best-effort cover lookup: a damaged or unsupported artwork leaves the book
+/// without a cover instead of failing the import.
+ParsedBookCover? _extractEpubCover(
+  List<XmlElement> opfElements,
+  Map<String, ({String href, String mediaType, Set<String> properties})>
+  manifest,
+  String baseDirectory,
+  Archive archive,
+) {
+  try {
+    final href = _findCoverHref(opfElements, manifest, baseDirectory, archive);
+    if (href == null) return null;
+    return _loadCoverArtwork(href, baseDirectory, archive);
+  } catch (_) {
+    return null;
+  }
+}
+
+String? _findCoverHref(
+  List<XmlElement> opfElements,
+  Map<String, ({String href, String mediaType, Set<String> properties})>
+  manifest,
+  String baseDirectory,
+  Archive archive,
+) {
+  /// Accepts a manifest id as well as a resource path: producers write both
+  /// into `<meta name="cover" content="..."/>`. A manifest href is already an
+  /// archive path, so it is tried before resolving against the OPF folder.
+  String? candidate(String? rawValue) {
+    final value = rawValue?.trim() ?? '';
+    if (value.isEmpty) return null;
+    final byId = manifest[value.startsWith('#') ? value.substring(1) : value];
+    if (byId != null) {
+      final path = _resolveArchiveHref(baseDirectory, byId.href);
+      if (path.isNotEmpty && archive.findFile(path) != null) return path;
+    }
+    if (value.startsWith('#')) return null;
+    for (final path in [
+      _resolveArchiveHref('', value),
+      _resolveArchiveHref(baseDirectory, value),
+    ]) {
+      if (path.isNotEmpty && archive.findFile(path) != null) return path;
+    }
+    return null;
+  }
+
+  bool hinted(String id, String href) =>
+      _coverHintPattern.hasMatch(id) || _coverHintPattern.hasMatch(href);
+
+  // EPUB 3 marks the manifest item itself.
+  for (final item in manifest.values) {
+    if (!item.properties.contains('cover-image')) continue;
+    final found = candidate(item.href);
+    if (found != null) return found;
+  }
+
+  // Some producers declare it in metadata instead, optionally refining an id.
+  for (final meta in opfElements.where((e) => e.localName == 'meta')) {
+    final property = meta.getAttribute('property')?.trim().toLowerCase();
+    if (property != 'cover-image') continue;
+    final text = meta.innerText.trim();
+    final found =
+        candidate(meta.getAttribute('refines')) ??
+        candidate(text.isNotEmpty ? text : meta.getAttribute('content'));
+    if (found != null) return found;
+  }
+
+  // EPUB 2 uses `<meta name="cover" content="manifest-id">`, and a number of
+  // files put a relative resource path there instead.
+  for (final meta in opfElements.where((e) => e.localName == 'meta')) {
+    final name = meta.getAttribute('name')?.trim().toLowerCase();
+    if (name != 'cover') continue;
+    final found = candidate(meta.getAttribute('content'));
+    if (found != null) return found;
+    // Only the first such entry is trusted; later ones are the kind of noise
+    // that would otherwise resurrect an unrelated title page.
+    break;
+  }
+
+  // EPUB 2 commonly points at a cover document through guide. Kept behind the
+  // explicit declarations because guide may hold a presentation-only title
+  // page rather than the artwork.
+  for (final reference in opfElements.where((e) => e.localName == 'reference')) {
+    final type = reference.getAttribute('type')?.trim().toLowerCase();
+    if (type != 'cover') continue;
+    final found = candidate(reference.getAttribute('href'));
+    if (found != null) return found;
+    break;
+  }
+
+  // Packages omitting both declarations: limit the guesswork to resources whose
+  // id or path actually carries a cover hint.
+  for (final entry in manifest.entries) {
+    final item = entry.value;
+    if (!_isImageMediaType(item.mediaType)) continue;
+    if (!hinted(entry.key, item.href)) continue;
+    final found = candidate(item.href);
+    if (found != null) return found;
+  }
+  for (final entry in manifest.entries) {
+    final item = entry.value;
+    if (!_isCoverDocumentMediaType(item.mediaType)) continue;
+    if (!hinted(entry.key, item.href)) continue;
+    final found = candidate(item.href);
+    if (found != null) return found;
+  }
+  return null;
+}
+
+/// Reads the artwork and returns it in the stored shape. Raster images are
+/// re-encoded; a cover document that only wraps the real artwork is followed one
+/// level, which is what keeps SVG/XHTML covers from drawing blank.
+ParsedBookCover? _loadCoverArtwork(
+  String href,
+  String baseDirectory,
+  Archive archive,
+) {
+  final bytes = _readCoverBytes(href, archive);
+  if (bytes == null) return null;
+  final raster = _encodeRasterCover(bytes);
+  if (raster != null) return raster;
+  final directory = href.contains('/')
+      ? href.substring(0, href.lastIndexOf('/'))
+      : baseDirectory;
+  for (final reference in _coverReferences(bytes)) {
+    final path = _resolveArchiveHref(directory, reference);
+    if (path.isEmpty || path == href) continue;
+    final nested = _readCoverBytes(path, archive);
+    if (nested == null) continue;
+    final image = _encodeRasterCover(nested);
+    if (image != null) return image;
+  }
+  if (_looksLikeSvg(bytes)) {
+    return ParsedBookCover(bytes: bytes, extension: 'svg');
+  }
+  return null;
+}
+
+Uint8List? _readCoverBytes(String path, Archive archive) {
+  final file = archive.findFile(path);
+  if (file == null) return null;
+  final content = file.content;
+  if (content.isEmpty || content.length > _maxCoverResourceBytes) return null;
+  return content;
+}
+
+String? _rasterFormat(Uint8List bytes) {
+  if (_startsWithBytes(bytes, const [0x89, 0x50, 0x4e, 0x47])) return 'png';
+  if (_startsWithBytes(bytes, const [0xff, 0xd8, 0xff])) return 'jpg';
+  if (_startsWithBytes(bytes, const [0x47, 0x49, 0x46, 0x38])) return 'gif';
+  if (_startsWithBytes(bytes, const [0x52, 0x49, 0x46, 0x46]) &&
+      _startsWithBytes(bytes, const [0x57, 0x45, 0x42, 0x50], 8)) {
+    return 'webp';
+  }
+  return null;
+}
+
+bool _startsWithBytes(Uint8List bytes, List<int> magic, [int offset = 0]) {
+  if (bytes.length < offset + magic.length) return false;
+  for (var index = 0; index < magic.length; index++) {
+    if (bytes[offset + index] != magic[index]) return false;
+  }
+  return true;
+}
+
+/// Re-encodes raster artwork, or returns null when the payload is not a bitmap.
+/// The format comes from the magic number rather than the declared media type —
+/// the same last gate Legado applies before storing a cover.
+ParsedBookCover? _encodeRasterCover(Uint8List bytes) {
+  if (_rasterFormat(bytes) == null) return null;
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return null;
+  final wide = decoded.width >= decoded.height;
+  final scaled =
+      decoded.width > _maxCoverImageEdge || decoded.height > _maxCoverImageEdge
+      ? img.copyResize(
+          decoded,
+          width: wide ? _maxCoverImageEdge : null,
+          height: wide ? null : _maxCoverImageEdge,
+        )
+      : decoded;
+  if (_hasTransparentPixel(scaled)) {
+    return ParsedBookCover(bytes: img.encodePng(scaled), extension: 'png');
+  }
+  return ParsedBookCover(
+    bytes: img.encodeJpg(scaled, quality: _coverJpegQuality),
+    extension: 'jpg',
+  );
+}
+
+/// Bounded alpha scan: artwork without real transparency is stored as JPEG,
+/// which is what keeps the private directory small. The cap mirrors the scan
+/// limit Legado applies before choosing between the two.
+bool _hasTransparentPixel(img.Image image) {
+  if (image.numChannels != 4 && image.numChannels != 2) return false;
+  final total = image.width * image.height;
+  if (total <= 0) return false;
+  final step = total <= _maxCoverAlphaScanPixels
+      ? 1
+      : (total / _maxCoverAlphaScanPixels).ceil();
+  for (var index = 0; index < total; index += step) {
+    if (image.getPixel(index % image.width, index ~/ image.width).a < 255) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// Resource references a cover document may wrap the real artwork in.
+Iterable<String> _coverReferences(Uint8List bytes) sync* {
+  if (bytes.length > _maxCoverDocumentBytes) return;
+  final source = _decodeXmlBytes(bytes);
+  for (final pattern in [_coverReferencePattern, _coverCssUrlPattern]) {
+    for (final match in pattern.allMatches(source)) {
+      final value = match.group(1);
+      if (value != null && value.isNotEmpty) yield value;
+    }
+  }
+}
+
+bool _looksLikeSvg(Uint8List bytes) {
+  if (bytes.length > _maxCoverDocumentBytes) return false;
+  final head = bytes.length <= 2048 ? bytes : bytes.sublist(0, 2048);
+  return _svgPattern.hasMatch(_decodeXmlBytes(head));
 }
 
 XmlElement? _firstElement(XmlDocument document, String localName) {

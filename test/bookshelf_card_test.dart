@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -273,14 +277,67 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('本地封面路径走文件分支，空封面走默认封面', (tester) async {
+    // 真实文件读写必须跑在真实事件循环里：fake async 下 dart:io 的完成事件
+    // 永远不会被投递，await 会一直挂到测试超时.
+    final directory = await tester.runAsync(
+      () => Directory.systemTemp.createTemp('fqapp-shelf-'),
+    );
+    final file = File('${directory!.path}${Platform.pathSeparator}cover.png');
+    await tester.runAsync(() => file.writeAsBytes(_pngBytes));
+
+    Future<void> pumpCover(String cover) => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 200,
+              height: 420,
+              child: BookshelfGridCard(
+                item: _item('封面分支', cover: cover),
+                onTap: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // 本地书籍的封面是私有目录里的绝对路径：必须读文件，不能当 URL 请求.
+      await pumpCover(file.path);
+      expect(find.byType(Image), findsOneWidget);
+      expect(find.byType(CachedNetworkImage), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      // 没有封面时交给绘制的默认封面，不发起任何图片加载.
+      await pumpCover('');
+      expect(find.byType(Image), findsNothing);
+      expect(find.byType(CachedNetworkImage), findsNothing);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    } finally {
+      await tester.runAsync(() async {
+        if (await directory.exists()) await directory.delete(recursive: true);
+      });
+    }
+  });
 }
 
-MediaItem _item(String title, {String kind = 'book'}) => MediaItem(
-  id: title,
-  title: title,
-  cover: '',
-  author: '测试作者',
-  badge: '',
-  ep: '120',
-  kind: kind,
+MediaItem _item(String title, {String kind = 'book', String cover = ''}) =>
+    MediaItem(
+      id: title,
+      title: title,
+      cover: cover,
+      author: '测试作者',
+      badge: '',
+      ep: '120',
+      kind: kind,
+    );
+
+/// 1×1 PNG。本地封面分支只要求文件能解码，像素内容无关。
+final _pngBytes = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQAB'
+  'DQottAAAAABJRU5ErkJggg==',
 );
