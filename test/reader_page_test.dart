@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:fqapp/models/chapter_ideas.dart';
 import 'package:fqapp/models/media_item.dart';
 import 'package:fqapp/pages/reader_page.dart';
 import 'package:fqapp/services/library_store.dart';
@@ -46,6 +47,29 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('这是 第一章 的正文。'), findsOneWidget);
     expect(attempts, 2);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('local-only reader skips ideas and hides online listening actions', (
+    tester,
+  ) async {
+    var ideaRequests = 0;
+    await tester.pumpWidget(
+      _readerApp(
+        localOnly: true,
+        ideasLoader: (_) async {
+          ideaRequests++;
+          return ChapterIdeas.empty;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(ideaRequests, 0);
+    await _openMenu(tester);
+    expect(find.text('听书'), findsNothing);
+    await _openSettings(tester);
+    expect(find.text('缓存'), findsNothing);
+    expect(find.byKey(const ValueKey('reader-action-listen')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -547,6 +571,8 @@ Widget _readerApp({
   ChapterTextLoader? chapterLoader,
   ReaderStore? readerStore,
   ChapterCache? chapterCache,
+  bool localOnly = false,
+  ChapterIdeasLoader? ideasLoader,
   TextScaler textScaler = TextScaler.noScaling,
 }) {
   return MaterialApp(
@@ -559,9 +585,11 @@ Widget _readerApp({
       title: '测试书籍',
       chapters: _chapters,
       startIndex: 0,
+      localOnly: localOnly,
       chapterLoader: chapterLoader ?? _shortChapterLoader,
       readerStore: readerStore ?? _FakeReaderStore(),
       chapterCache: chapterCache ?? MemoryChapterCache(),
+      ideasLoader: ideasLoader,
     ),
   );
 }

@@ -23,8 +23,8 @@ enum ReaderParagraphAction { copy, listen, underline, removeUnderline }
 /// offers 复制 / 划线 / 查询 / 写笔记 / 错字反馈. The account- and capability-gated
 /// items need endpoints the backend does not have, so this bar shows only the
 /// actions it can actually perform: a whole-paragraph selection (long press)
-/// gets 从本段听 / 复制 / 划线, a dragged character range gets 复制 / 划线 — with
-/// the official geometry, colours and label placement throughout.
+/// gets 从本段听 when enabled, plus 复制 / 划线; a dragged character range gets
+/// 复制 / 划线. Local-only reading hides the listening item.
 ///
 /// Note: 官方长按工具的版式与颜色取自反编译 m.java / wt.xml / wr.xml，见
 /// .agents/notes/implemented/feature/2026-09-18-reader-paragraph-actions.md
@@ -37,9 +37,8 @@ class ReaderParagraphMenu extends StatelessWidget {
   static const _labelSize = 10.0;
 
   /// See `selection/m.java`: it uses 32dp horizontally for a single item and
-  /// 10dp once there are several. This bar always carries three items, so the
-  /// 32dp case never applies — it is noted here because that constant is what
-  /// makes the official bar wider when only one action is available.
+  /// 10dp once there are several; current paragraph/selection bars have at least
+  /// two actions.
   static const _multiPadding = 10.0;
   static const _verticalPadding = 4.0;
 
@@ -68,6 +67,7 @@ class ReaderParagraphMenu extends StatelessWidget {
   /// 从本段听. A dragged character range drops it — the official selection
   /// toolbar has no listen item either.
   final bool paragraphScoped;
+  final bool showListening;
 
   /// True when the bar sits below the touched line, so its tip points up at the
   /// paragraph (`m.java` shows downArrow instead once the popup flips above).
@@ -84,6 +84,7 @@ class ReaderParagraphMenu extends StatelessWidget {
     this.underlined = false,
     this.isDark = false,
     this.paragraphScoped = true,
+    this.showListening = true,
     this.belowAnchor = true,
   });
 
@@ -93,7 +94,8 @@ class ReaderParagraphMenu extends StatelessWidget {
   static int itemCount({
     required bool underlined,
     required bool paragraphScoped,
-  }) => paragraphScoped ? 3 : 2;
+    bool showListening = true,
+  }) => paragraphScoped ? (showListening ? 3 : 2) : 2;
 
   /// Clamped top-left for the bar anchored at [anchor] (window coordinates),
   /// plus which side of the anchor it ended up on — the geometry
@@ -115,12 +117,14 @@ class ReaderParagraphMenu extends StatelessWidget {
     required Size view,
     required EdgeInsets safeArea,
     required bool underlined,
+    bool showListening = true,
     double avoidBottom = 0,
   }) {
     const flipClearance = 10.0;
     final count = itemCount(
       underlined: underlined,
       paragraphScoped: paragraphScoped,
+      showListening: showListening,
     );
     final barWidth = count * _itemWidth + _multiPadding * 2;
     // Only the tip facing the paragraph is laid out, exactly like `m.java`:
@@ -178,7 +182,7 @@ class ReaderParagraphMenu extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (paragraphScoped)
+              if (paragraphScoped && showListening)
                 _Item(
                   key: const ValueKey('reader-action-listen'),
                   icon: LucideIcons.headphones,

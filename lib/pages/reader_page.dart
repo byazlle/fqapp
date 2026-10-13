@@ -52,6 +52,7 @@ class ReaderPage extends StatefulWidget {
   final String cover;
   final List<Chapter> chapters;
   final int startIndex;
+  final bool localOnly;
   final ChapterTextLoader? chapterLoader;
   final ReaderStore? readerStore;
   final ChapterCache? chapterCache;
@@ -77,6 +78,7 @@ class ReaderPage extends StatefulWidget {
     this.cover = '',
     required this.chapters,
     required this.startIndex,
+    this.localOnly = false,
     this.chapterLoader,
     this.readerStore,
     this.chapterCache,
@@ -180,6 +182,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
 
   void _onListeningTick() {
     if (!mounted ||
+        widget.localOnly ||
         !_preferences.listeningFollow ||
         _autoTurnTimer != null ||
         _controlsVisible ||
@@ -342,7 +345,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       _loading = false;
       _error = '暂无可阅读章节';
     } else {
-      unawaited(_ensureCatalog().catchError((_) {}));
+      if (!widget.localOnly) {
+        unawaited(_ensureCatalog().catchError((_) {}));
+      }
       _load();
     }
   }
@@ -641,6 +646,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       view: view,
       safeArea: safeArea,
       underlined: underlined,
+      showListening: !widget.localOnly,
       avoidBottom: avoidBottom,
     );
     return Positioned(
@@ -650,6 +656,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       child: ReaderParagraphMenu(
         underlined: underlined,
         paragraphScoped: selection.isWholeParagraph,
+        showListening: !widget.localOnly,
         isDark: preset.isDark,
         belowAnchor: below,
         onAction: (action) {
@@ -697,6 +704,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         );
         if (mounted) _showMessage('已复制');
       case ReaderParagraphAction.listen:
+        if (widget.localOnly) return;
         final block = layout.blockAtOffset(selection.start);
         final textId = block?.textId;
         if (block == null || textId == null) return;
@@ -997,6 +1005,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   /// Loads the chapter's paragraph ideas. Decoration only: a failure leaves the
   /// reader fully usable with the段评 action hidden.
   Future<void> _loadIdeas(Chapter chapter, int generation) async {
+    if (widget.localOnly) return;
     final loader = widget.ideasLoader;
     if (loader == null && widget.chapterCache != null) {
       // An injected cache means the caller drives its own data; do not reach
@@ -1155,6 +1164,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   Future<void> _refreshCachedChapter(Chapter chapter) async {
+    if (widget.localOnly) return;
     final pending = _chapterRefreshes[chapter.itemId];
     if (pending != null) return pending;
     final request = _upgradeChapter(chapter);
@@ -1281,20 +1291,22 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     bool superseded() =>
         revision != (_chapterCacheRevisions[chapter.itemId] ?? 0);
     String? text;
-    try {
-      final cached = await _diskCache.read(
-        bookId: widget.bookId,
-        chapterId: chapter.itemId,
-      );
-      if (cached != null &&
-          cached.trim().isNotEmpty &&
-          !ChapterContent.fromCacheText(
-            cached,
-          ).withoutLeadingTitle(chapter.title).isEmpty) {
-        text = cached;
+    if (!widget.localOnly) {
+      try {
+        final cached = await _diskCache.read(
+          bookId: widget.bookId,
+          chapterId: chapter.itemId,
+        );
+        if (cached != null &&
+            cached.trim().isNotEmpty &&
+            !ChapterContent.fromCacheText(
+              cached,
+            ).withoutLeadingTitle(chapter.title).isEmpty) {
+          text = cached;
+        }
+      } catch (_) {
+        // A storage failure must not prevent online reading.
       }
-    } catch (_) {
-      // A storage failure must not prevent online reading.
     }
     if (superseded()) return _latestChapterText(chapter);
     final fetched = text == null;
@@ -1306,7 +1318,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         rethrow;
       }
       if (superseded()) return _latestChapterText(chapter);
-      if (mounted) {
+      if (mounted && !widget.localOnly) {
         try {
           await _ensureCatalog();
           if (superseded()) return _latestChapterText(chapter);
@@ -1736,6 +1748,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   /// because the user asked to listen from a paragraph. The fetch is bounded,
   /// and a failure still opens the page at the chapter start.
   Future<void> _openListening({int? fromMs, int? textId}) async {
+    if (widget.localOnly) return;
     final paragraphAnchored = textId != null;
     if (_openingListening) return;
     _openingListening = true;
@@ -2527,6 +2540,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       onAppearance: _showAppearanceSettings,
       onCache: _showCache,
       onListen: () => unawaited(_openListening()),
+      showListening: !widget.localOnly,
+      showCache: !widget.localOnly,
       autoTurnActive: _autoTurnTimer != null,
       onAutoTurn: _toggleAutoTurn,
     );

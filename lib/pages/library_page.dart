@@ -1,5 +1,5 @@
 // Note: 这是官方番茄免费小说 7.0.9.32 书架形态的本地复刻（双 tab + 页头 +
-// 三档版式 + 编辑态）；被砍掉的官方能力（分组/云同步/导入图书/最近删除/
+// 三档版式 + 编辑态）；尚未实现的官方能力（分组/云同步/最近删除/
 // 连载更新提醒）与版式偏好 key 的语义迁移见
 // .agents/notes/implemented/feature/2026-09-20-official-bookshelf.md
 import 'package:flutter/foundation.dart';
@@ -10,14 +10,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/media_item.dart';
 import '../services/chapter_cache_store.dart';
 import '../services/connectivity_status.dart';
+import '../services/imported_book_store.dart';
 import '../services/library_store.dart';
 import '../services/media_history_store.dart';
+import '../services/reader_history.dart';
 import '../services/shelf_store.dart';
 import '../widgets/bookshelf_card.dart';
 import '../widgets/home/home_design.dart';
 import 'cached_book_reader.dart';
 import 'cached_books_page.dart';
 import 'detail_page.dart';
+import 'reader_page.dart';
 import 'search_page.dart';
 
 /// 版式偏好：0 宫格 / 1 双列 / 2 列表，与 [BookshelfLayout] 的枚举下标一致。
@@ -76,6 +79,7 @@ class _LibraryPageState extends State<LibraryPage> {
   bool _filterOpen = false;
   String? _kindFilter;
   bool _editing = false;
+  bool _importingBook = false;
   final Set<String> _selected = {};
   int _todayMinutes = 0;
   List<_ShelfEntry> _shelf = const [];
@@ -227,6 +231,29 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
+  Future<void> _importLocalBook() async {
+    if (_importingBook) return;
+    setState(() => _importingBook = true);
+    try {
+      final book = await ImportedBookStore.instance.pickAndImport();
+      if (book == null || !mounted) return;
+      await ShelfStore.instance.add(book.toMediaItem());
+      if (!mounted) return;
+      _load();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已导入《${book.title}》')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString().replaceFirst('FormatException: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('导入失败：$message')),
+      );
+    } finally {
+      if (mounted) setState(() => _importingBook = false);
+    }
+  }
+
   void _handleMenu(_MenuAction action) {
     final layout = action.layout;
     if (layout != null) {
@@ -250,17 +277,64 @@ class _LibraryPageState extends State<LibraryPage> {
     );
   }
 
-  /// 点书：离线且本地有缓存时直接进阅读器，否则走详情页。
+  /// 点书：导入书籍直接走本地阅读器；在线作品仍保持原详情/离线缓存逻辑。
   ///
   /// 官方客户端书架点书就是直接起阅读器（`ReaderBundleBuilder`），中间没有
   /// 那个要联网取目录的页面。这里只在「无网 + 有缓存」时抄这条捷径：联网时
   /// 仍走详情页，段评、章节目录预览这些联网能力不会被悄悄降级。
   Future<void> _open(MediaItem item) async {
+    if (ImportedBookStore.isLocalBookId(item.id)) {
+      await _openLocalBook(item);
+      return;
+    }
     if (await _openCached(item)) return;
     if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => DetailPage(item: item)),
+    );
+  }
+
+  Future<void> _openLocalBook(MediaItem item) async {
+    final store = ImportedBookStore.instance;
+    final book = await store.book(item.id);
+    if (!mounted) return;
+    if (book == null || book.chapters.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('本地书籍文件不可用')),
+      );
+      return;
+    }
+    final readerStore = widget.readerStore ?? LibraryStore.instance;
+    Map<String, dynamic>? saved;
+    try {
+      saved = await ReaderHistory(readerStore).load(book.id);
+    } catch (_) {
+      // A missing history record only resets the initial chapter.
+    }
+    if (!mounted) return;
+    var startIndex = book.chapters.indexWhere(
+      (chapter) => chapter.itemId == saved?['chapterId']?.toString(),
+    );
+    if (startIndex < 0) {
+      final episode = num.tryParse(saved?['episode']?.toString() ?? '');
+      startIndex = episode != null && episode.isFinite
+          ? episode.toInt().clamp(0, book.chapters.length - 1).toInt()
+          : 0;
+    }
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => ReaderPage(
+          bookId: book.id,
+          title: book.title,
+          chapters: book.chapters,
+          startIndex: startIndex,
+          localOnly: true,
+          readerStore: readerStore,
+          chapterLoader: (chapter) => store.chapterText(book.id, chapter.itemId),
+        ),
+      ),
     );
   }
 
@@ -591,22 +665,38 @@ class _LibraryPageState extends State<LibraryPage> {
               ],
             ),
           ),
-          const Spacer(),
-          _HeaderButton(
-            key: const Key('shelf-filter-button'),
-            label: '筛选',
-            icon: LucideIcons.sliders_horizontal,
-            active: _filterOpen || _kindFilter != null,
-            palette: palette,
-            onTap: () => setState(() => _filterOpen = !_filterOpen),
-          ),
           const SizedBox(width: 8),
-          _HeaderButton(
-            key: const Key('shelf-edit-button'),
-            label: '编辑',
-            icon: LucideIcons.list_checks,
-            palette: palette,
-            onTap: _enterEdit,
+          Flexible(
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                _HeaderButton(
+                  key: const Key('shelf-import-button'),
+                  label: _importingBook ? '导入中' : '导入',
+                  icon: LucideIcons.plus,
+                  active: _importingBook,
+                  palette: palette,
+                  onTap: _importLocalBook,
+                ),
+                _HeaderButton(
+                  key: const Key('shelf-filter-button'),
+                  label: '筛选',
+                  icon: LucideIcons.sliders_horizontal,
+                  active: _filterOpen || _kindFilter != null,
+                  palette: palette,
+                  onTap: () => setState(() => _filterOpen = !_filterOpen),
+                ),
+                _HeaderButton(
+                  key: const Key('shelf-edit-button'),
+                  label: '编辑',
+                  icon: LucideIcons.list_checks,
+                  palette: palette,
+                  onTap: _enterEdit,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -720,9 +810,9 @@ class _LibraryPageState extends State<LibraryPage> {
 
   /// 编辑态底功能栏（amb.xml）：每个条目 28dp 图标 + 10sp 文案。
   ///
-  /// 官方底栏还有找相似书 / 移动至分组 / 分享为书单 / 加入桌面 / 云同步 / 导入
-  /// 图书 / 最近删除 / 连载更新提醒，这些本地都没有数据源，不伪造入口；有数据
-  /// 支撑的只有「移出书架」（书架 tab）与「删除」（浏览历史 tab）。
+  /// 官方底栏还有找相似书 / 移动至分组 / 分享为书单 / 加入桌面 / 云同步 / 最近删除 /
+  /// 连载更新提醒等能力，本地没有数据源，不伪造入口；本机导入书籍由页头入口处理。
+  /// 有数据支撑的编辑操作是「移出书架」（书架 tab）与「删除」（浏览历史 tab）。
   Widget _editBottomBar(HomePalette palette) {
     final removing = _tab == 0;
     return RepaintBoundary(

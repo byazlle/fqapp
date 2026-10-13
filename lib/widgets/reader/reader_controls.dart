@@ -4,9 +4,8 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 import '../../services/reader_preferences.dart';
 import 'reader_theme.dart';
 
-/// Official-shape reading menu: a slim bottom bar of 目录 / 夜间 / 听书 / 设置.
-/// Brightness, chapter seek and the secondary actions live behind 设置 so the
-/// bar itself stays short.
+/// Official-shape reading menu. Local-only books omit online listening and
+/// chapter-cache actions; brightness, seek and secondary actions stay concise.
 class ReaderControls extends StatefulWidget {
   final ReaderPreferences preferences;
   final int chapterIndex;
@@ -29,6 +28,8 @@ class ReaderControls extends StatefulWidget {
 
   /// 听书: opens the listening page for this book.
   final VoidCallback onListen;
+  final bool showListening;
+  final bool showCache;
 
   final bool autoTurnActive;
   final VoidCallback onAutoTurn;
@@ -54,6 +55,8 @@ class ReaderControls extends StatefulWidget {
     required this.onAppearance,
     required this.onCache,
     required this.onListen,
+    this.showListening = true,
+    this.showCache = true,
     this.autoTurnActive = false,
     required this.onAutoTurn,
   });
@@ -121,11 +124,12 @@ class _ReaderControlsState extends State<ReaderControls> {
                           label: preset.isDark ? '日间' : '夜间',
                           onTap: widget.onNight,
                         ),
-                        _Action(
-                          icon: LucideIcons.headphones,
-                          label: '听书',
-                          onTap: widget.onListen,
-                        ),
+                        if (widget.showListening)
+                          _Action(
+                            icon: LucideIcons.headphones,
+                            label: '听书',
+                            onTap: widget.onListen,
+                          ),
                         _Action(
                           key: const ValueKey('reader-settings'),
                           icon: LucideIcons.sliders_horizontal,
@@ -282,11 +286,12 @@ class _ReaderControlsState extends State<ReaderControls> {
           ),
           Row(
             children: [
-              _Action(
-                icon: LucideIcons.download,
-                label: '缓存',
-                onTap: widget.onCache,
-              ),
+              if (widget.showCache)
+                _Action(
+                  icon: LucideIcons.download,
+                  label: '缓存',
+                  onTap: widget.onCache,
+                ),
               _Action(
                 icon: LucideIcons.type,
                 label: '排版',

@@ -101,12 +101,17 @@ class _MemoryUnderlines extends ReaderUnderlineStore {
   }
 }
 
-Widget _app(ReaderUnderlineStore store, {String? html}) => MaterialApp(
+Widget _app(
+  ReaderUnderlineStore store, {
+  String? html,
+  bool localOnly = false,
+}) => MaterialApp(
   home: ReaderPage(
     bookId: 'reader-test',
     title: '测试书籍',
     chapters: _chapters,
     startIndex: 0,
+    localOnly: localOnly,
     readerStore: MemoryReaderStore(),
     chapterCache: MemoryChapterCache(),
     chapterLoader: (_) async =>
@@ -481,6 +486,23 @@ void main() {
     expect(find.text('取消划线'), findsNothing);
     await tester.tapAt(const Offset(200, 60));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('local-only paragraph actions omit 从本段听', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(_app(_MemoryUnderlines(), localOnly: true));
+    await tester.pumpAndSettle();
+
+    await _longPressParagraph(tester, 0);
+    expect(find.byKey(const ValueKey('reader-action-copy')), findsOneWidget);
+    expect(find.byKey(const ValueKey('reader-action-listen')), findsNothing);
+    expect(find.text('从本段听'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('reader-action-underline')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

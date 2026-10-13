@@ -309,6 +309,7 @@ void main() {
       await tester.pumpWidget(_app(onBrowse: () => browsed = true));
       await tester.pumpAndSettle();
       expect(find.text('书架暂无书籍'), findsOneWidget);
+      expect(find.byKey(const Key('shelf-import-button')), findsOneWidget);
       await tester.tap(find.byKey(const Key('shelf-browse-button')));
       expect(browsed, isTrue);
     });
