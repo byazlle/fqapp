@@ -7,7 +7,7 @@ import '../models/audio_extra.dart' show RelatedWork;
 import '../models/media_item.dart';
 import '../models/playlet_comment.dart';
 import '../models/series_detail.dart';
-import 'detail_page.dart' show DetailPage;
+import 'detail_page.dart' show DetailPage, openBookDetail;
 import 'series_detail_page.dart' show SeriesDetailPage;
 import '../services/api_client.dart';
 import '../services/backend_transport.dart' show BackendRequest;
