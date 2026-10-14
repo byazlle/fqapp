@@ -457,6 +457,14 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
                           ),
                         ),
                         _toggle(
+                          '连续阅读',
+                          subtitle: '滚动到底继续下拉，自动进入下一章，不用点章末的下一章',
+                          value: _value.continuousReading,
+                          onChanged: (value) => _update(
+                            _value.copyWith(continuousReading: value),
+                          ),
+                        ),
+                        _toggle(
                           '阅读时保持屏幕常亮',
                           value: _value.keepScreenOn,
                           onChanged: (value) => _update(

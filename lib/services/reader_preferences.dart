@@ -37,6 +37,7 @@ class ReaderPreferences {
   static const _keepScreenOnKey = 'reader_keep_screen_on';
   static const _autoTurnSecondsKey = 'reader_auto_turn_seconds';
   static const _listeningFollowKey = 'reader_listening_follow';
+  static const _continuousReadingKey = 'reader_continuous_reading';
 
   final double fontSize;
   final int fontWeight;
@@ -63,6 +64,11 @@ class ReaderPreferences {
   /// playback (听书跟随翻页).
   final bool listeningFollow;
 
+  /// 连续阅读：滚动到底继续下拉自动进入下一章，不用点章末的「下一章」按钮；
+  /// 分页模式下章末页停靠 600ms 后自动进下一章。关掉则章末停住，等用户点
+  /// 按钮或主动翻页。默认开：滚动模式下这是主流阅读器的行为。
+  final bool continuousReading;
+
   const ReaderPreferences({
     this.fontSize = 18,
     this.fontWeight = 400,
@@ -85,6 +91,7 @@ class ReaderPreferences {
     this.keepScreenOn = false,
     this.autoTurnSeconds = 10,
     this.listeningFollow = true,
+    this.continuousReading = true,
   });
 
   ReaderPreferences copyWith({
@@ -109,6 +116,7 @@ class ReaderPreferences {
     bool? keepScreenOn,
     int? autoTurnSeconds,
     bool? listeningFollow,
+    bool? continuousReading,
   }) {
     return ReaderPreferences(
       fontSize: fontSize ?? this.fontSize,
@@ -133,6 +141,7 @@ class ReaderPreferences {
       keepScreenOn: keepScreenOn ?? this.keepScreenOn,
       autoTurnSeconds: autoTurnSeconds ?? this.autoTurnSeconds,
       listeningFollow: listeningFollow ?? this.listeningFollow,
+      continuousReading: continuousReading ?? this.continuousReading,
     ).normalized();
   }
 
@@ -169,6 +178,7 @@ class ReaderPreferences {
           ? autoTurnSeconds.round().clamp(3, 60)
           : 10,
       listeningFollow: listeningFollow,
+      continuousReading: continuousReading,
     );
   }
 
@@ -215,6 +225,8 @@ class ReaderPreferences {
       autoTurnSeconds:
           (_number(preferences, _autoTurnSecondsKey) ?? 10).round().clamp(3, 60),
       listeningFollow: _boolean(preferences, _listeningFollowKey) ?? true,
+      continuousReading:
+          _boolean(preferences, _continuousReadingKey) ?? true,
     ).normalized();
   }
 
@@ -257,6 +269,7 @@ class ReaderPreferences {
       preferences.setBool(_keepScreenOnKey, value.keepScreenOn),
       preferences.setInt(_autoTurnSecondsKey, value.autoTurnSeconds),
       preferences.setBool(_listeningFollowKey, value.listeningFollow),
+      preferences.setBool(_continuousReadingKey, value.continuousReading),
     ]);
   }
 

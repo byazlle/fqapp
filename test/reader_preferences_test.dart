@@ -28,6 +28,7 @@ void main() {
       fontPath: '/private/reader-fonts/test.font',
       fontName: '测试宋体.ttf',
       pageMode: ReaderPageMode.scroll,
+      continuousReading: false,
     );
 
     await expected.save();
@@ -49,6 +50,7 @@ void main() {
     expect(restored.fontPath, '/private/reader-fonts/test.font');
     expect(restored.fontName, '测试宋体.ttf');
     expect(restored.pageMode, ReaderPageMode.scroll);
+    expect(restored.continuousReading, isFalse);
   });
 
   test('reader preferences normalize invalid stored values', () async {
@@ -67,6 +69,7 @@ void main() {
       'reader_follow_system_brightness': 3,
       'reader_brightness': 0,
       'reader_page_mode': 'unknown',
+      'reader_continuous_reading': 'yes',
     });
 
     final restored = await ReaderPreferences.load();
@@ -85,6 +88,8 @@ void main() {
     expect(restored.followSystemBrightness, isTrue);
     expect(restored.brightness, 0.02);
     expect(restored.pageMode, ReaderPageMode.paged);
+    // A wrong-typed stored value falls back to the default (on).
+    expect(restored.continuousReading, isTrue);
   });
 
   test(

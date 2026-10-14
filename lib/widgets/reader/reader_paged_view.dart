@@ -48,6 +48,11 @@ class ReaderPagedView extends StatefulWidget {
   /// the deferred advance below may still swap chapters.
   final ValueChanged<int>? onBoundaryLanded;
 
+  /// 连续阅读：落在章末/章首页后 600ms 自动进下一章/上一章。关掉则停在
+  /// 边界页上，等用户点按钮或主动翻页（拖过边界的手势仍会进下一章）。
+  /// 默认 true，保持已有的分页行为。
+  final bool autoAdvanceBoundary;
+
   const ReaderPagedView({
     super.key,
     required this.layout,
@@ -62,6 +67,7 @@ class ReaderPagedView extends StatefulWidget {
     this.endPage,
     this.startPage,
     this.onBoundaryLanded,
+    this.autoAdvanceBoundary = true,
     this.imageProviderFactory,
     this.onParagraphLongPress,
     this.onParagraphLongPressMoveUpdate,
@@ -247,6 +253,7 @@ class ReaderPagedViewState extends State<ReaderPagedView> {
             // deferred briefly instead — the buttons work during the window,
             // and swiping straight through still advances.
             _boundaryLandingTimer?.cancel();
+            if (!widget.autoAdvanceBoundary) return;
             if (page >= widget.layout.pages.length && !widget.hasNextChapter) {
               return;
             }
