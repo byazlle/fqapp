@@ -1,24 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
+import '../../services/app_theme.dart';
+
 /// The home surface keeps its warm paper / tomato identity in both themes.
 class HomePalette {
   static const accent = Color(0xFFEF5038);
   static const accentStrong = Color(0xFFC73D29);
   final bool dark;
 
-  const HomePalette(this.dark);
+  /// #15/#9：墨水屏时所有纸面 / 文字 / 线条退化为纯黑白。accent 静态常量
+  /// 仍为品牌橙（93 处直接引用），本轮不全量替换，见收尾未验项。
+  final bool eink;
 
-  factory HomePalette.of(BuildContext context) =>
-      HomePalette(Theme.of(context).brightness == Brightness.dark);
+  const HomePalette(this.dark, {this.eink = false});
 
-  Color get canvas => dark ? const Color(0xFF151517) : const Color(0xFFFCFAF7);
-  Color get surface => dark ? const Color(0xFF242427) : Colors.white;
-  Color get ink => dark ? const Color(0xFFF5F1EB) : const Color(0xFF262522);
-  Color get muted => dark ? const Color(0xFFA7A39E) : const Color(0xFF706C66);
-  Color get accentText => dark ? accent : accentStrong;
-  Color get soft => dark ? const Color(0xFF202023) : const Color(0xFFF1EEE9);
-  Color get line => dark ? const Color(0xFF333336) : const Color(0xFFE8E4DE);
+  factory HomePalette.of(BuildContext context) => HomePalette(
+    Theme.of(context).brightness == Brightness.dark,
+    eink: einkModeNotifier.value,
+  );
+
+  Color get canvas => eink
+      ? Colors.white
+      : (dark ? const Color(0xFF151517) : const Color(0xFFFCFAF7));
+  Color get surface =>
+      eink ? Colors.white : (dark ? const Color(0xFF242427) : Colors.white);
+  Color get ink =>
+      eink ? Colors.black : (dark ? const Color(0xFFF5F1EB) : const Color(0xFF262522));
+  Color get muted =>
+      eink ? Colors.black : (dark ? const Color(0xFFA7A39E) : const Color(0xFF706C66));
+  Color get accentText => eink ? Colors.black : (dark ? accent : accentStrong);
+  Color get soft =>
+      eink ? Colors.white : (dark ? const Color(0xFF202023) : const Color(0xFFF1EEE9));
+  Color get line =>
+      eink ? Colors.black : (dark ? const Color(0xFF333336) : const Color(0xFFE8E4DE));
 }
 
 /// Pointer, keyboard and accessibility activation share the same action.

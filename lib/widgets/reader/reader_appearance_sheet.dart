@@ -101,7 +101,10 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
     return Theme(
       data: preset.theme(Theme.of(context)),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        // 墨水屏：任何插值动画都会在屏上留残影，排版面板直接跳变。
+        duration: preset.isEink
+            ? Duration.zero
+            : const Duration(milliseconds: 160),
         decoration: BoxDecoration(
           color: preset.sheetColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),

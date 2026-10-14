@@ -5,11 +5,15 @@ import '../../services/reader_preferences.dart';
 extension ReaderThemeColors on ReaderThemePreset {
   bool get isDark => this == ReaderThemePreset.dark;
 
+  /// #15/#9 墨水屏：纯黑白，不走任何色调推导，墨水屏量化时不产生灰阶。
+  bool get isEink => this == ReaderThemePreset.eink;
+
   String get label => switch (this) {
     ReaderThemePreset.light => '米白',
     ReaderThemePreset.eyeCare => '青绿',
     ReaderThemePreset.parchment => '纸张',
     ReaderThemePreset.dark => '夜间',
+    ReaderThemePreset.eink => '墨水屏',
   };
 
   Color get backgroundColor => switch (this) {
@@ -17,6 +21,7 @@ extension ReaderThemeColors on ReaderThemePreset {
     ReaderThemePreset.eyeCare => const Color(0xFFE8F1DF),
     ReaderThemePreset.parchment => const Color(0xFFF3E4C2),
     ReaderThemePreset.dark => const Color(0xFF171717),
+    ReaderThemePreset.eink => Colors.white,
   };
 
   Color get textColor => switch (this) {
@@ -24,15 +29,18 @@ extension ReaderThemeColors on ReaderThemePreset {
     ReaderThemePreset.eyeCare => const Color(0xFF273128),
     ReaderThemePreset.parchment => const Color(0xFF493D2B),
     ReaderThemePreset.dark => const Color(0xFFD2D2D2),
+    ReaderThemePreset.eink => Colors.black,
   };
 
   Color get accentColor => switch (this) {
     ReaderThemePreset.eyeCare => const Color(0xFF4F6F52),
     ReaderThemePreset.dark => const Color(0xFFE9AD82),
+    ReaderThemePreset.eink => Colors.black,
     _ => const Color(0xFF9B6743),
   };
 
-  Color get mutedTextColor => textColor.withValues(alpha: 0.6);
+  Color get mutedTextColor =>
+      isEink ? Colors.black : textColor.withValues(alpha: 0.6);
 
   /// 官方每个阅读主题一个选区强调色(un4.j.t / ReaderCommonColor.getHighlightColor
   /// 的 b4e-b4i 资源表):light #FA6725、parchment(纸) #CC8114、eyeCare(绿)
@@ -40,6 +48,7 @@ extension ReaderThemeColors on ReaderThemePreset {
   Color get selectionAccentColor => switch (this) {
     ReaderThemePreset.parchment => const Color(0xFFCC8114),
     ReaderThemePreset.eyeCare => const Color(0xFF65992E),
+    ReaderThemePreset.eink => Colors.black,
     _ => const Color(0xFFFA6725),
   };
 
@@ -57,15 +66,26 @@ extension ReaderThemeColors on ReaderThemePreset {
   /// 不是正文色;夜间自带 60% alpha。
   Color get selectionUnderlineColor => selectionHandleColor;
 
-  Color get panelColor => Color.alphaBlend(
-    isDark ? const Color(0x0DFFFFFF) : const Color(0x99FFFFFF),
-    backgroundColor,
-  );
-  Color get fieldColor => Color.alphaBlend(
-    textColor.withValues(alpha: isDark ? 0.06 : 0.035),
-    panelColor,
-  );
-  Color get borderColor => textColor.withValues(alpha: 0.09);
+  Color get panelColor {
+    if (isEink) return Colors.white;
+    return Color.alphaBlend(
+      isDark ? const Color(0x0DFFFFFF) : const Color(0x99FFFFFF),
+      backgroundColor,
+    );
+  }
+
+  Color get fieldColor {
+    if (isEink) return Colors.white;
+    return Color.alphaBlend(
+      textColor.withValues(alpha: isDark ? 0.06 : 0.035),
+      panelColor,
+    );
+  }
+
+  Color get borderColor {
+    if (isEink) return Colors.black;
+    return textColor.withValues(alpha: 0.09);
+  }
   /// 排版面板表面 = 阅读页背景本身(官方 bottombar/t.java 直接把面板根
   /// View 设为 readerConfig.getBackgroundColor(),面板与页面同色);chip/
   /// 控件底色另走 fieldColor(官方是白色 5% 叠加,x4 色表)。
@@ -88,17 +108,46 @@ extension ReaderThemeColors on ReaderThemePreset {
   }
 
   ThemeData _buildTheme(ThemeData base) {
-    final scheme =
-        ColorScheme.fromSeed(
-          seedColor: accentColor,
-          brightness: isDark ? Brightness.dark : Brightness.light,
-        ).copyWith(
-          primary: accentColor,
-          onPrimary: isDark ? backgroundColor : Colors.white,
-          surface: panelColor,
-          onSurface: textColor,
-          onSurfaceVariant: mutedTextColor,
-        );
+    // 墨水屏不走 fromSeed：HCT 色调推导会产生大量灰阶，在墨水屏上被量化
+    // 成抖动/残影。直接给纯黑白 ColorScheme。
+    final scheme = isEink
+        ? const ColorScheme(
+            brightness: Brightness.light,
+            primary: Colors.black,
+            onPrimary: Colors.white,
+            primaryContainer: Colors.white,
+            onPrimaryContainer: Colors.black,
+            secondary: Colors.black,
+            onSecondary: Colors.white,
+            secondaryContainer: Colors.white,
+            onSecondaryContainer: Colors.black,
+            tertiary: Colors.black,
+            onTertiary: Colors.white,
+            surface: Colors.white,
+            onSurface: Colors.black,
+            surfaceContainerLowest: Colors.white,
+            surfaceContainerLow: Colors.white,
+            surfaceContainer: Colors.white,
+            surfaceContainerHigh: Colors.white,
+            surfaceContainerHighest: Colors.white,
+            onSurfaceVariant: Colors.black,
+            outline: Colors.black,
+            outlineVariant: Colors.black,
+            error: Colors.black,
+            onError: Colors.white,
+            errorContainer: Colors.white,
+            onErrorContainer: Colors.black,
+          )
+        : ColorScheme.fromSeed(
+            seedColor: accentColor,
+            brightness: isDark ? Brightness.dark : Brightness.light,
+          ).copyWith(
+            primary: accentColor,
+            onPrimary: isDark ? backgroundColor : Colors.white,
+            surface: panelColor,
+            onSurface: textColor,
+            onSurfaceVariant: mutedTextColor,
+          );
     return base.copyWith(
       colorScheme: scheme,
       scaffoldBackgroundColor: backgroundColor,

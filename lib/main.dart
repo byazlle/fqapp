@@ -128,6 +128,8 @@ Future<void> _initializeLocalData() async {
   themeModeNotifier.value = themeModeFromName(
     savedTheme is String ? savedTheme : null,
   );
+  // 墨水屏模式与深色模式同为可选偏好：读不到退化为关闭，不拖住启动。
+  einkModeNotifier.value = sp.getBool(einkModeKey) ?? false;
 }
 
 class FqApp extends StatelessWidget {
@@ -138,19 +140,27 @@ class FqApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeModeNotifier,
       builder: (context, mode, _) {
-        return MaterialApp(
-          title: '番茄小铺',
-          debugShowCheckedModeBanner: false,
-          theme: _theme(Brightness.light),
-          darkTheme: _theme(Brightness.dark),
-          themeMode: mode,
-          home: const AppBootstrap(child: RootShell()),
+        return ValueListenableBuilder<bool>(
+          valueListenable: einkModeNotifier,
+          builder: (context, eink, _) {
+            // 墨水屏强制浅色纯黑白：深色反白在墨水屏上残影最重。
+            final effectiveMode = eink ? ThemeMode.light : mode;
+            return MaterialApp(
+              title: '番茄小铺',
+              debugShowCheckedModeBanner: false,
+              theme: _theme(Brightness.light, eink: eink),
+              darkTheme: _theme(Brightness.dark, eink: eink),
+              themeMode: effectiveMode,
+              home: const AppBootstrap(child: RootShell()),
+            );
+          },
         );
       },
     );
   }
 
-  ThemeData _theme(Brightness brightness) => AppTheme.createTheme(brightness);
+  ThemeData _theme(Brightness brightness, {bool eink = false}) =>
+      AppTheme.createTheme(brightness, einkMode: eink);
 }
 
 /// Opens local data before any page can access LibraryStore's boxes. Failed
@@ -326,6 +336,89 @@ class _RootShellState extends State<RootShell> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isDramaTab = _index == 1;
     final glassDark = isDark || isDramaTab;
+    // 墨水屏模式：本 build 由 Theme 变化触发重建（上面读了 Theme.of），
+    // 这里直接读 notifier 当前值即可拿到最新开关，不另加监听。
+    final eink = einkModeNotifier.value;
+    final navBar = NavigationBarTheme(
+      data: NavigationBarThemeData(
+        height: 64,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        indicatorColor: eink
+            ? Colors.black
+            : HomePalette.accent.withValues(
+                alpha: glassDark ? 0.20 : 0.12,
+              ),
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            size: 22,
+            color: states.contains(WidgetState.selected)
+                ? (eink
+                      ? Colors.white
+                      : HomePalette.accent)
+                : (eink
+                      ? Colors.black
+                      : (glassDark
+                            ? Colors.white.withValues(alpha: 0.65)
+                            : palette.muted)),
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 11,
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: states.contains(WidgetState.selected)
+                ? (eink
+                      ? Colors.black
+                      : (glassDark
+                            ? HomePalette.accent
+                            : palette.accentText))
+                : (eink
+                      ? Colors.black
+                      : (glassDark
+                            ? Colors.white.withValues(alpha: 0.65)
+                            : palette.muted)),
+          ),
+        ),
+      ),
+      child: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) {
+          if (i != _index) setState(() => _index = i);
+        },
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(LucideIcons.house),
+            selectedIcon: Icon(LucideIcons.house),
+            label: '首页',
+          ),
+          NavigationDestination(
+            icon: Icon(LucideIcons.clapperboard),
+            selectedIcon: Icon(LucideIcons.clapperboard),
+            label: '短剧',
+          ),
+          NavigationDestination(
+            icon: Icon(LucideIcons.library_big),
+            selectedIcon: Icon(LucideIcons.library_big),
+            label: '书架',
+          ),
+          NavigationDestination(
+            icon: Icon(LucideIcons.circle_user_round),
+            selectedIcon: Icon(LucideIcons.circle_user_round),
+            label: '我的',
+          ),
+        ],
+      ),
+    );
 
     return Scaffold(
       extendBody: true,
@@ -359,112 +452,59 @@ class _RootShellState extends State<RootShell> {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(
-                      alpha: glassDark ? 0.38 : 0.08,
-                    ),
-                    blurRadius: 22,
-                    offset: const Offset(0, 8),
-                  ),
-                  BoxShadow(
-                    color: HomePalette.accent.withValues(
-                      alpha: glassDark ? 0.06 : 0.03,
-                    ),
-                    blurRadius: 14,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                // 墨水屏：阴影是灰阶 + 刷新残影来源，直接去掉，改用实线边框。
+                boxShadow: eink
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: glassDark ? 0.38 : 0.08,
+                          ),
+                          blurRadius: 22,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: HomePalette.accent.withValues(
+                            alpha: glassDark ? 0.06 : 0.03,
+                          ),
+                          blurRadius: 14,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: glassDark
-                          ? const Color(0xFF161619).withValues(alpha: 0.72)
-                          : Colors.white.withValues(alpha: 0.82),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: glassDark
-                            ? Colors.white.withValues(alpha: 0.16)
-                            : Colors.white.withValues(alpha: 0.75),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: NavigationBarTheme(
-                      data: NavigationBarThemeData(
-                        height: 64,
-                        elevation: 0,
-                        backgroundColor: Colors.transparent,
-                        surfaceTintColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        indicatorColor: HomePalette.accent.withValues(
-                          alpha: glassDark ? 0.20 : 0.12,
-                        ),
-                        indicatorShape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        iconTheme: WidgetStateProperty.resolveWith(
-                          (states) => IconThemeData(
-                            size: 22,
-                            color: states.contains(WidgetState.selected)
-                                ? HomePalette.accent
-                                : (glassDark
-                                    ? Colors.white.withValues(alpha: 0.65)
-                                    : palette.muted),
+                // 墨水屏：BackdropFilter 毛玻璃会把底部栏变成一团灰，改实色。
+                child: eink
+                    ? Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: Colors.black,
+                            width: 0.8,
                           ),
                         ),
-                        labelTextStyle: WidgetStateProperty.resolveWith(
-                          (states) => TextStyle(
-                            fontSize: 11,
-                            fontWeight: states.contains(WidgetState.selected)
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: states.contains(WidgetState.selected)
-                                ? (glassDark
-                                    ? HomePalette.accent
-                                    : palette.accentText)
-                                : (glassDark
-                                    ? Colors.white.withValues(alpha: 0.65)
-                                    : palette.muted),
+                        child: navBar,
+                      )
+                    : BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: glassDark
+                                ? const Color(0xFF161619).withValues(alpha: 0.72)
+                                : Colors.white.withValues(alpha: 0.82),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: glassDark
+                                  ? Colors.white.withValues(alpha: 0.16)
+                                  : Colors.white.withValues(alpha: 0.75),
+                              width: 0.8,
+                            ),
                           ),
+                          child: navBar,
                         ),
                       ),
-                      child: NavigationBar(
-                        selectedIndex: _index,
-                        onDestinationSelected: (i) {
-                          if (i != _index) setState(() => _index = i);
-                        },
-                        backgroundColor: Colors.transparent,
-                        elevation: 0,
-                        destinations: const [
-                          NavigationDestination(
-                            icon: Icon(LucideIcons.house),
-                            selectedIcon: Icon(LucideIcons.house),
-                            label: '首页',
-                          ),
-                          NavigationDestination(
-                            icon: Icon(LucideIcons.clapperboard),
-                            selectedIcon: Icon(LucideIcons.clapperboard),
-                            label: '短剧',
-                          ),
-                          NavigationDestination(
-                            icon: Icon(LucideIcons.library_big),
-                            selectedIcon: Icon(LucideIcons.library_big),
-                            label: '书架',
-                          ),
-                          NavigationDestination(
-                            icon: Icon(LucideIcons.circle_user_round),
-                            selectedIcon: Icon(LucideIcons.circle_user_round),
-                            label: '我的',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ),
           ),

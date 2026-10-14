@@ -30,8 +30,8 @@ class SettingsPage extends StatelessWidget {
       SettingsCategory(
         icon: LucideIcons.palette,
         title: '外观',
-        subtitle: '深色模式',
-        items: [_themeModeItem()],
+        subtitle: '深色模式、墨水屏模式',
+        items: [_themeModeItem(), _einkModeItem()],
       ),
       SettingsCategory(
         icon: LucideIcons.headphones,
@@ -271,6 +271,40 @@ class SettingsPage extends StatelessWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('外观已更新，但未能保存')));
+      }
+    }
+  }
+
+  /// #15/#9 墨水屏模式：纯黑白、无毛玻璃、无过渡动画。开启时强制浅色，
+  /// 深色模式恢复后仍按原设置生效。
+  SettingsItem _einkModeItem() => SettingsItem(
+    icon: LucideIcons.book_open,
+    title: '墨水屏模式',
+    subtitle: '纯黑白、无毛玻璃、无过渡动画，适合墨水屏设备',
+    trailingBuilder: (context) => ValueListenableBuilder<bool>(
+      valueListenable: einkModeNotifier,
+      builder: (context, value, _) => Switch(
+        value: value,
+        onChanged: (v) => unawaited(_setEinkMode(context, v)),
+      ),
+    ),
+    onTap: (context, setState) {
+      unawaited(_setEinkMode(context, !einkModeNotifier.value));
+    },
+  );
+
+  Future<void> _setEinkMode(BuildContext context, bool value) async {
+    einkModeNotifier.value = value;
+    try {
+      final sp = await SharedPreferences.getInstance();
+      if (!await sp.setBool(einkModeKey, value)) {
+        throw StateError('E-ink preference was not saved');
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('墨水屏模式已更新，但未能保存')));
       }
     }
   }

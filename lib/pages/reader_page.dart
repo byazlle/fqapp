@@ -8,6 +8,7 @@ import '../models/book_comment.dart';
 import '../models/chapter_ideas.dart';
 import '../models/media_item.dart';
 import '../services/api_client.dart';
+import '../services/app_theme.dart';
 import '../services/backend_transport.dart';
 import '../services/chapter_cache_store.dart';
 import '../services/chapter_text_formatter.dart';
@@ -120,6 +121,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Timer? _autoTurnTimer;
 
   bool get _paged => _preferences.pageMode == ReaderPageMode.paged;
+
+  /// 全局墨水屏模式覆盖阅读器显示预设（#15/#9）：开启时阅读器强制纯黑白，
+  /// 不改用户保存的预设，关闭后恢复原预设。夜间切换等仍写保存的预设。
+  ReaderThemePreset get _effectivePreset => einkModeNotifier.value
+      ? ReaderThemePreset.eink
+      : _preferences.themePreset;
 
   bool _handleVolumeKey(KeyEvent event) {
     if (!mounted ||
@@ -1039,7 +1046,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       MediaQuery.textScalerOf(context).scale(_preferences.fontSize),
       variant: variant,
     ),
-    preset: _preferences.themePreset,
+    preset: _effectivePreset,
     onTap: () => unawaited(_showIdeas(focusParaIndex: paraIndex)),
   );
 
@@ -1053,8 +1060,8 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: false,
-      backgroundColor: _preferences.themePreset.isDark
-          ? _preferences.themePreset.panelColor
+      backgroundColor: _effectivePreset.isDark
+          ? _effectivePreset.panelColor
           : Colors.white,
       barrierColor: Colors.black.withValues(alpha: 0.4),
       shape: const RoundedRectangleBorder(
@@ -1067,7 +1074,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         heightFactor: 0.69,
         child: ReaderIdeasSheet(
           ideas: ideaSnapshot,
-          preset: _preferences.themePreset,
+          preset: _effectivePreset,
           // Each bubble opens only that paragraph's comments.
           initialParaIndex: focusParaIndex,
           loadComments: (paragraph, cursor) async {
@@ -1699,9 +1706,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: _preferences.themePreset.panelColor,
+      backgroundColor: _effectivePreset.panelColor,
       builder: (context) => Theme(
-        data: _preferences.themePreset.theme(Theme.of(context)),
+        data: _effectivePreset.theme(Theme.of(context)),
         child: Padding(
           padding: EdgeInsets.only(
             bottom: MediaQuery.viewInsetsOf(context).bottom,
@@ -1823,9 +1830,9 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: _preferences.themePreset.panelColor,
+      backgroundColor: _effectivePreset.panelColor,
       builder: (context) => Theme(
-        data: _preferences.themePreset.theme(Theme.of(context)),
+        data: _effectivePreset.theme(Theme.of(context)),
         child: ChapterCacheSheet(
           book: _cachedBook,
           currentIndex: _index,
@@ -1845,7 +1852,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
         body: _errorView(),
       );
     }
-    final preset = _preferences.themePreset;
+    final preset = _effectivePreset;
     final windowPadding = MediaQuery.paddingOf(context);
     final overlayStyle = preset.isDark
         ? SystemUiOverlayStyle.light

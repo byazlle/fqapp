@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum ReaderThemePreset { light, eyeCare, parchment, dark }
+enum ReaderThemePreset { light, eyeCare, parchment, dark, eink }
 
 enum ReaderTitleAlignment { start, center }
 
