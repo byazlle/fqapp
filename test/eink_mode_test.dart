@@ -28,7 +28,7 @@ void main() {
   });
 
   test('reader e-ink theme does not use a tonal seed palette', () {
-    const base = ThemeData.light();
+    final base = ThemeData.light();
     final theme = ReaderThemePreset.eink.theme(base);
     expect(theme.colorScheme.surface, Colors.white);
     expect(theme.colorScheme.onSurface, Colors.black);
