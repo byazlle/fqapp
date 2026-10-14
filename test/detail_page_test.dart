@@ -552,17 +552,21 @@ void main() {
           detailLoader: (id, {String tab = '小说'}) async => {},
           directoryLoader: (id, {String tab = '小说'}) async => [_chapters],
           readerStore: MemoryReaderStore(),
+          // The auto-opened reader mounts for real: a memory cache keeps
+          // its chapter load off Hive (uninitialized in tests).
+          chapterCache: MemoryChapterCache(),
         ),
       ),
     );
-    // Flush the detail load + the auto-open replacement without settling
-    // the reader's own chapter load (this path uses the live API).
+    // Flush the detail load + the auto-open replacement. Each pump advances
+    // the fake clock so the replacement route's transition finishes; the
+    // reader's own chapter load fails into its error view (live API here).
     for (
       var i = 0;
-      i < 10 && find.byType(ReaderPage).evaluate().isEmpty;
+      i < 20 && find.byType(DetailPage).evaluate().isNotEmpty;
       i++
     ) {
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.idle();
     }
     expect(find.byType(ReaderPage), findsOneWidget);

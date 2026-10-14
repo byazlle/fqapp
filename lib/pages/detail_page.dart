@@ -1117,6 +1117,9 @@ class _DetailPageState extends State<DetailPage> {
         readerStore: widget.readerStore,
         chapters: _allChapters,
         startIndex: startIndex,
+        // 详情页注入的缓存（离线下载/测试用内存缓存）即阅读器的缓存；
+        // 生产调用方不传时为 null，阅读器沿用默认的 ChapterCacheStore。
+        chapterCache: widget.chapterCache,
       ),
     };
     await _push(page, replace: replace);
