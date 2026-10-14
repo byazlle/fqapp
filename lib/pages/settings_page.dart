@@ -9,6 +9,7 @@ import '../services/api_client.dart';
 import '../services/app_theme.dart';
 import '../services/audio_preferences.dart';
 import '../services/backend_service.dart';
+import '../services/book_open_preferences.dart';
 import '../services/drama_mute_preferences.dart';
 import '../services/library_store.dart';
 import '../widgets/home/home_design.dart';
@@ -25,6 +26,8 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 开关读的是 ValueNotifier：先把持久化的值读出来，读到后自动重绘。
+    unawaited(BookOpenPreferences.instance.load());
     final palette = HomePalette.of(context);
     final categories = <SettingsCategory>[
       SettingsCategory(
@@ -32,6 +35,12 @@ class SettingsPage extends StatelessWidget {
         title: '外观',
         subtitle: '深色模式、墨水屏模式',
         items: [_themeModeItem(), _einkModeItem()],
+      ),
+      SettingsCategory(
+        icon: LucideIcons.book_open,
+        title: '阅读',
+        subtitle: '点书直达阅读器',
+        items: [_directReaderItem()],
       ),
       SettingsCategory(
         icon: LucideIcons.headphones,
@@ -88,6 +97,7 @@ class SettingsPage extends StatelessWidget {
 
     const categoryColors = [
       Color(0xFFEF5038), // 外观
+      Color(0xFF14B8A6), // 阅读
       Color(0xFF8B5CF6), // 听书
       Color(0xFFF59E0B), // 短剧
       Color(0xFF3B82F6), // 数据
@@ -309,6 +319,26 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
+  // ── 阅读 ──────────────────────────────────────────────────────────────
+
+  /// issue #19 第 3 条：点书跳过详情页，直接按上次进度进阅读器（小说/漫画）。
+  /// 默认关＝现有行为（先进详情页）。听书/短剧与加载失败时仍停留在详情页。
+  SettingsItem _directReaderItem() => SettingsItem(
+    icon: LucideIcons.book_open,
+    title: '点击书籍直接进入阅读',
+    subtitle: '点书架、首页、搜索里的书时，跳过详情页直接开始阅读',
+    trailingBuilder: (context) => ValueListenableBuilder<bool>(
+      valueListenable: BookOpenPreferences.instance.directReader,
+      builder: (context, value, _) => Switch(
+        value: value,
+        onChanged: (v) => unawaited(BookOpenPreferences.instance.set(v)),
+      ),
+    ),
+    onTap: (context, setState) {
+      final current = BookOpenPreferences.instance.directReader.value;
+      unawaited(BookOpenPreferences.instance.set(!current));
+    },
+  );
   // ── 听书 ──────────────────────────────────────────────────────────────
 
   SettingsItem _backgroundAudioItem() => SettingsItem(

@@ -352,10 +352,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _openItem(MediaItem item) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => DetailPage(item: item)),
-    );
+    openBookDetail(context, item);
   }
 }
 

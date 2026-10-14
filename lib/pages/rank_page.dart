@@ -416,20 +416,16 @@ class _RankPageState extends State<RankPage> {
 
   void _openEntry(RankEntry entry) {
     if (entry.id.isEmpty) return;
-    Navigator.push(
+    openBookDetail(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => DetailPage(
-          item: MediaItem(
-            id: entry.id,
-            title: entry.title,
-            cover: entry.cover,
-            author: entry.author,
-            badge: entry.category,
-            ep: '',
-            kind: 'book',
-          ),
-        ),
+      MediaItem(
+        id: entry.id,
+        title: entry.title,
+        cover: entry.cover,
+        author: entry.author,
+        badge: entry.category,
+        ep: '',
+        kind: 'book',
       ),
     );
   }

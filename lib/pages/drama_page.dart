@@ -1542,12 +1542,7 @@ class _DramaPageState extends ConsumerState<DramaPage>
 
   void _openDetail(MediaItem item) {
     unawaited(
-      _pushOverFeed(
-        () => Navigator.push(
-          context,
-          MaterialPageRoute<void>(builder: (_) => DetailPage(item: item)),
-        ),
-      ),
+      _pushOverFeed(() => openBookDetail(context, item)),
     );
   }
 

@@ -2297,20 +2297,16 @@ class _AudioPageState extends State<AudioPage> with WidgetsBindingObserver {
     try {
       suspended = await _suspendForRoute(generation);
       if (!mounted || suspended == null) return;
-      await Navigator.push(
+      await openBookDetail(
         context,
-        MaterialPageRoute<void>(
-          builder: (_) => DetailPage(
-            item: MediaItem(
-              id: work.id,
-              title: work.title,
-              cover: work.cover,
-              author: '',
-              badge: work.label,
-              ep: '',
-              kind: work.kind == 'video' ? 'video' : 'book',
-            ),
-          ),
+        MediaItem(
+          id: work.id,
+          title: work.title,
+          cover: work.cover,
+          author: '',
+          badge: work.label,
+          ep: '',
+          kind: work.kind == 'video' ? 'video' : 'book',
         ),
       );
     } catch (_) {

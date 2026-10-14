@@ -538,20 +538,16 @@ class _SeriesDetailPageState extends State<SeriesDetailPage> {
 
   void _openOriginalBook(SeriesRelateBook book) {
     unawaited(
-      Navigator.push(
+      openBookDetail(
         context,
-        MaterialPageRoute<void>(
-          builder: (_) => DetailPage(
-            item: MediaItem(
-              id: book.id,
-              title: book.title,
-              cover: book.cover,
-              author: '',
-              badge: '原著小说',
-              ep: '',
-              kind: 'book',
-            ),
-          ),
+        MediaItem(
+          id: book.id,
+          title: book.title,
+          cover: book.cover,
+          author: '',
+          badge: '原著小说',
+          ep: '',
+          kind: 'book',
         ),
       ),
     );

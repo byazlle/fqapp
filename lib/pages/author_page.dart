@@ -324,10 +324,7 @@ class _AuthorPageState extends State<AuthorPage> {
 
   void _openWork(AuthorWork work) {
     if (work.id.isEmpty) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => DetailPage(item: _asItem(work))),
-    );
+    openBookDetail(context, _asItem(work));
   }
 }
 

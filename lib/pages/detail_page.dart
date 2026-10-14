@@ -12,6 +12,7 @@ import '../models/media_description.dart';
 import '../models/series_detail.dart';
 import '../services/api_client.dart';
 import '../services/audio_history.dart';
+import '../services/book_open_preferences.dart';
 import '../services/chapter_cache_store.dart';
 import '../services/chapter_download.dart';
 import '../services/connectivity_status.dart';
@@ -132,7 +133,13 @@ class DetailPage extends StatefulWidget {
     this.chapterCache,
     this.chapterLoader,
     this.connectivity,
+    this.autoOpenReader = false,
   });
+
+  /// 「点击书籍直接进入阅读」（issue #19 第 3 条）：详情页加载出目录后，
+  /// 直接按上次进度进阅读器，并用 pushReplacement 顶掉详情页。仅小说/漫画
+  /// 走这条路；听书/短剧仍停留在详情页，加载失败时也停留在详情页。
+  final bool autoOpenReader;
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -156,6 +163,7 @@ class _DetailPageState extends State<DetailPage> {
   int _historyGeneration = 0;
   int? _resumeIndex;
   bool _opening = false;
+  bool _autoOpened = false;
   ChapterDownload? _download;
   /// 目录联网失败时查到的本地整本缓存；非空即给出「从缓存阅读」入口。
   CachedBook? _cachedBook;
@@ -333,6 +341,7 @@ class _DetailPageState extends State<DetailPage> {
       _loading = false;
     });
     unawaited(_refreshResume());
+    unawaited(_maybeAutoOpenReader());
     unawaited(_loadChapterPreviews(generation));
 
     final extras = await extrasFuture;
@@ -1032,7 +1041,21 @@ class _DetailPageState extends State<DetailPage> {
     setState(() => _resumeIndex = _savedIndex(saved));
   }
 
-  Future<void> _openLastPosition() async {
+  /// 「点击书籍直接进入阅读」：详情页加载出目录后，直接按上次进度进
+  /// 阅读器。目录为空（加载失败/无章节）时不触发，用户留在详情页看错误
+  /// 与重试；`_autoOpened` 保证同一详情页实例只自动进一次。
+  Future<void> _maybeAutoOpenReader() async {
+    if (!widget.autoOpenReader ||
+        _autoOpened ||
+        !(_isBook || _isManga) ||
+        _allChapters.isEmpty) {
+      return;
+    }
+    _autoOpened = true;
+    await _openLastPosition(replace: true);
+  }
+
+  Future<void> _openLastPosition({bool replace = false}) async {
     if (_opening || _allChapters.isEmpty) return;
     final generation = ++_openGeneration;
     setState(() => _opening = true);
@@ -1042,7 +1065,7 @@ class _DetailPageState extends State<DetailPage> {
         return;
       }
       final index = _savedIndex(saved) ?? 0;
-      _openChapter(_allChapters[index]);
+      _openChapter(_allChapters[index], replace: replace);
     } finally {
       if (mounted && generation == _openGeneration) {
         setState(() => _opening = false);
@@ -1050,7 +1073,7 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
-  Future<void> _openChapter(Chapter chapter) async {
+  Future<void> _openChapter(Chapter chapter, {bool replace = false}) async {
     // An explicit chapter selection supersedes any pending resume lookup.
     ++_openGeneration;
     ++_historyGeneration;
@@ -1096,14 +1119,22 @@ class _DetailPageState extends State<DetailPage> {
         startIndex: startIndex,
       ),
     };
-    await _push(page);
+    await _push(page, replace: replace);
   }
 
-  Future<void> _push(Widget page) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute<void>(builder: (_) => page),
-    );
+  Future<void> _push(Widget page, {bool replace = false}) async {
+    if (replace) {
+      // 直接进入阅读：顶掉详情页，阅读器返回时回到点书的页面，而不是详情页。
+      await Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(builder: (_) => page),
+      );
+    } else {
+      await Navigator.push(
+        context,
+        MaterialPageRoute<void>(builder: (_) => page),
+      );
+    }
     if (mounted) unawaited(_refreshResume());
   }
 
@@ -1180,4 +1211,25 @@ class _ChapterExcerpt extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 点书卡片的统一入口：默认进详情页；用户开了设置 → 阅读 →「点击书籍
+/// 直接进入阅读」时，详情页加载完目录后自动按上次进度进阅读器（小说/漫画），
+/// 返回时回到点书的页面。听书/短剧与加载失败时仍停留在详情页。
+///
+/// 调用方不要再直接 `Navigator.push(DetailPage(...))`，否则新开关对那
+/// 个入口不生效。
+Future<void> openBookDetail(BuildContext context, MediaItem item) async {
+  await BookOpenPreferences.instance.load();
+  if (!context.mounted) return;
+  await Navigator.push(
+    context,
+    MaterialPageRoute<void>(
+      builder: (_) => DetailPage(
+        item: item,
+        autoOpenReader:
+            BookOpenPreferences.instance.directReader.value,
+      ),
+    ),
+  );
 }

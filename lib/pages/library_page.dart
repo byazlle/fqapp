@@ -254,14 +254,12 @@ class _LibraryPageState extends State<LibraryPage> {
   ///
   /// 官方客户端书架点书就是直接起阅读器（`ReaderBundleBuilder`），中间没有
   /// 那个要联网取目录的页面。这里只在「无网 + 有缓存」时抄这条捷径：联网时
-  /// 仍走详情页，段评、章节目录预览这些联网能力不会被悄悄降级。
+  /// 仍走详情页（或按设置 → 阅读 →「点击书籍直接进入阅读」自动进阅读器），
+  /// 段评、章节目录预览这些联网能力不会被悄悄降级。
   Future<void> _open(MediaItem item) async {
     if (await _openCached(item)) return;
     if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => DetailPage(item: item)),
-    );
+    await openBookDetail(context, item);
   }
 
   /// 离线直读：只有小说有章节缓存，且必须在无网时才抢在详情页前面。

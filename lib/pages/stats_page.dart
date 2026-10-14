@@ -240,22 +240,18 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   void _openHistory(Map<String, dynamic> entry) {
-    Navigator.push(
+    openBookDetail(
       context,
-      MaterialPageRoute(
-        builder: (_) => DetailPage(
-          item: MediaItem(
-            id: historyContentId(entry),
-            title: '${entry['title'] ?? ''}',
-            cover: '${entry['cover'] ?? ''}',
-            author: '${entry['author'] ?? ''}',
-            badge: '',
-            ep: '',
-            kind: '${entry['kind'] ?? 'book'}',
-            seriesId: entry['seriesId']?.toString(),
-            episodeId: entry['episodeId']?.toString(),
-          ),
-        ),
+      MediaItem(
+        id: historyContentId(entry),
+        title: '${entry['title'] ?? ''}',
+        cover: '${entry['cover'] ?? ''}',
+        author: '${entry['author'] ?? ''}',
+        badge: '',
+        ep: '',
+        kind: '${entry['kind'] ?? 'book'}',
+        seriesId: entry['seriesId']?.toString(),
+        episodeId: entry['episodeId']?.toString(),
       ),
     );
   }

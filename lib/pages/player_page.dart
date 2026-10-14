@@ -589,20 +589,16 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void _openOriginalBook() {
     final book = _originalBook;
     if (book == null) return;
-    Navigator.push(
+    openBookDetail(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => DetailPage(
-          item: MediaItem(
-            id: book.id,
-            title: book.title,
-            cover: book.cover,
-            author: '',
-            badge: book.label,
-            ep: '',
-            kind: 'book',
-          ),
-        ),
+      MediaItem(
+        id: book.id,
+        title: book.title,
+        cover: book.cover,
+        author: '',
+        badge: book.label,
+        ep: '',
+        kind: 'book',
       ),
     );
   }

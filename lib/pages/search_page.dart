@@ -834,10 +834,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _openItem(MediaItem item) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => DetailPage(item: item)),
-    );
+    openBookDetail(context, item);
   }
 }
 
