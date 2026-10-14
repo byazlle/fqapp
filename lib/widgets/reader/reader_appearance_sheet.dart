@@ -171,16 +171,29 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
                       children: [
                         // 背景: official aki row — 32dp circular swatches,
                         // the selected one wrapped in a 1.3dp accent ring.
+                        // 5 个预设时固定 38dp 在窄屏 (280dp, 2.0 字号) 下溢出
+                        // 18px (5×38=190 > 可用 172)，见 CI run 38597871819。
+                        // 直径随可用宽度自适应，正常宽度仍为 38dp。
                         _row(
                           label: '背景',
                           child: Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                for (final choice
-                                    in ReaderThemePreset.values)
-                                  _swatch(preset, choice),
-                              ],
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final count =
+                                    ReaderThemePreset.values.length;
+                                final diameter =
+                                    (constraints.maxWidth / count - 4)
+                                        .clamp(24.0, 38.0);
+                                return Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    for (final choice
+                                        in ReaderThemePreset.values)
+                                      _swatch(preset, choice, diameter),
+                                  ],
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -588,7 +601,11 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
 
   /// 官方 aki 背景 swatch: a 32dp circle in the theme's own background colour,
   /// the selected one wrapped in a 1.3dp accent ring (aqx selector).
-  Widget _swatch(ReaderThemePreset preset, ReaderThemePreset choice) {
+  Widget _swatch(
+    ReaderThemePreset preset,
+    ReaderThemePreset choice,
+    double diameter,
+  ) {
     final selected = choice == preset;
     return Semantics(
       selected: selected,
@@ -597,10 +614,10 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
       child: InkWell(
         key: ValueKey('reader-theme-${choice.name}'),
         onTap: () => _update(_value.copyWith(themePreset: choice)),
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(diameter / 2),
         child: Container(
-          width: 38,
-          height: 38,
+          width: diameter,
+          height: diameter,
           padding: const EdgeInsets.all(2),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
@@ -620,7 +637,10 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
             alignment: Alignment.center,
             child: Text(
               '阅',
-              style: TextStyle(color: choice.textColor, fontSize: 13),
+              style: TextStyle(
+                color: choice.textColor,
+                fontSize: diameter * 13 / 38,
+              ),
             ),
           ),
         ),
