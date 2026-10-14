@@ -18,7 +18,7 @@ import '../services/watched_episodes.dart' show WatchedEpisodes, watchedIndexes;
 import '../widgets/player/playlet_comment_panel.dart';
 import '../widgets/player/story_player_panel.dart'
     show SeriesStatus, episodeTileLabel;
-import 'detail_page.dart' show DetailPage, openBookDetail;
+import 'detail_page.dart' show openBookDetail;
 import 'player_page.dart' show PlayerPage;
 
 /// 短剧详情：保留官方深色主题与区块顺序，提供本地续播、收藏和局部重试。
