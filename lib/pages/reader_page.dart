@@ -1679,6 +1679,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
       ),
       builder: (context) => ReaderAppearanceSheet(
         initialValue: _preferences,
+        einkOverride: einkModeNotifier.value,
         onChanged: _previewPreferences,
         onPickFont: _pickFont,
       ),
@@ -1687,6 +1688,11 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   }
 
   void _toggleNightTheme() {
+    // 全局墨水屏覆盖显示，点夜间不会有任何可见变化，先提示而非静默无响应。
+    if (einkModeNotifier.value) {
+      _showMessage('全局墨水屏模式已开启，先在设置里关闭它再切换夜间');
+      return;
+    }
     final nextPreset = _preferences.themePreset == ReaderThemePreset.dark
         ? _dayTheme
         : ReaderThemePreset.dark;

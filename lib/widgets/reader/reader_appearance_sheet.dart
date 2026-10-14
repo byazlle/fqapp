@@ -19,11 +19,16 @@ class ReaderAppearanceSheet extends StatefulWidget {
   final ValueChanged<ReaderPreferences> onChanged;
   final Future<ReaderFont?> Function() onPickFont;
 
+  /// 全局墨水屏模式已开启时，阅读背景跟随全局，不由本面板的色块决定。
+  /// 此时面板显示墨水屏为选中，色块点按禁用，避免点 夜间/米白 却毫无变化。
+  final bool einkOverride;
+
   const ReaderAppearanceSheet({
     super.key,
     required this.initialValue,
     required this.onChanged,
     required this.onPickFont,
+    this.einkOverride = false,
   });
 
   @override
@@ -32,6 +37,11 @@ class ReaderAppearanceSheet extends StatefulWidget {
 
 class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
   late ReaderPreferences _value = widget.initialValue;
+
+  /// 面板显示用的预设：全局墨水屏开启时强制墨水屏，与保存的预设分开，
+  /// 其它排版改动仍写保存的预设，关闭全局模式后恢复。
+  ReaderThemePreset get _displayPreset =>
+      widget.einkOverride ? ReaderThemePreset.eink : _value.themePreset;
   bool _importing = false;
   String? _fontError;
 
@@ -97,7 +107,7 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final preset = _value.themePreset;
+    final preset = _displayPreset;
     return Theme(
       data: preset.theme(Theme.of(context)),
       child: AnimatedContainer(
@@ -169,6 +179,23 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        // 全局墨水屏开启时背景跟随全局，色块仅作展示。
+                        if (widget.einkOverride)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              16,
+                              0,
+                              16,
+                              12,
+                            ),
+                            child: Text(
+                              '全局墨水屏模式已开启，背景跟随全局设置',
+                              style: TextStyle(
+                                color: preset.mutedTextColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         // 背景: official aki row — 32dp circular swatches,
                         // the selected one wrapped in a 1.3dp accent ring.
                         // 5 个预设时固定 38dp 在窄屏 (280dp, 2.0 字号) 下溢出
@@ -576,7 +603,7 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
     required Widget child,
     double minHeight = 40,
   }) {
-    final preset = _value.themePreset;
+    final preset = _displayPreset;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       constraints: BoxConstraints(minHeight: minHeight),
@@ -613,7 +640,9 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
       label: '${choice.label}阅读背景',
       child: InkWell(
         key: ValueKey('reader-theme-${choice.name}'),
-        onTap: () => _update(_value.copyWith(themePreset: choice)),
+        onTap: widget.einkOverride
+            ? null
+            : () => _update(_value.copyWith(themePreset: choice)),
         borderRadius: BorderRadius.circular(diameter / 2),
         child: Container(
           width: diameter,
@@ -657,7 +686,7 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
     required String Function(double) format,
     required ValueChanged<double> onStep,
   }) {
-    final preset = _value.themePreset;
+    final preset = _displayPreset;
     Widget end(String glyph, double size, double delta, String tooltip) =>
         Expanded(
           child: Tooltip(
@@ -737,7 +766,7 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
     required VoidCallback? onTap,
     Key? key,
   }) {
-    final preset = _value.themePreset;
+    final preset = _displayPreset;
     return Padding(
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -775,7 +804,7 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    final preset = _value.themePreset;
+    final preset = _displayPreset;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: Row(
@@ -820,7 +849,7 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
     ReaderPreferences Function(double) update, {
     int decimals = 0,
   }) {
-    final preset = _value.themePreset;
+    final preset = _displayPreset;
     return Column(
       children: [
         Row(
