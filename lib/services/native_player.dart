@@ -490,14 +490,17 @@ class NativePlayer {
     try {
       await _channel
           .invokeMethod<void>('updateFloating', {
-            if (title != null) 'title': title,
-            if (episode != null) 'episode': episode,
-            if (playing != null) 'playing': playing,
-            if (hasPrev != null) 'hasPrev': hasPrev,
-            if (hasNext != null) 'hasNext': hasNext,
-            if (positionMs != null) 'positionMs': positionMs,
-            if (durationMs != null) 'durationMs': durationMs,
-            if (speed != null) 'speed': speed,
+            // 全量传：Kotlin 侧 call.argument 对缺 key 与 null 值都返回
+            // null，行为相同；collection-if 会被 use_null_aware_elements
+            // lint 判 info，CI 把 info 当失败。
+            'title': title,
+            'episode': episode,
+            'playing': playing,
+            'hasPrev': hasPrev,
+            'hasNext': hasNext,
+            'positionMs': positionMs,
+            'durationMs': durationMs,
+            'speed': speed,
           })
           .timeout(_methodTimeout);
     } catch (_) {
