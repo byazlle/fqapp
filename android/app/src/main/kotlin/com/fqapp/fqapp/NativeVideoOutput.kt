@@ -11,6 +11,14 @@ internal class NativeVideoOutput(
     private var released = false
     private var needsSurface = true
 
+    /**
+     * True while the decoder renders to the floating overlay instead of the
+     * Flutter texture. While floating, producer callbacks must not clear the
+     * overlay surface; they only record that the Flutter surface needs a
+     * rebind when playback returns.
+     */
+    private var floating = false
+
     val textureId: Long get() = producer.id()
 
     fun attach() {
@@ -20,7 +28,7 @@ internal class NativeVideoOutput(
     }
 
     override fun onSurfaceAvailable() {
-        if (released || !needsSurface) return
+        if (released || !needsSurface || floating) return
         // A restored producer may return a different Surface. Never keep the
         // Surface returned before cleanup or bind it back to the decoder.
         player.setVideoSurface(producer.surface)
@@ -28,9 +36,39 @@ internal class NativeVideoOutput(
     }
 
     override fun onSurfaceCleanup() {
-        if (released || needsSurface) return
+        if (released) return
+        val wasNeeding = needsSurface
+        needsSurface = true
+        if (floating || wasNeeding) return
+        player.clearVideoSurface()
+    }
+
+    /** Detach the Flutter texture so the decoder can render to the floating overlay. */
+    fun detachForFloating() {
+        if (released) return
+        floating = true
         needsSurface = true
         player.clearVideoSurface()
+    }
+
+    /** Bind the decoder to the floating overlay's surface. */
+    fun attachFloating(surface: android.view.Surface) {
+        if (released) return
+        player.setVideoSurface(surface)
+    }
+
+    /**
+     * Return the decoder to the Flutter texture. If the Flutter surface was
+     * cleaned up while floating, [needsSurface] stays true and the next
+     * [onSurfaceAvailable] rebinds it; otherwise rebind immediately.
+     */
+    fun restoreFromFloating() {
+        if (released) return
+        floating = false
+        player.clearVideoSurface()
+        if (!needsSurface) {
+            player.setVideoSurface(producer.surface)
+        }
     }
 
     fun rotationCorrection(formatRotationDegrees: Int): Int =

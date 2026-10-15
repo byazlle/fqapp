@@ -1,9 +1,44 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class PlayerPreferences {
   static const _playbackRateKey = 'player_playback_rate';
   static const _autoAdvanceKey = 'player_auto_advance';
+  static const _floatingWindowKey = 'player_floating_window_enabled';
   static Future<void>? _autoAdvanceWrites;
+
+  /// 切后台悬浮窗播放（#24，默认关）：开启且已授予悬浮窗权限时，切到
+  /// 后台或锁屏用悬浮小窗继续播；关闭则切后台暂停（现有行为）。
+  static final ValueNotifier<bool> floatingWindow = ValueNotifier<bool>(false);
+  static bool _floatingLoaded = false;
+
+  static Future<void> loadFloatingWindow() async {
+    if (_floatingLoaded) return;
+    _floatingLoaded = true;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      floatingWindow.value = preferences.getBool(_floatingWindowKey) ?? false;
+    } catch (_) {
+      // 异常时退回默认关闭
+    }
+  }
+
+  /// 重置测试状态，让下一次 [loadFloatingWindow] 重新读取。
+  @visibleForTesting
+  static void resetFloatingWindowForTest() {
+    _floatingLoaded = false;
+    floatingWindow.value = false;
+  }
+
+  static Future<void> setFloatingWindow(bool enabled) async {
+    floatingWindow.value = enabled;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool(_floatingWindowKey, enabled);
+    } catch (_) {
+      // 忽略持久化失败
+    }
+  }
   static const playbackRates = <double>[0.75, 1, 1.25, 1.5, 1.75, 2];
 
   /// 官方浅色更多面板（style 未下发）的药丸档位，与深色 V2 不同：

@@ -562,7 +562,9 @@ class _DramaPageState extends ConsumerState<DramaPage>
         _resumeInline();
         _scheduleInlineSync();
       }
-    } else {
+    } else if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       // A video must never keep playing from the background.
       unawaited(_inline.pause());
     }
