@@ -27,6 +27,9 @@ use rand::RngCore;
 use serde_json::json;
 use tokio_util::io::ReaderStream;
 
+#[cfg(not(target_os = "android"))]
+use crate::media_decrypt::DecryptReader;
+
 use crate::dispatch::{dispatch, Request, ResponseBody};
 use crate::endpoints::Server;
 
@@ -152,6 +155,10 @@ async fn handler(State(state): State<AppState>, req: axum::extract::Request) -> 
         return refuse(StatusCode::UNAUTHORIZED, "session required");
     }
     let request_path = scoped.unwrap_or(path).to_string();
+    // 短剧/漫剧解密流：直接流式输出解密 MP4（支持 Range），不经过 dispatch。
+    if request_path == "/media/play" {
+        return serve_media(req.uri().query().unwrap_or(""), req.headers()).await;
+    }
     let session_cookie = format!(
         "{cookie_name}={}; Path=/; HttpOnly; SameSite=Strict",
         state.token
@@ -278,6 +285,91 @@ async fn stream_file(path: &std::path::Path, offset: u64, length: u64) -> Result
         limited,
         64 * 1024,
     )))
+}
+
+/// 解析 `Range: bytes=start-end` / `bytes=start-` / `bytes=-suffix`，返回
+/// 闭区间 `(start, end)`。返回 `None` 表示无 Range（全量）或无法解析。
+fn parse_byte_range(headers: &HeaderMap, total: u64) -> Option<(u64, u64)> {
+    let value = headers.get(header::RANGE)?.to_str().ok()?;
+    let spec = value.strip_prefix("bytes=")?;
+    let (start_s, end_s) = spec.split_once('-')?;
+    if start_s.is_empty() {
+        let n: u64 = end_s.parse().ok()?;
+        if n == 0 || total == 0 {
+            return None;
+        }
+        let start = total.saturating_sub(n);
+        return Some((start, total - 1));
+    }
+    let start: u64 = start_s.parse().ok()?;
+    if start >= total {
+        return None;
+    }
+    let end = if end_s.is_empty() {
+        total - 1
+    } else {
+        end_s.parse::<u64>().ok()?.min(total - 1)
+    };
+    if end < start {
+        return None;
+    }
+    Some((start, end))
+}
+
+/// GET `/media/play?url=<CDN URL>&key=<hex>`：打开解密流，按 Range 输出
+/// 解密后的 MP4。播放器按普通本地 URL 访问即可。
+#[cfg(not(target_os = "android"))]
+async fn serve_media(query: &str, headers: &HeaderMap) -> Response {
+    let mut media_url = None;
+    let mut key_hex = None;
+    for (k, v) in url::form_urlencoded::parse(query.as_bytes()) {
+        match k.as_ref() {
+            "url" => media_url = Some(v.into_owned()),
+            "key" => key_hex = Some(v.into_owned()),
+            _ => {}
+        }
+    }
+    let (Some(media_url), Some(key_hex)) = (media_url, key_hex) else {
+        return refuse(StatusCode::BAD_REQUEST, "missing url or key");
+    };
+    let Ok(key) = hex::decode(&key_hex) else {
+        return refuse(StatusCode::BAD_REQUEST, "bad key");
+    };
+    let reader = match DecryptReader::open(&media_url, &key).await {
+        Ok(reader) => reader,
+        Err(e) => return refuse(StatusCode::BAD_GATEWAY, &e),
+    };
+    let total = reader.total_size();
+
+    if let Some((start, end)) = parse_byte_range(headers, total) {
+        use tokio::io::{AsyncReadExt, AsyncSeekExt};
+        let mut reader = reader;
+        if reader.seek(std::io::SeekFrom::Start(start)).await.is_err() {
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+        let length = end - start + 1;
+        let limited = reader.take(length);
+        let body = Body::from_stream(ReaderStream::with_capacity(limited, 64 * 1024));
+        return Response::builder()
+            .status(StatusCode::PARTIAL_CONTENT)
+            .header(header::CONTENT_TYPE, "video/mp4")
+            .header(header::ACCEPT_RANGES, "bytes")
+            .header(header::CONTENT_RANGE, format!("bytes {start}-{end}/{total}"))
+            .header(header::CONTENT_LENGTH, length)
+            .header(header::CACHE_CONTROL, "no-store")
+            .body(body)
+            .unwrap();
+    }
+
+    let body = Body::from_stream(ReaderStream::with_capacity(reader, 64 * 1024));
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "video/mp4")
+        .header(header::ACCEPT_RANGES, "bytes")
+        .header(header::CONTENT_LENGTH, total)
+        .header(header::CACHE_CONTROL, "no-store")
+        .body(body)
+        .unwrap()
 }
 
 #[cfg(test)]

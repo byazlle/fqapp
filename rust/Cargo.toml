@@ -13,7 +13,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 flutter_rust_bridge = "=2.13.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "fs", "io-util"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "fs", "io-util", "signal"] }
 tokio-util = { version = "0.7", features = ["io"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "http2", "rustls-no-provider"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
@@ -39,12 +39,19 @@ tower-http = { version = "0.6", default-features = false, features = ["fs", "set
 http-body-util = "0.1"
 futures = "0.3"
 log = "0.4"
+bytes = "1"
 
 # The shipping app runs the core in-process on Android; `adb logcat` is the
 # only observability surface it has. Desktop/test builds keep log macros as
 # no-ops (no logger is installed there).
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.14"
+
+# 桌面端（Windows/Linux/macOS）把短剧/漫剧的流式解密 C 核心编译进 cdylib；
+# Android 上解密库走 Gradle/CMake（见 android/app 的 externalNativeBuild），
+# 不需要在这里重复编译。
+[target.'cfg(not(target_os = "android"))'.build-dependencies]
+cc = "1"
 
 [profile.release]
 # Size-conscious but not size-obsessed: chapter/crypto work must not regress.

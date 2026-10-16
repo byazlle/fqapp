@@ -181,14 +181,26 @@ class RustBackendTransport implements BackendTransport {
     required String runtimeDir,
   }) async {
     await ensureRuntime();
-    final result = await rust.init(
+
+    Future<String> attempt(int bindPort) => rust.init(
       configPath: configPath,
       poolPath: poolPath,
       filterPath: filterPath,
       runtimeDir: runtimeDir,
-      port: port,
+      port: bindPort,
       mockUpstreamOrigin: mockUpstreamOrigin,
     );
+
+    String result;
+    try {
+      // 首选固定端口（默认 8080）。
+      result = await attempt(port);
+    } catch (_) {
+      // 首选端口被占用（或绑定失败）时，自动回退到由系统分配的随机端口，
+      // 避免与其他软件（如已占 8080 的 Web 服务）冲突而导致整个 App 无法启动。
+      if (port == 0) rethrow;
+      result = await attempt(0);
+    }
     _baseUrl = await rust.baseUrl();
     _capability = await rust.sessionCapability();
     _httpFallback.capability = _capability;

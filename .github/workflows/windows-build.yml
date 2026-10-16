@@ -1,0 +1,101 @@
+name: Build Windows
+
+# 在真实 Windows 环境编译 Rust 核心（含 C 解密库 + 内嵌网页），
+# 做启动/健康检查/搜索冒烟，最后产出可下载的 zip 安装包。
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "rust/**"
+      - "native/**"
+      - "assets/**"
+      - ".github/workflows/windows-build.yml"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust (MSVC)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache cargo
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Build server
+        working-directory: rust
+        run: cargo build --release --bin server
+
+      - name: Prepare artifact folder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          Copy-Item "target/release/server.exe" "package/fqapp.exe"
+          Get-Item "package/fqapp.exe" | Select-Object Name,Length
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $dir = Join-Path $env:RUNNER_TEMP "smoke"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item "target/release/server.exe" "$dir/fqapp.exe"
+          $p = Start-Process -FilePath "$dir/fqapp.exe" `
+            -RedirectStandardOutput "$dir/out.log" -RedirectStandardError "$dir/err.log" `
+            -PassThru -WindowStyle Hidden
+          try {
+            Start-Sleep -Seconds 10
+            $log = Get-Content "$dir/out.log" -Raw
+            Write-Host "===== server stdout ====="
+            Write-Host $log
+            $m = [regex]::Match($log, 'http://127\.0\.0\.1:(\d+)/_session/([0-9a-f]+)/')
+            if (-not $m.Success) { throw "未找到入口地址" }
+            $port = $m.Groups[1].Value
+            $entry = $m.Value
+            $base = "http://127.0.0.1:$port"
+            $ck = Join-Path $dir "cookies.txt"
+            # 入口（种 Cookie 并跳转）
+            $idx = curl.exe -s -L -c $ck -b $ck $entry
+            if ($idx -notmatch "聚合搜索") { throw "入口页面异常" }
+            Write-Host "入口页面 OK"
+            # 健康检查
+            $health = curl.exe -s -b $ck "$base/health"
+            Write-Host "health: $health"
+            if ($health -notmatch '"status"\s*:\s*"ok"') { throw "健康检查失败" }
+            # 真实搜索
+            Start-Sleep -Seconds 3
+            $search = curl.exe -s -G -b $ck "$base/api/search" --data-urlencode "source=番茄" --data-urlencode "query=庆余年"
+            if ($search -notmatch "search_tabs") { throw "搜索异常" }
+            Write-Host "搜索 OK"
+            # 短剧视频端点（记录上游真实返回，用于判断视频链路）
+            $video = curl.exe -s -G -b $ck "$base/api/v1/videos/7369985601879149619" --data-urlencode "mode=stream"
+            Write-Host "video endpoint: $video"
+            Write-Host "SMOKE TEST PASSED"
+          }
+          finally {
+            if ($p -and -not $p.HasExited) { $p.Kill() }
+          }
+
+      - name: Copy readme
+        shell: pwsh
+        run: |
+          Copy-Item ".github/readme-使用说明.txt" "package/使用说明.txt"
+
+      - name: Make zip
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "package/*" -DestinationPath "fqapp-windows-x64.zip" -Force
+          Get-Item "fqapp-windows-x64.zip" | Select-Object Name,Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fqapp-windows-x64
+          path: fqapp-windows-x64.zip

@@ -123,7 +123,7 @@ impl HttpTransport {
 /// linked; that means the process-wide crypto provider has to be installed
 /// before any client is constructed. Installing it here keeps the requirement
 /// with the only code that needs it.
-fn ensure_crypto_provider() {
+pub(crate) fn ensure_crypto_provider() {
     use std::sync::Once;
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
@@ -131,7 +131,7 @@ fn ensure_crypto_provider() {
     });
 }
 
-fn build_tls_config() -> Result<rustls::ClientConfig, String> {
+pub(crate) fn build_tls_config() -> Result<rustls::ClientConfig, String> {
     let mut roots = rustls::RootCertStore::empty();
     roots.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
     let provider = std::sync::Arc::new(rustls::crypto::ring::default_provider());

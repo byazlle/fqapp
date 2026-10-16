@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'dart:async';
+import 'dart:io' show Platform, File;
 import 'dart:ui' show ImageFilter;
 
 import 'pages/home_page.dart';
@@ -36,28 +37,34 @@ import 'widgets/lazy_indexed_stack.dart';
 import 'widgets/home/home_design.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  // 应用内日志：接管 debugPrint 与 FlutterError.onError，未处理异步异常由
-  // runZonedGuarded 捕获；文件持久化异步开启，失败只退回内存模式。
-  AppLog.instance.install();
-  unawaited(AppLog.instance.startPersistence());
-  // 短剧分享的「系统分享」走 Android 的 Intent.ACTION_SEND
-  //（官方同一条路径）。桥不可用时 PlayletShare 自动降级为复制链接，
-  // 不会把失败说成成功。
-  // 插件回 false 表示没能调起选择器（没有可分享的应用），必须原样返回：
-  // 「调不起来」与「已分享」是两件事。
-  SharePlusLite.handler = ({required title, required text}) async {
-    final launched = await const MethodChannel(
-      'fqapp/share',
-    ).invokeMethod<bool>('shareText', {'title': title, 'text': text});
-    return launched ?? false;
-  };
-  // Rust 核心日志的读取入口：日志页「Rust」视图读 runtime_dir/rust.log。
-  // 核心只在 Android 落盘（桌面/测试构建不装 logger），读不到时页面给空态。
-  RustLogSource.reader = BackendService.instance.readRustLog;
+  // ensureInitialized 与 runApp 必须在同一个 zone：否则 BindingBase
+  // debugCheckZone 会报 Zone mismatch（桌面 debug 下会打断启动）。因此把
+  // 全部启动逻辑都放进 runZonedGuarded 内部，而非先在根 zone 初始化 binding。
   runZonedGuarded(
-    () => runApp(const ProviderScope(child: FqApp())),
-    (error, stack) => AppLog.e('zone', '未捕获异步异常', error: error, stack: stack),
+    () {
+      WidgetsFlutterBinding.ensureInitialized();
+      // 应用内日志：接管 debugPrint 与 FlutterError.onError，未处理异步异常由
+      // runZonedGuarded 捕获；文件持久化异步开启，失败只退回内存模式。
+      AppLog.instance.install();
+      unawaited(AppLog.instance.startPersistence());
+      // 短剧分享的「系统分享」走 Android 的 Intent.ACTION_SEND
+      //（官方同一条路径）。桥不可用时 PlayletShare 自动降级为复制链接，
+      // 不会把失败说成成功。
+      // 插件回 false 表示没能调起选择器（没有可分享的应用），必须原样返回：
+      // 「调不起来」与「已分享」是两件事。
+      SharePlusLite.handler = ({required title, required text}) async {
+        final launched = await const MethodChannel(
+          'fqapp/share',
+        ).invokeMethod<bool>('shareText', {'title': title, 'text': text});
+        return launched ?? false;
+      };
+      // Rust 核心日志的读取入口：日志页「Rust」视图读 runtime_dir/rust.log。
+      // 核心只在 Android 落盘（桌面/测试构建不装 logger），读不到时页面给空态。
+      RustLogSource.reader = BackendService.instance.readRustLog;
+      runApp(const ProviderScope(child: FqApp()));
+    },
+    (error, stack) =>
+        AppLog.e('zone', '未捕获异步异常', error: error, stack: stack),
   );
 }
 
@@ -111,15 +118,28 @@ Future<void> _initializeLocalData() async {
   } catch (_) {}
   // 离线缓存的网络门（官方 onNetChangeCheck）：断网/只剩计费链路时
   // 自动暂停下载队列，半成品保留。监听失败只退化为「无自动暂停」。
-  try {
-    Connectivity().onConnectivityChanged.listen((results) {
-      final view = foldConnectivity(results);
-      DramaDownloader.instance.updateConnectivity(
-        online: view.online,
-        metered: view.metered,
+  // Linux 桌面的 connectivity 插件依赖 NetworkManager + system dbus；环境缺
+  // 这些时订阅会游离出连接错误（真实 Windows 走系统网络 API，不受影响）。
+  // 因此在 Linux 上先探测 system dbus，缺失就跳过，降级为「不自动暂停下载」。
+  var canListenConnectivity = true;
+  if (Platform.isLinux) {
+    canListenConnectivity =
+        File('/var/run/dbus/system_bus_socket').existsSync();
+  }
+  if (canListenConnectivity) {
+    try {
+      Connectivity().onConnectivityChanged.listen(
+        (results) {
+          final view = foldConnectivity(results);
+          DramaDownloader.instance.updateConnectivity(
+            online: view.online,
+            metered: view.metered,
+          );
+        },
+        onError: (Object _) {},
       );
-    });
-  } catch (_) {}
+    } catch (_) {}
+  }
   // 海报缓存的字节预算清扫：超额时删最旧的图。失败不影响任何页面。
   unawaited(PosterCache.instance.enforceBudget());
   final sp = await SharedPreferences.getInstance();
@@ -209,7 +229,8 @@ class _AppBootstrapState extends State<AppBootstrap> {
     try {
       await (widget.initializer ?? _initializeLocalData)();
       if (mounted) setState(() => _ready = true);
-    } catch (_) {
+    } catch (e, st) {
+      AppLog.e('bootstrap', '本地数据初始化失败', error: e, stack: st);
       if (mounted) setState(() => _failed = true);
     } finally {
       _initializing = false;

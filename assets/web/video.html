@@ -409,8 +409,13 @@
             try {
                 const payload = await fetchJSON(`/api/content?item_id=${encodeURIComponent(current.id)}&tab=${encodeURIComponent(tab)}&source=${encodeURIComponent(source)}&cmd=${encodeURIComponent(cmd)}`);
                 if (generation !== episodeGeneration) return;
-                const url = payload.data?.video_url;
-                if (!url) throw new Error("未获取到视频地址");
+                const rawUrl = payload.data?.video_url;
+                const keyHex = payload.data?.key_hex;
+                if (!rawUrl) throw new Error("未获取到视频地址");
+                // 加密 CDN 流（http 且带 key）走本地解密端点；本地文件路径直接播放。
+                const url = (keyHex && /^https?:/.test(rawUrl))
+                    ? `/media/play?url=${encodeURIComponent(rawUrl)}&key=${encodeURIComponent(keyHex)}`
+                    : rawUrl;
                 video.classList.remove("is-portrait");
                 const saved = Number(appStorage.getItem(progressKey(current.id)) || "0");
                 metadataHandler = () => {
