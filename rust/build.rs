@@ -28,10 +28,11 @@ fn main() {
         .file(core.join("sp_stream.c"))
         .file(third.join("aes.c"));
 
-    // sp_stream.c 使用 <stdatomic.h>。MSVC 需显式指定 C11（VS 2022 17.6+
-    // 支持 stdatomic）；clang/gcc 默认即接受。
+    // sp_stream.c 使用 <stdatomic.h>。MSVC 需显式指定 C17：VS 17.6+ 的
+    // stdatomic 在 /std:c11 下仍报 "C atomic support is not enabled"，
+    // /std:c17（C11 的兼容修订）才启用；clang/gcc 默认即接受。
     if target_os == "windows" {
-        build.flag_if_supported("/std:c11");
+        build.flag_if_supported("/std:c17");
     }
 
     build.compile("shortplay_crypto");
