@@ -65,8 +65,10 @@ jobs:
             curl.exe -s -c $ck -D "$dir/entry.hdr" -o NUL $entry
             if (-not (Test-Path $ck)) { throw "Cookie 未写入" }
             # 第二步：带 Cookie 访问首页。
+            [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+            $OutputEncoding = [System.Text.Encoding]::UTF8
             $idx = curl.exe -s -b $ck "$base/"
-            if ($idx -notmatch "聚合搜索") {
+            if ($idx -notmatch 'id="searchBtn"') {
               Write-Host "首页返回：$idx"
               throw "入口页面异常"
             }
