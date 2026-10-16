@@ -61,9 +61,15 @@ jobs:
             $entry = $m.Value
             $base = "http://127.0.0.1:$port"
             $ck = Join-Path $dir "cookies.txt"
-            # 入口（种 Cookie 并跳转）
-            $idx = curl.exe -s -L -c $ck -b $ck $entry
-            if ($idx -notmatch "聚合搜索") { throw "入口页面异常" }
+            # 第一步：访问入口，只种 Cookie（不跟随 303）。
+            curl.exe -s -c $ck -D "$dir/entry.hdr" -o NUL $entry
+            if (-not (Test-Path $ck)) { throw "Cookie 未写入" }
+            # 第二步：带 Cookie 访问首页。
+            $idx = curl.exe -s -b $ck "$base/"
+            if ($idx -notmatch "聚合搜索") {
+              Write-Host "首页返回：$idx"
+              throw "入口页面异常"
+            }
             Write-Host "入口页面 OK"
             # 健康检查
             $health = curl.exe -s -b $ck "$base/health"
