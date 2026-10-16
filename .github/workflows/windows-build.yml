@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path package | Out-Null
-          Copy-Item "target/release/server.exe" "package/fqapp.exe"
+          Copy-Item "rust/target/release/server.exe" "package/fqapp.exe"
           Get-Item "package/fqapp.exe" | Select-Object Name,Length
 
       - name: Smoke test
@@ -46,7 +46,7 @@ jobs:
           $ErrorActionPreference = "Continue"
           $dir = Join-Path $env:RUNNER_TEMP "smoke"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
-          Copy-Item "target/release/server.exe" "$dir/fqapp.exe"
+          Copy-Item "rust/target/release/server.exe" "$dir/fqapp.exe"
           $p = Start-Process -FilePath "$dir/fqapp.exe" `
             -RedirectStandardOutput "$dir/out.log" -RedirectStandardError "$dir/err.log" `
             -PassThru -WindowStyle Hidden
