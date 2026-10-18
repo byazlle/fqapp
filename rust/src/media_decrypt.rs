@@ -300,13 +300,8 @@ impl AsyncRead for DecryptReader {
                         me.current += n as u64;
                         Poll::Ready(Ok(()))
                     }
-                    Ok(Err(e)) => {
-                        Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
-                    }
-                    Err(e) => Poll::Ready(Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e.to_string(),
-                    ))),
+                    Ok(Err(e)) => Poll::Ready(Err(std::io::Error::other(e))),
+                    Err(e) => Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                 }
             }
             Poll::Pending => Poll::Pending,
@@ -356,13 +351,8 @@ impl AsyncSeek for DecryptReader {
                         me.current = pos;
                         Poll::Ready(Ok(pos))
                     }
-                    Ok(Err(e)) => {
-                        Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
-                    }
-                    Err(e) => Poll::Ready(Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e.to_string(),
-                    ))),
+                    Ok(Err(e)) => Poll::Ready(Err(std::io::Error::other(e))),
+                    Err(e) => Poll::Ready(Err(std::io::Error::other(e.to_string()))),
                 }
             }
             Poll::Pending => Poll::Pending,
@@ -396,7 +386,10 @@ impl Drop for DecryptReader {
                     drop(Box::from_raw(inner.io_ctx));
                 }
             };
-            let _ = handle.spawn_blocking(cleanup);
+            // 明确 drop：tokio 的 JoinHandle 被丢弃只是脱离任务（不取消），
+            // 这里本就是「忘了你」的关闭动作；写成 `let _ =` 会被
+            // clippy::let_underscore_future 拦下。
+            drop(handle.spawn_blocking(cleanup));
         } else {
             // 无 runtime 时无法等待异步任务，尽力同步关闭。
             unsafe {
