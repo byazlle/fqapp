@@ -38,6 +38,7 @@ class ReaderPreferences {
   static const _fontNameKey = 'reader_font_name';
   static const _pageModeKey = 'reader_page_mode';
   static const _pageTurnStyleKey = 'reader_page_turn_style';
+  static const _pageColumnsKey = 'reader_page_columns';
   static const _volumeKeyTurnKey = 'reader_volume_key_turn';
   static const _keepScreenOnKey = 'reader_keep_screen_on';
   static const _autoTurnSecondsKey = 'reader_auto_turn_seconds';
@@ -62,6 +63,12 @@ class ReaderPreferences {
   final String fontName;
   final ReaderPageMode pageMode;
   final ReaderPageTurnStyle pageTurnStyle;
+
+  /// Pages laid out side by side in 翻页 mode: 0 = 自动 (follows window width),
+  /// 1/2/3 = fixed. Wide desktop windows show a two- or three-page spread;
+  /// narrow phone windows always collapse to one page regardless.
+  final int pageColumns;
+
   final bool volumeKeyTurn;
   final bool keepScreenOn;
   final int autoTurnSeconds;
@@ -93,6 +100,7 @@ class ReaderPreferences {
     this.fontName = '',
     this.pageMode = ReaderPageMode.paged,
     this.pageTurnStyle = ReaderPageTurnStyle.slide,
+    this.pageColumns = 0,
     this.volumeKeyTurn = false,
     this.keepScreenOn = false,
     this.autoTurnSeconds = 10,
@@ -121,6 +129,7 @@ class ReaderPreferences {
     String? fontName,
     ReaderPageMode? pageMode,
     ReaderPageTurnStyle? pageTurnStyle,
+    int? pageColumns,
     bool? volumeKeyTurn,
     bool? keepScreenOn,
     int? autoTurnSeconds,
@@ -152,6 +161,7 @@ class ReaderPreferences {
       fontName: fontName ?? this.fontName,
       pageMode: pageMode ?? this.pageMode,
       pageTurnStyle: pageTurnStyle ?? this.pageTurnStyle,
+      pageColumns: pageColumns ?? this.pageColumns,
       volumeKeyTurn: volumeKeyTurn ?? this.volumeKeyTurn,
       keepScreenOn: keepScreenOn ?? this.keepScreenOn,
       autoTurnSeconds: autoTurnSeconds ?? this.autoTurnSeconds,
@@ -187,6 +197,7 @@ class ReaderPreferences {
       fontName: fontPath.isEmpty ? '' : fontName,
       pageMode: pageMode,
       pageTurnStyle: pageTurnStyle,
+      pageColumns: pageColumns.clamp(0, 3),
       volumeKeyTurn: volumeKeyTurn,
       keepScreenOn: keepScreenOn,
       autoTurnSeconds: autoTurnSeconds.isFinite
@@ -240,6 +251,7 @@ class ReaderPreferences {
         (value) => value.name == preferences.get(_pageTurnStyleKey),
         orElse: () => ReaderPageTurnStyle.slide,
       ),
+      pageColumns: (preferences.get(_pageColumnsKey) as int? ?? 0).clamp(0, 3),
       volumeKeyTurn: _boolean(preferences, _volumeKeyTurnKey) ?? false,
       keepScreenOn: _boolean(preferences, _keepScreenOnKey) ?? false,
       autoTurnSeconds: (_number(preferences, _autoTurnSecondsKey) ?? 10)
@@ -286,6 +298,7 @@ class ReaderPreferences {
       preferences.setString(_fontNameKey, value.fontName),
       preferences.setString(_pageModeKey, value.pageMode.name),
       preferences.setString(_pageTurnStyleKey, value.pageTurnStyle.name),
+      preferences.setInt(_pageColumnsKey, value.pageColumns),
       preferences.setBool(_volumeKeyTurnKey, value.volumeKeyTurn),
       preferences.setBool(_keepScreenOnKey, value.keepScreenOn),
       preferences.setInt(_autoTurnSecondsKey, value.autoTurnSeconds),

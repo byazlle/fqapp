@@ -82,7 +82,15 @@ class AppLog with WidgetsBindingObserver {
   bool _dirty = false;
 
   /// 串行化落盘，避免多条日志并发 append 造成交错。
-  Future<void> _pendingWrite = Future<void>.value();
+  ///
+  /// **为 null 表示当前没有在途写入**。这里刻意不用
+  /// `Future<void>.value()` 当初始值：那个未来会被绑定在「本类首次构造」时的
+  /// zone 上，而未来完成的派发是走它自己的 zone 排微任务的——从这个 zone 之外
+  /// await 它，完成通知永远排不回来。生产里只有一个 zone 所以看不出来；测试里
+  /// 每个 `testWidgets` 都是独立的假 async zone，一旦 AppLog 在别的用例里先被
+  /// 构造，后续用例的清理就会卡死在这一步。改为 null 表示空闲，真正排队时再造
+  /// 当时 zone 里的未来（跑完即摘）。
+  Future<void>? _pendingWrite;
   DebugPrintCallback? _previousDebugPrint;
   FlutterExceptionHandler? _previousOnError;
   bool _observing = false;
@@ -223,12 +231,21 @@ class AppLog with WidgetsBindingObserver {
     final writer = _file;
     if (writer != null) {
       _dirty = true;
-      _pendingWrite = _pendingWrite
+      final previous = _pendingWrite;
+      final step = (previous ?? Future<void>.value())
           .then((_) => writer.append(entry.format()))
           .catchError((Object _) {});
+      _pendingWrite = step;
+      // 这一步跑完就把句柄摘掉：留一个「已完成」的未来在那儿，后面的清理还得
+      // 跨 zone await 它（见 `_pendingWrite` 注释）。
+      unawaited(step.whenComplete(() => _dropIfCurrent(step)));
       // 警告/错误是事后排障最需要的几条，不等定时窗口，立刻落盘。
       if (level.index >= LogLevel.warn.index) unawaited(flush());
     }
+  }
+
+  void _dropIfCurrent(Future<void> step) {
+    if (identical(_pendingWrite, step)) _pendingWrite = null;
   }
 
   String _compose(String message, Object? error, StackTrace? stack) {
@@ -365,13 +382,15 @@ class AppLog with WidgetsBindingObserver {
   /// 「立即落盘」与定时 flush 很容易撞上）。
   Future<void> flush() async {
     final writer = _file;
-    final step = _pendingWrite
+    final previous = _pendingWrite;
+    final step = (previous ?? Future<void>.value())
         .then((_) => writer?.flush())
         .catchError((Object _) {});
     _pendingWrite = step;
+    unawaited(step.whenComplete(() => _dropIfCurrent(step)));
     await step;
     // 本步执行期间若又有新条目排队，保持脏标记让下一轮继续刷。
-    if (identical(step, _pendingWrite)) _dirty = false;
+    if (_pendingWrite == null) _dirty = false;
   }
 
   /// 定时把缓冲刷到磁盘。
@@ -399,11 +418,15 @@ class AppLog with WidgetsBindingObserver {
   @visibleForTesting
   Future<void> resetForTest() async {
     uninstall();
-    // 先让落盘队列跑完再 close：close 与在途 flush 并发同样会抛 StreamSink 错误。
-    await _pendingWrite.catchError((Object _) {});
+    // 先让在途落盘跑完再 close：close 与在途 flush 并发同样会抛 StreamSink
+    // 错误。没有在途写入时**不要** await 任何未来（连兜底的
+    // `Future<void>.value()` 也不要）：那个未来会绑定在它诞生的 zone 上，而
+    // 这个清理常常被别的 zone 的用例调用，跨 zone await 排不回来会直接挂死。
+    final pending = _pendingWrite;
+    if (pending != null) await pending.catchError((Object _) {});
     await _file?.close();
     _file = null;
-    _pendingWrite = Future<void>.value();
+    _pendingWrite = null;
     _dirty = false;
     _history.clear();
     _entries.clear();

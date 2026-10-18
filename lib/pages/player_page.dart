@@ -21,6 +21,7 @@ import '../services/drama_download_store.dart';
 import 'drama_download_sheet.dart';
 import '../services/library_store.dart';
 import '../services/native_player.dart';
+import '../services/desktop_media_player.dart';
 import '../services/playback_issue.dart';
 import '../services/player_history.dart';
 import '../services/player_load_diagnostics.dart';
@@ -985,7 +986,10 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       if (!await _waitForPaging(generation)) return;
       if (saved?['kind'] == 'manju') _historyKind = 'manju';
       trace.stage('create');
-      final player = candidate = widget.playerFactory?.call() ?? NativePlayer();
+      // 桌面（Windows/Linux/macOS）走 media_kit 播放 loopback 解密流；
+      // Android 仍走原生 ExoPlayer。
+      final player = candidate =
+          widget.playerFactory?.call() ?? createPlayerForCurrentPlatform();
       _player = player;
       await player.create(source.url, source.keyHex);
       if (!_current(generation, player)) {
@@ -1145,7 +1149,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       await release;
       if (!_current(generation)) return;
-      final fresh = candidate = widget.playerFactory?.call() ?? NativePlayer();
+      final fresh = candidate =
+          widget.playerFactory?.call() ?? createPlayerForCurrentPlatform();
       _player = fresh;
       // `_teardownPlayer` 把 `_activeIndex` 一并清空了，换档换的是同一集的
       // 另一路流，所以必须补回来：它为 null 时 `enabled`（下传给 chrome）
@@ -1447,6 +1452,11 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   ///
   /// store 未就绪（Hive 未初始化的测试环境）直接跳过，不触碰 openBox。
   Future<EpisodeSource?> _offlineSource(Chapter episode) async {
+    // 桌面回放走 loopback `/media/play`（HTTP Range 回源解密），读不了
+    // `file://` 本地加密文件；桌面跳过离线命中，静默回退在线链路。
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return null;
+    }
     final store = HiveDramaDownloadStore.instance;
     if (!store.isReady) return null;
     try {
@@ -1482,6 +1492,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           episodes: widget.eps,
           initialIndex: _index,
           resolveSource: _resolveSource,
+          // 与 feed 听书同纪律：沿用本页注入的播放器工厂。
+          playerFactory: widget.playerFactory,
         ),
       ),
     );
@@ -1510,6 +1522,39 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
 
     final player = _player;
+    if (player is DesktopMediaPlayer) {
+      // 桌面端：media_kit 画面（libmpv 自行处理旋转/裁剪），加载态与错误态
+      // 的呈现与 Android 分支保持一致。
+      final desktopWaiting =
+          _initVideo ||
+          !player.firstFrameRendered ||
+          player.videoWidth <= 0 ||
+          player.videoHeight <= 0;
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          player.buildVideoSurface(),
+          if (desktopWaiting || _error != null)
+            PlayerCover(
+              key: const ValueKey('player-cover'),
+              url: ApiClient.instance.absoluteUrl(widget.cover),
+            ),
+          if (_error != null)
+            PlayerErrorFeedback(
+              key: const ValueKey('player-error'),
+              issue: _error!,
+              onRetry: widget.eps.isEmpty ? null : retry,
+            ),
+          if (_error == null && (desktopWaiting || player.buffering))
+            PlayerLoadingFeedback(
+              key: ValueKey('player-loading-$generation'),
+              label: desktopWaiting ? '正在加载第 ${_index + 1} 集' : null,
+              onRetry: retry,
+            ),
+        ],
+      );
+    }
+
     final texture = player?.textureId;
     final waiting =
         _initVideo ||

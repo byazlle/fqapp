@@ -23,8 +23,21 @@ import 'system_tts_settings_page.dart';
 
 /// Settings home: a list of category entries (PiliPlus multi-level
 /// navigation). Each category opens its own CommonSetting-style page.
-class SettingsPage extends StatelessWidget {
+///
+/// 宽屏（≥900，与壳层导航断点一致）改为双列：左侧分类列表、右侧当前
+/// 分类的设置内容，不再层层 push；窄屏保持钻取导航，手机形态不变。
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  /// 宽屏双列：左侧选中的分类。窄屏不使用（点击即 push 子页）。
+  int _selectedCategory = 0;
+
+  static const _wideBreakpoint = 900.0;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +140,34 @@ class SettingsPage extends StatelessWidget {
       Color(0xFF6366F1), // 关于
     ];
 
+    final wide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
+
+    if (wide) {
+      return Scaffold(
+        backgroundColor: palette.canvas,
+        appBar: AppBar(
+          title: const Text('设置'),
+          centerTitle: true,
+          backgroundColor: palette.canvas,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+        ),
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 300,
+              child: _categoryList(categories, categoryColors),
+            ),
+            VerticalDivider(width: 1, thickness: 0.6, color: palette.line),
+            Expanded(
+              child: _categoryDetail(categories[_selectedCategory]),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: palette.canvas,
       appBar: AppBar(
@@ -227,6 +268,103 @@ class SettingsPage extends StatelessWidget {
       ],
     ),
   );
+  }
+
+  /// 宽屏左列：分类导航。选中项用主色浅底圆角标出，点击只切右列内容，
+  /// 不再 push 子页——双列的意义就在于少一层导航。
+  Widget _categoryList(
+    List<SettingsCategory> categories,
+    List<Color> colors,
+  ) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      itemCount: categories.length,
+      itemBuilder: (context, i) {
+        final cat = categories[i];
+        final selected = i == _selectedCategory;
+        final accent = i < colors.length ? colors[i] : HomePalette.accent;
+        final palette = HomePalette.of(context);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            color: selected
+                ? HomePalette.accent.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              selected: selected,
+              selectedTileColor: Colors.transparent,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              leading: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(cat.icon, size: 20, color: accent),
+              ),
+              title: Text(
+                cat.title,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: palette.ink,
+                ),
+              ),
+              subtitle: Text(
+                cat.subtitle,
+                style: TextStyle(fontSize: 12.5, color: palette.muted),
+              ),
+              onTap: () {
+                if (i != _selectedCategory) {
+                  setState(() => _selectedCategory = i);
+                }
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 宽屏右列：当前分类的设置内容，卡片样式与窄端子页一致。
+  /// [SettingsCategory.pageBuilder] 分类（关于）直接内嵌它的页面。
+  Widget _categoryDetail(SettingsCategory cat) {
+    final pageBuilder = cat.pageBuilder;
+    if (pageBuilder != null) return pageBuilder(context);
+    final palette = HomePalette.of(context);
+    return StatefulBuilder(
+      builder: (context, setState) => ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        children: [
+          Material(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: palette.line, width: 0.6),
+              ),
+              child: Column(
+                children: [
+                  for (var i = 0; i < cat.items.length; i++) ...[
+                    if (i > 0)
+                      Divider(height: 1, indent: 68, color: palette.line),
+                    settingsItemRow(context, cat.items[i], setState),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 外观 ──────────────────────────────────────────────────────────────

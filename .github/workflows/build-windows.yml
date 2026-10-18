@@ -102,6 +102,17 @@ jobs:
         shell: pwsh
         run: choco install innosetup -y
 
+      # media_kit 随包分发 libmpv（MSVC 构建），依赖 VC++ 2015-2022 运行库。
+      # 部分用户机器没有它，会把“缺 vcruntime140.dll”说成“打不开”。
+      # 这里下载官方 vcredist，由安装程序先装它（已装则跳过）。
+      - name: Fetch VC++ redistributable (libmpv dependency)
+        shell: pwsh
+        run: |
+          curl.exe -L --retry 3 --retry-delay 5 -o vc_redist.x64.exe https://aka.ms/vs/17/release/vc_redist.x64.exe
+          $size = (Get-Item vc_redist.x64.exe).Length
+          if ($size -lt 1MB) { throw "vc_redist.x64.exe 下载异常: $size bytes" }
+          Write-Host "vc_redist.x64.exe = $size bytes"
+
       - name: Build installer (substitute version from pubspec)
         shell: pwsh
         run: |
@@ -109,9 +120,10 @@ jobs:
           (Get-Content windows/installer.iss) -replace '#define MyAppVersion "1.0.0"', "#define MyAppVersion `"$ver`"" | Set-Content windows/installer.iss
           $src  = (Resolve-Path 'build/windows/x64/runner/Release').Path
           $lang = (Resolve-Path 'windows/languages').Path
+          $vc   = (Resolve-Path 'vc_redist.x64.exe').Path
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { $iscc = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" }
-          & "$iscc" "windows/installer.iss" "/DAppSourceDir=$src" "/DLangDir=$lang"
+          & "$iscc" "windows/installer.iss" "/DAppSourceDir=$src" "/DLangDir=$lang" "/DVcRedist=$vc"
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4

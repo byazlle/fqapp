@@ -460,7 +460,7 @@ class _AudioPlaybackController extends ChangeNotifier
       await released;
       if (!_current(generation)) return;
       final player = candidate =
-          request.playerFactory?.call() ?? NativePlayer();
+          request.playerFactory?.call() ?? createPlayerForCurrentPlatform();
       _player = player;
       await player.create(source.url, source.keyHex);
       if (!_current(generation, player)) {

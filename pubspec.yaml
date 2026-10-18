@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.117+122
+version: 1.0.118+123
 
 environment:
   sdk: ^3.12.2
@@ -52,6 +52,13 @@ dependencies:
   connectivity_plus: ^7.3.1
   image: ^4.12.0
   flutter_svg: ^2.3.0
+  # 桌面端（Windows/Linux/macOS）短剧/听书播放：libmpv 内核 + Flutter 渲染。
+  # 桌面没有 Android 的 ExoPlayer 原生宿主，改为播放 Rust 核心 loopback 的
+  # `/media/play` 解密流（按 Range 回源、边下边解密）。media_kit_libs_video
+  # 提供各平台预编译的 libmpv，随应用一起打包，无需用户另装。
+  media_kit: ^1.2.6          # 播放器内核（libmpv 封装）
+  media_kit_libs_video: ^1.0.7  # 各平台 libmpv 二进制（Windows 必需）
+  media_kit_video: ^2.0.1    # 视频画面 widget（Video / VideoController）
 dev_dependencies:
   flutter_test:
     sdk: flutter

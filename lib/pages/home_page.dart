@@ -128,63 +128,76 @@ class _HomePageState extends ConsumerState<HomePage> {
           Positioned.fill(child: AmbientBackdrop(scroll: _scroll)),
           Align(
             alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 840),
-              child: SafeArea(
-                bottom: false,
-                child: state.error != null && state.items.isEmpty
-                    ? HomeFeedError(
-                        headline: '故事还在路上',
-                        message: '暂时无法加载推荐，稍后再试一次。',
-                        detail: state.error!,
-                        onRetry: notifier.load,
-                      )
-                    : RefreshIndicator(
-                        color: HomePalette.accent,
-                        backgroundColor: palette.surface,
-                        onRefresh: notifier.load,
-                        // The grid used to measure itself from inside a sliver
-                        // (SliverLayoutBuilder). A sliver's constraints carry
-                        // the scroll offset, so they differ on every scroll
-                        // frame -- which re-ran the builder, handed the sliver
-                        // a fresh SliverChildBuilderDelegate, and rebuilt every
-                        // visible card for the whole duration of the scroll.
-                        // Measuring once here keeps the grid out of the scroll
-                        // path completely.
-                        child: LayoutBuilder(
-                          builder: (context, constraints) => CustomScrollView(
-                            key: const Key('home_feed'),
-                            controller: _scroll,
-                            physics: const BouncingScrollPhysics(
-                              parent: AlwaysScrollableScrollPhysics(),
+            // 内容列宽随窗口分级：宽屏不是把手机布局拉宽，而是放开列宽让
+            // 网格扩列（卡片列数由 homeGridDelegate 按宽度决定），窄屏保持
+            // 840 的既有形态不变。
+            child: LayoutBuilder(
+              builder: (context, shellConstraints) {
+                final shellWidth = shellConstraints.maxWidth;
+                final contentWidth = shellWidth >= 1280
+                    ? 1080.0
+                    : shellWidth >= 900
+                    ? 920.0
+                    : 840.0;
+                return ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentWidth),
+                  child: SafeArea(
+                    bottom: false,
+                    child: state.error != null && state.items.isEmpty
+                        ? HomeFeedError(
+                            headline: '故事还在路上',
+                            message: '暂时无法加载推荐，稍后再试一次。',
+                            detail: state.error!,
+                            onRetry: notifier.load,
+                          )
+                        : RefreshIndicator(
+                            color: HomePalette.accent,
+                            backgroundColor: palette.surface,
+                            onRefresh: notifier.load,
+                            // The grid used to measure itself from inside a sliver
+                            // (SliverLayoutBuilder). A sliver's constraints carry
+                            // the scroll offset, so they differ on every scroll
+                            // frame -- which re-ran the builder, handed the sliver
+                            // a fresh SliverChildBuilderDelegate, and rebuilt every
+                            // visible card for the whole duration of the scroll.
+                            // Measuring once here keeps the grid out of the scroll
+                            // path completely.
+                            child: LayoutBuilder(
+                              builder: (context, constraints) => CustomScrollView(
+                                key: const Key('home_feed'),
+                                controller: _scroll,
+                                physics: const BouncingScrollPhysics(
+                                  parent: AlwaysScrollableScrollPhysics(),
+                                ),
+                                slivers: [
+                                  SliverToBoxAdapter(
+                                    child: HomeHero(
+                                      onSearch: _openSearch,
+                                      onRanks: _openRanks,
+                                      onRefresh: notifier.load,
+                                      refreshing: state.isLoading,
+                                    ),
+                                  ),
+                                  SliverPersistentHeader(
+                                    pinned: true,
+                                    delegate: HomeTabBarDelegate(
+                                      selectedIndex: state.tabIndex,
+                                      onSelect: notifier.selectTab,
+                                      extent: 54 + (textScale - 1).clamp(0, 2) * 20,
+                                      dark: palette.dark,
+                                    ),
+                                  ),
+                                  ..._contentSlivers(
+                                    state,
+                                    constraints.maxWidth - _gridPadding * 2,
+                                  ),
+                                ],
+                              ),
                             ),
-                            slivers: [
-                              SliverToBoxAdapter(
-                                child: HomeHero(
-                                  onSearch: _openSearch,
-                                  onRanks: _openRanks,
-                                  onRefresh: notifier.load,
-                                  refreshing: state.isLoading,
-                                ),
-                              ),
-                              SliverPersistentHeader(
-                                pinned: true,
-                                delegate: HomeTabBarDelegate(
-                                  selectedIndex: state.tabIndex,
-                                  onSelect: notifier.selectTab,
-                                  extent: 54 + (textScale - 1).clamp(0, 2) * 20,
-                                  dark: palette.dark,
-                                ),
-                              ),
-                              ..._contentSlivers(
-                                state,
-                                constraints.maxWidth - _gridPadding * 2,
-                              ),
-                            ],
                           ),
-                        ),
-                      ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ],

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
@@ -289,6 +290,11 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   final _pagedKey = GlobalKey<ReaderPagedViewState>();
   ReaderChapterLayout? _chapterLayout;
   ReaderPageMode? _layoutMode;
+
+  /// Pages side by side in the current layout (多页并排). 1 on phones and in
+  /// scroll mode; the preference may ask for more on wide windows. The layout
+  /// spec encodes it through its column viewport, so a change re-measures.
+  int _layoutColumns = 1;
   int _layoutRevision = 0;
 
   /// Bumped whenever [_ideas] changes. Cached layouts remember the revision they
@@ -1399,9 +1405,46 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     );
   }
 
+  /// A single text column never grows past this on wide windows: one line
+  /// stretched across a 1600px screen reads badly, so the column is centred
+  /// instead. Phone-width windows (every existing layout test) are below it.
+  static const double _singleColumnMaxWidth = 840;
+
+  /// Pages per screen in 翻页 mode: the preference, capped by what the window
+  /// can fit without shrinking a column below a readable width. 自动 follows
+  /// the width alone; phone-width windows always get one page.
+  int _effectiveColumns(double width) {
+    final maxByWidth = math.max(1, math.min(3, width ~/ 360));
+    final preferred = _preferences.pageColumns;
+    if (preferred <= 0) {
+      if (width < 900) return 1;
+      if (width < 1500) return 2;
+      return maxByWidth;
+    }
+    return math.min(preferred, maxByWidth);
+  }
+
+  /// The viewport handed to the layout: one column's geometry. A spread shares
+  /// the window's height and splits its width, so measuring a single column
+  /// keeps the existing pagination untouched and only the arrangement changes.
+  Size _layoutViewport(BoxConstraints constraints, int columns) {
+    final width = constraints.biggest.width;
+    if (columns > 1) {
+      final columnWidth =
+          (width - (columns - 1) * kReaderSpreadGap) / columns;
+      return Size(columnWidth, constraints.biggest.height);
+    }
+    return Size(
+      math.min(width, _singleColumnMaxWidth),
+      constraints.biggest.height,
+    );
+  }
+
   ReaderChapterLayout _prepareLayout(BoxConstraints constraints) {
+    final columns = _paged ? _effectiveColumns(constraints.biggest.width) : 1;
+    _layoutColumns = columns;
     final spec = ReaderLayoutSpec(
-      viewport: constraints.biggest,
+      viewport: _layoutViewport(constraints, columns),
       textScaler: MediaQuery.textScalerOf(context),
       preferences: _preferences,
       fontFamily:
@@ -1554,9 +1597,12 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
     }
     final layout = _chapterLayout;
     if (layout == null || layout.pages.isEmpty) return null;
+    final columns = _layoutColumns;
+    final start = (_pageIndex ~/ columns) * columns;
+    final end = math.min(start + columns, layout.pages.length);
     return ReaderChapterTurn(
       direction: direction,
-      page: layout.pages[_pageIndex.clamp(0, layout.pages.length - 1)],
+      pages: List.unmodifiable(layout.pages.sublist(start, end)),
       spec: layout.spec,
     );
   }
@@ -2233,15 +2279,34 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
   Widget _buildContent(ReaderThemePreset preset, EdgeInsets windowPadding) {
     final chapterTurn = _chapterTurnRequest;
     if (_loading && chapterTurn != null) {
-      // Keep the outgoing page on screen while the neighbouring chapter loads,
-      // so the boundary slides instead of flashing the loading spinner.
+      // Keep the outgoing spread on screen while the neighbouring chapter
+      // loads, so the boundary slides instead of flashing the loading spinner.
       return GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: _toggleControls,
-        child: ReaderPageContent(
-          page: chapterTurn.page,
-          spec: chapterTurn.spec,
-          imageProviderFactory: widget.imageProviderFactory,
+        child: ColoredBox(
+          color: preset.backgroundColor,
+          child: SizedBox(
+            width: double.infinity,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < chapterTurn.pages.length; i++) ...[
+                  if (i > 0) const SizedBox(width: kReaderSpreadGap),
+                  SizedBox(
+                    width: chapterTurn.spec.width +
+                        chapterTurn.spec.horizontalPadding * 2,
+                    child: ReaderPageContent(
+                      page: chapterTurn.pages[i],
+                      spec: chapterTurn.spec,
+                      imageProviderFactory: widget.imageProviderFactory,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -2301,6 +2366,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                         onDragStart: _hideControlsOnDrag,
                         turnStyle: _preferences.pageTurnStyle,
                         backgroundColor: preset.backgroundColor,
+                        spreadColumns: _layoutColumns,
                         endPage: _index == widget.chapters.length - 1
                             ? _buildChapterEndPage(preset)
                             : null,
@@ -2317,7 +2383,16 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                         selection: _selection,
                         rangeUnderlines: _rangeUnderlines,
                       )
-                    : _buildScrollContent(layout, scope),
+                    // Scroll mode centres the measured column on wide windows
+                    // instead of stretching one line across the whole screen.
+                    : Center(
+                        child: SizedBox(
+                          width:
+                              layout.spec.width +
+                              layout.spec.horizontalPadding * 2,
+                          child: _buildScrollContent(layout, scope),
+                        ),
+                      ),
               ),
               ..._selectionHandles(scope),
               ?_selectionBar(preset, windowPadding),

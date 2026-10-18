@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../services/audio_preferences.dart';
 import '../services/episode_source_cache.dart';
 import '../services/native_player.dart';
+import '../services/desktop_media_player.dart';
 import '../services/player_preferences.dart';
 
 /// 听书模式页（官方 `jm3.d0.y()` 的 `ShortSeriesLaunchArgs.setIsListenMode`
@@ -150,7 +151,7 @@ class _ListenModePageState extends State<ListenModePage>
       final url = variant?.url ?? source.url;
       final keyHex = variant?.keyHex ?? source.keyHex;
       await _player?.dispose();
-      final player = (widget.playerFactory ?? NativePlayer.new)();
+      final player = (widget.playerFactory ?? createPlayerForCurrentPlatform)();
       await player.create(url, keyHex);
       await player.setRate(_rate);
       if (autoplay) unawaited(player.play());

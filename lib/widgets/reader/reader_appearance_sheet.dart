@@ -338,6 +338,41 @@ class _ReaderAppearanceSheetState extends State<ReaderAppearanceSheet> {
                             ),
                           ),
                         ),
+                        // 每屏页数: the desktop multi-page spread. Hidden on
+                        // phone-width sheets, where every layout collapses to
+                        // one page anyway.
+                        if (_value.pageMode == ReaderPageMode.paged &&
+                            MediaQuery.sizeOf(context).width >= 900)
+                          _row(
+                            label: '每屏页数',
+                            child: Expanded(
+                              child: Row(
+                                children: [
+                                  for (final entry in const {
+                                    0: '自动',
+                                    1: '单页',
+                                    2: '双页',
+                                    3: '三页',
+                                  }.entries)
+                                    Expanded(
+                                      child: _chip(
+                                        key: ValueKey(
+                                          'reader-page-columns-${entry.key}',
+                                        ),
+                                        label: entry.value,
+                                        selected:
+                                            _value.pageColumns == entry.key,
+                                        onTap: () => _update(
+                                          _value.copyWith(
+                                            pageColumns: entry.key,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
                         _row(
                           label: '自动翻页',
                           child: Expanded(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -293,6 +294,30 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
   Future<void> _systemUiUpdates = Future<void>.value();
   bool _systemUiTouched = false;
 
+  /// 桌面端键盘快捷键共用的音量单主（会话态，不落盘）：镜像当前播放器
+  /// 的音量。与官方「默认静音」策略开关同源——短剧形态下把音量拖到 0
+  /// 会同步打开更多面板里的开关（[_applyVolume]），换播放器时回到起播
+  /// 策略音量（官方「每次新建播放器都重新套一遍」，见 [_resetVolume]）。
+  double _volume = 1;
+
+  /// 上一次的非零音量：静音钮据此恢复，避免取消静音直接回到满格。
+  double _lastVolume = 1;
+
+  /// [_applyVolume] 正在把音量变化同步给「默认静音」开关：置位期间
+  /// [didUpdateWidget] 不做镜像覆盖（音量以 chrome 下发的精确值为准）。
+  bool _volumeSwitchSyncing = false;
+
+  /// 长按方向键的连续步进（上下快进/快退、左右音量）。本版本
+  /// `KeyEvent` 没有 `repeat` getter，系统长按重复以独立的
+  /// `KeyRepeatEvent` 到达，[KeyDownEvent] 天然排除它。
+  Timer? _keyRepeatTimer;
+  LogicalKeyboardKey? _repeatKey;
+
+  /// 音量滑杆专用：不可聚焦——键盘音量由 chrome 级快捷键统一负责
+  /// （聚焦态 Slider 会把方向键据为己有，与 seek 语义冲突； seek 条
+  /// `StorySeekBar` 同款不接键盘）。
+  final _volumeSliderFocus = FocusNode(canRequestFocus: false);
+
   /// 横滑调进度的起手位置与激活状态。null = 没有进行中的横滑；
   /// `_dragSeekActive` = 已证明是横向主导的拖动（见 [_updateDragSeek]）。
   Offset? _dragSeekOrigin;
@@ -322,6 +347,25 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
 
   bool get _ready => widget.enabled && (widget.player?.isCreated ?? false);
   bool get _overlayOpen => _modalOpen || widget.interactionBlocked;
+
+  /// 桌面平台（Windows/macOS/Linux）才接管物理键盘与桌面专属控件：
+  /// 手机/平板没有键盘，快捷键和音量组一律不出现，竖屏布局保持官方
+  /// 形态（与 `player_page.dart:1457` 同款平台门控）。
+  static bool get _desktopKeyboard =>
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+
+  /// 上下方向键 = 快进/快退 10 秒（长按连续步进）。
+  /// 注意：`LogicalKeyboardKey` 覆写了 `==`，不能做 const map 的键。
+  static final _seekStepKeys = <LogicalKeyboardKey, int>{
+    LogicalKeyboardKey.arrowUp: 10,
+    LogicalKeyboardKey.arrowDown: -10,
+  };
+
+  /// 左右方向键 = 音量步进 5%。
+  static final _volumeStepKeys = <LogicalKeyboardKey, double>{
+    LogicalKeyboardKey.arrowLeft: -0.05,
+    LogicalKeyboardKey.arrowRight: 0.05,
+  };
   bool get _playbackRequested =>
       widget.playing ||
       ((widget.player?.playWhenReady ?? false) &&
@@ -360,6 +404,11 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
           }
         });
     unawaited(_loadRate());
+    // 起播音量的镜像：宿主（player_page）在播放器创建时按「默认静音」
+    // 策略套过音量，chrome 的 [_volume] 只需跟上，不在 initState 下发
+    // 任何原生调用。
+    _volume = widget.defaultMute ? 0 : 1;
+    if (_volume > 0) _lastVolume = _volume;
     // 官方 o.W7()：holder 初始化时，若清屏未被反向禁用（O1()）且当前是
     // 旧底栏分支（SingleVideoHolder.F6()：k9()=新栏样式为假、场景默认 1），
     // 进页即清屏（T7(true)）。新栏分支 F6() 恒 false，不清屏；官方的听书
@@ -381,10 +430,24 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.player != widget.player) {
       _listenToPosition();
+      _resetVolume();
       // 换播放器等于换 holder：官方 `d.release()` 会摘掉锁监听，本地等价是
       // 撤销锁态，避免下一个剧集继承上一个的锁定。
       _releaseLock();
       _doubleTapGuard?.cancel();
+    }
+    // 「默认静音」开关（更多面板）翻转时，宿主已把策略音量作用到当前
+    // 播放器（`player_page._setDefaultMute`），chrome 只做镜像对账。
+    // 翻转由 chrome 自己的音量调节触发时（[_applyVolume] 的开关同步），
+    // 音量以 chrome 下发的精确值为准，不做二次覆盖。
+    if (oldWidget.defaultMute != widget.defaultMute) {
+      if (_volumeSwitchSyncing) {
+        _volumeSwitchSyncing = false;
+      } else {
+        final volume = widget.defaultMute ? 0.0 : 1.0;
+        setState(() => _volume = volume);
+        if (volume > 0) _lastVolume = volume;
+      }
     }
     if (oldWidget.landscapeLockEnabled && !widget.landscapeLockEnabled) {
       _releaseLock();
@@ -421,6 +484,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       _dragSeekOrigin = null;
       _dragSeekActive = false;
       _doubleTapGuard?.cancel();
+      _stopKeyRepeat();
     }
     if (_ready && (oldWidget.player != widget.player || !oldWidget.enabled)) {
       unawaited(_control((player) => player.setRate(_rate)));
@@ -453,6 +517,8 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     _doubleTapGuard?.cancel();
     _lockHideTimer?.cancel();
     _panelDrawerTimer?.cancel();
+    _keyRepeatTimer?.cancel();
+    _volumeSliderFocus.dispose();
     _lockController.dispose();
     _pages.dispose();
     _panel.dispose();
@@ -872,6 +938,233 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     _scheduleHide();
   }
 
+  /// 换播放器（下一集/换档）时的音量对账：官方「默认静音」是**起播
+  /// 音量**，每次新建播放器宿主都会重新套一遍策略音量，chrome 的镜像
+  /// 跟着回策略值——本会话手调的音量不跨集延续（与官方同语义，也避免
+  /// 与宿主的起播套用竞争下发顺序）。
+  void _resetVolume() {
+    _stopKeyRepeat();
+    final volume = widget.defaultMute ? 0.0 : 1.0;
+    if (volume != _volume) setState(() => _volume = volume);
+    if (volume > 0) _lastVolume = volume;
+  }
+
+  /// 音量下发：失败不冒泡到 onError（官方音量只是表现层，
+  /// `player_page._setDefaultMute` 同款吞错）。
+  void _setPlayerVolume(double volume) {
+    final player = widget.player;
+    if (player == null || !_ready) return;
+    unawaited(player.setVolume(volume).catchError((Object _) {}));
+  }
+
+  /// 音量调节的唯一入口（键盘步进、滑杆、静音钮共用）。短剧形态下与
+  /// 「默认静音」策略开关同源：拖到 0 同步打开开关、离开 0 同步关闭，
+  /// 下一集起播沿用同一策略。宿主对开关翻转只会套策略音量（0/1），
+  /// 所以这里总是补发一次本次的精确音量（取消静音到 0.35 才成立）。
+  void _applyVolume(double volume) {
+    final clamped = volume.clamp(0.0, 1.0);
+    if (clamped > 0) _lastVolume = clamped;
+    final onMute = widget.onDefaultMuteChanged;
+    final switchChanged = onMute != null && (clamped <= 0) != widget.defaultMute;
+    setState(() => _volume = clamped);
+    if (switchChanged) {
+      _volumeSwitchSyncing = true;
+      onMute.call(clamped <= 0);
+    }
+    _setPlayerVolume(clamped);
+  }
+
+  void _toggleMute() {
+    _applyVolume(_volume > 0 ? 0 : _lastVolume);
+  }
+
+  IconData get _volumeIcon {
+    if (_volume <= 0) return Icons.volume_off_rounded;
+    if (_volume < .5) return Icons.volume_down_rounded;
+    return Icons.volume_up_rounded;
+  }
+
+  /// 桌面音量滑杆：轨道 3dp、拇指 6dp、无交互光圈，配色跟随深色控件层。
+  /// 用 [_volumeSliderFocus]（不可聚焦）——键盘音量由 chrome 级快捷键
+  /// 统一负责，聚焦态 Slider 会把方向键据为己有，与 seek 语义冲突。
+  Widget _volumeSlider() {
+    return SliderTheme(
+      data: SliderThemeData(
+        trackHeight: 3,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+        overlayShape: SliderComponentShape.noOverlay,
+        activeTrackColor: Colors.white,
+        inactiveTrackColor: Colors.white24,
+        thumbColor: Colors.white,
+      ),
+      child: Slider(
+        key: const ValueKey('player-volume'),
+        focusNode: _volumeSliderFocus,
+        value: _volume.clamp(0.0, 1.0),
+        onChanged: _applyVolume,
+      ),
+    );
+  }
+
+  /// 通用运输条的音量组（桌面专属）：静音钮 + 宽屏滑杆。窄窗（<360）
+  /// 放不下第七个钮，官方六连钮优先，音量组整体让位（快捷键仍在）。
+  Widget _volumeGroup() {
+    if (_viewportSize.width < 360) return const SizedBox.shrink();
+    final showSlider = _viewportSize.width >= 600;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _transportButton(
+          _volume > 0 ? '静音' : '取消静音',
+          _volumeIcon,
+          _toggleMute,
+        ),
+        if (showSlider) SizedBox(width: 88, child: _volumeSlider()),
+      ],
+    );
+  }
+
+  /// 横屏底条的音量组（桌面专属）：图标钮 32dp + 宽屏滑杆。
+  Widget _landscapeVolumeGroup() {
+    final showSlider = _viewportSize.width >= 600;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _landIconButton(
+          'landscape-volume',
+          _volumeIcon,
+          _volume > 0 ? '静音' : '取消静音',
+          _toggleMute,
+        ),
+        if (showSlider) SizedBox(width: 80, child: _volumeSlider()),
+      ],
+    );
+  }
+
+  /// 快捷键命中时把控件条唤出（与 [_togglePlayback] 的可见性处理一致）。
+  void _revealControls() {
+    if (!_visible) setState(() => _visible = true);
+    _scheduleHide();
+  }
+
+  void _startKeyRepeat(LogicalKeyboardKey key) {
+    _stopKeyRepeat();
+    _repeatKey = key;
+    // 立即步进一次，之后 150ms 连续步进（官方长按 seek 的本地等价）。
+    _stepKey(key);
+    _keyRepeatTimer = Timer.periodic(
+      const Duration(milliseconds: 150),
+      (_) => _stepKey(key),
+    );
+  }
+
+  void _stopKeyRepeat() {
+    _keyRepeatTimer?.cancel();
+    _keyRepeatTimer = null;
+    _repeatKey = null;
+  }
+
+  /// 单次方向键步进。守卫与 [_togglePlayback] 同源：锁定/面板/弹层/
+  /// 拖动中/翻页中/应用失活时不响应。
+  void _stepKey(LogicalKeyboardKey key) {
+    if (!_ready ||
+        !_appActive ||
+        _locked ||
+        _panelOpen ||
+        _overlayOpen ||
+        _seeking ||
+        _paging) {
+      return;
+    }
+    final seek = _seekStepKeys[key];
+    if (seek != null) {
+      if (widget.duration <= Duration.zero) return;
+      _revealControls();
+      _seekBy(seek);
+      return;
+    }
+    final step = _volumeStepKeys[key];
+    if (step != null) {
+      _revealControls();
+      _applyVolume(_volume + step);
+    }
+  }
+
+  /// 桌面端播放画面的键盘入口（Focus.onKeyEvent）。仅桌面平台挂载；
+  /// 未被消费的事件继续向上冒泡给应用级快捷键。
+  ///
+  /// - 空格：播放/暂停（[_togglePlayback]）
+  /// - ↑/↓：快进/快退 10 秒，长按连续步进
+  /// - ←/→：音量 ±5%，长按连续步进
+  /// - S：倍速循环切换并记忆（[_cycleRate]）
+  ///
+  /// 每项都有对应的可点击控件：运输条/横屏底条的播放暂停、±10 秒、
+  /// 音量组（静音钮+滑杆）、倍速（面板/横屏文字钮）。
+  KeyEventResult _handlePlayerKey(FocusNode node, KeyEvent event) {
+    if (!_desktopKeyboard) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (event is KeyDownEvent) {
+      // KeyRepeatEvent 是独立类（本版本 KeyEvent 没有 repeat getter），
+      // KeyDownEvent 天然排除长按重复；重复事件在下面单独吞掉。
+      if (key == LogicalKeyboardKey.space) {
+        _togglePlayback();
+        return KeyEventResult.handled;
+      }
+      if (key == LogicalKeyboardKey.keyS) {
+        unawaited(_cycleRate());
+        return KeyEventResult.handled;
+      }
+      if (_seekStepKeys.containsKey(key) || _volumeStepKeys.containsKey(key)) {
+        _startKeyRepeat(key);
+        return KeyEventResult.handled;
+      }
+    } else if (event is KeyUpEvent) {
+      if (_repeatKey == key) {
+        _stopKeyRepeat();
+        return KeyEventResult.handled;
+      }
+    } else if (event is KeyRepeatEvent) {
+      // 系统重复由 _keyRepeatTimer 负责步进，事件本身吞掉即可。
+      if (_seekStepKeys.containsKey(key) || _volumeStepKeys.containsKey(key)) {
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  /// S 键的倍速循环：在 [PlayerPreferences.playbackRates] 里逐档前进，
+  /// 落盘 + 下发播放器（与面板选档同一路径 [_applyRate]）。
+  Future<void> _cycleRate() async {
+    if (_overlayOpen || _panelOpen || _locked) return;
+    final rates = PlayerPreferences.playbackRates;
+    if (rates.isEmpty) return;
+    final index = rates.indexOf(_rate);
+    await _applyRate(rates[(index + 1) % rates.length]);
+  }
+
+  /// 倍速下发（面板选档与 S 键循环共用）：先让临时倍速（长按加速）
+  /// 归位，再落盘 + 下发；失败只提示不打断播放。
+  Future<void> _applyRate(double rate) async {
+    if (_overlayOpen || _panelOpen || _locked) return;
+    _endBoost();
+    final generation = ++_rateGeneration;
+    setState(() => _rate = rate);
+    try {
+      // Persist in selection order. A slow reply to an older native rate
+      // change must not save that value after the user's newer selection.
+      await Future.wait<void>([
+        PlayerPreferences.savePlaybackRate(rate),
+        _control((player) => player.setRate(rate)),
+      ]);
+    } catch (_) {
+      if (mounted && generation == _rateGeneration) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('倍速已生效，但未能保存设置')));
+      }
+    }
+  }
+
   void _startBoost() {
     if (!_ready ||
         _locked ||
@@ -1179,23 +1472,8 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     if (selected is EpisodeVariant) {
       widget.onQualitySelected?.call(selected);
     } else if (selected is double) {
-      final rate = selected;
-      final generation = ++_rateGeneration;
-      setState(() => _rate = rate);
-      try {
-        // Persist in selection order. A slow reply to an older native rate
-        // change must not save that value after the user's newer selection.
-        await Future.wait<void>([
-          PlayerPreferences.savePlaybackRate(rate),
-          _control((player) => player.setRate(rate)),
-        ]);
-      } catch (_) {
-        if (mounted && generation == _rateGeneration) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('倍速已生效，但未能保存设置')));
-        }
-      }
+      // 面板选档与 S 键循环同一条下发路径（落盘 + 播放器 + 失败提示）。
+      await _applyRate(selected);
     }
     // 更多面板里的「弹幕设置」：等面板收起后再级联打开设置面板，
     // 避免 _modalOpen 的置位被 _showRates 的收尾覆盖。
@@ -1537,7 +1815,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     final scaledScaler = TextScaler.linear(
       outerScaler.scale(14) * ShortSeriesFontScale.scale / 14,
     );
-    return PopScope(
+    final chrome = PopScope(
     canPop: !_panelOpen && !_fullScreen,
     onPopInvokedWithResult: (didPop, result) {
       if (!didPop && (_panelOpen || _fullScreen)) unawaited(_back());
@@ -2091,6 +2369,16 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       ),
       ),
     ),
+    );
+    // 桌面端：整个 chrome 接成键盘焦点宿主——进页即可按键（autofocus），
+    // 控件没吃掉的方向键/空格到达 [_handlePlayerKey]。倍速/选集等弹层走
+    // 根 Navigator 的 overlay，不在本子树内，不会抢这些快捷键；未被消费
+    // 的事件继续冒泡给应用级快捷键。
+    if (!_desktopKeyboard) return chrome;
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handlePlayerKey,
+      child: chrome,
     );
   }
 
@@ -2653,9 +2941,43 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                   const SizedBox(width: 4),
                   _clearScreenIcon(),
                 ],
+                if (_catalogDesktopControls() case final controls?) ...[
+                  const SizedBox(width: 4),
+                  controls,
+                ],
               ],
             )
           : catalog,
+    );
+  }
+
+  /// 桌面专属的竖屏紧凑控制簇（短剧目录条）：±10 秒 + 音量组。官方竖屏
+  /// 目录条没有这些入口（暂停走单击画面、倍速走长按面板），宽屏下补在
+  /// 清屏钮旁边，让键盘快捷键在这里也有可点击控件；窄窗（<560）让位给
+  /// 选集条，保持官方形态。
+  Widget? _catalogDesktopControls() {
+    if (!_desktopKeyboard || _viewportSize.width < 560) return null;
+    final showSlider = _viewportSize.width >= 760;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _transportButton(
+          '快退10秒',
+          Icons.replay_10,
+          widget.duration > Duration.zero ? () => _seekBy(-10) : null,
+        ),
+        _transportButton(
+          '快进10秒',
+          Icons.forward_10,
+          widget.duration > Duration.zero ? () => _seekBy(10) : null,
+        ),
+        _transportButton(
+          _volume > 0 ? '静音' : '取消静音',
+          _volumeIcon,
+          _toggleMute,
+        ),
+        if (showSlider) SizedBox(width: 88, child: _volumeSlider()),
+      ],
     );
   }
 
@@ -2738,6 +3060,9 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
               child: const Text('选集', style: TextStyle(color: Colors.white)),
             ),
           ],
+          // 桌面专属：键盘音量调节（←/→ 与静音）的可点击控件。手机上没有
+          // 键盘，运输条保持官方形态。
+          if (_desktopKeyboard) _volumeGroup(),
           _transportButton(
             _fullScreen ? '退出全屏' : '全屏',
             _fullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
@@ -2815,6 +3140,25 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                   _playbackRequested ? '暂停' : '播放',
                   _togglePlayback,
                 ),
+                // 桌面专属：键盘 ±10 秒（↑/↓，长按连续步进）的可点击控件。
+                if (_desktopKeyboard) ...[
+                  const SizedBox(width: 8),
+                  _landIconButton(
+                    'landscape-replay-10',
+                    Icons.replay_10,
+                    '快退10秒',
+                    widget.duration > Duration.zero
+                        ? () => _seekBy(-10)
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  _landIconButton(
+                    'landscape-forward-10',
+                    Icons.forward_10,
+                    '快进10秒',
+                    widget.duration > Duration.zero ? () => _seekBy(10) : null,
+                  ),
+                ],
                 const SizedBox(width: 12),
                 if (widget.episodes.length > 1)
                   _landIconButton(
@@ -2876,6 +3220,11 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                     shadows: [_landShadow],
                   ),
                 ),
+                // 桌面专属：键盘音量（←/→）与静音的可点击控件。
+                if (_desktopKeyboard) ...[
+                  const SizedBox(width: 12),
+                  _landscapeVolumeGroup(),
+                ],
               ],
             ),
           ),
@@ -2981,7 +3330,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     String key,
     IconData icon,
     String tooltip,
-    VoidCallback onPressed,
+    VoidCallback? onPressed,
   ) => IconButton(
     key: ValueKey(key),
     tooltip: tooltip,
@@ -2989,6 +3338,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     padding: EdgeInsets.zero,
     constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
     color: Colors.white,
+    disabledColor: Colors.white24,
     iconSize: 32,
     icon: Icon(icon, shadows: const [_landShadow]),
   );

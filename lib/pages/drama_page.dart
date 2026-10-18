@@ -13,6 +13,7 @@ import '../models/playlet_comment.dart';
 import '../models/series_detail.dart';
 import '../services/api_client.dart';
 import '../services/backend_transport.dart';
+import '../services/desktop_media_player.dart';
 import '../services/drama_mute_preferences.dart';
 import '../services/episode_source_cache.dart';
 import '../services/inline_video_playback.dart';
@@ -1011,6 +1012,9 @@ class _DramaPageState extends ConsumerState<DramaPage>
             episodes: episodes,
             initialIndex: index,
             resolveSource: _inline.resolveListenSource,
+            // 听书页建自己的播放器：沿用本页的注入工厂（测试替身 /
+            // 桌面 media_kit 分支都走同一条入口，不在这里散落平台判断）。
+            playerFactory: widget.playerFactory,
           ),
         ),
       );
@@ -3300,6 +3304,12 @@ class _InlineVideoLayer extends StatelessWidget {
             if (playback.activeId.value != item.id) return cover;
             final textureId = playback.textureId.value;
             final videoSize = playback.videoSize.value;
+            // 桌面端没有 Texture：播放器是 [DesktopMediaPlayer] 时改挂
+            // media_kit 的 Video 画面（其 textureId 恒为 null，首帧/尺寸
+            // 事件与原生同路，照常驱动重建）。
+            final activePlayer = playback.activePlayer;
+            final desktopVideo =
+                activePlayer is DesktopMediaPlayer ? activePlayer : null;
             final layout = PlayerVideoLayout.calculate(
               window: window,
               insets: EdgeInsets.zero,
@@ -3319,7 +3329,13 @@ class _InlineVideoLayer extends StatelessWidget {
               clipBehavior: Clip.hardEdge,
               children: [
                 const ColoredBox(color: Colors.black),
-                if (textureId != null)
+                if (desktopVideo != null)
+                  Positioned.fromRect(
+                    rect: layout.video,
+                    // libmpv 自己处理旋转，桌面不再套 RotatedBox。
+                    child: desktopVideo.buildVideoSurface(),
+                  )
+                else if (textureId != null)
                   Positioned.fromRect(
                     rect: layout.video,
                     child: RotatedBox(
@@ -3334,7 +3350,7 @@ class _InlineVideoLayer extends StatelessWidget {
                   ),
                 // A first-frame event may beat the size event. Never expose a
                 // new texture through the 9:16 fallback (or stale geometry).
-                if (textureId == null ||
+                if ((textureId == null && desktopVideo == null) ||
                     !playback.firstFrame.value ||
                     videoSize.width <= 0 ||
                     videoSize.height <= 0)

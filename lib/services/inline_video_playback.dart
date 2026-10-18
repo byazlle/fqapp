@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/media_item.dart';
 import 'api_client.dart';
+import 'desktop_media_player.dart';
 import 'drama_download_store.dart';
 import 'drama_mute_preferences.dart';
 import 'episode_source_cache.dart';
@@ -169,6 +170,12 @@ class InlineVideoPlayback {
 
   /// True while a player instance exists (playing or paused).
   bool get hasPlayer => _player != null;
+
+  /// The live player instance, null while nothing is mounted. The feed card
+  /// reads it to mount the desktop video surface (media_kit): a
+  /// [DesktopMediaPlayer] renders through [DesktopMediaPlayer.buildVideoSurface]
+  /// instead of a Texture, so the card must reach the instance itself.
+  NativePlayer? get activePlayer => _player;
 
   /// The drama this session targets, null before the first activation. The
   /// title/cover follow the feed item that started it（听书页与下载弹窗的
@@ -386,7 +393,9 @@ class InlineVideoPlayback {
       // awaited: the pool keeps the *other* entries alive on purpose.
       await release;
       if (!_current(generation)) return;
-      final player = candidate = playerFactory?.call() ?? NativePlayer();
+      // 桌面没有 ExoPlayer 宿主：走 media_kit + loopback 解密流，
+      // 画面由 drama_page 的桌面分支挂载（textureId 恒为 null）。
+      final player = candidate = playerFactory?.call() ?? createPlayerForCurrentPlatform();
       _player = player;
       await player.create(source.url, source.keyHex);
       if (!_current(generation, player)) {
@@ -490,7 +499,8 @@ class InlineVideoPlayback {
       release = _releases = release.then((_) => player.dispose());
       await release;
       if (!_current(generation)) return;
-      final fresh = candidate = playerFactory?.call() ?? NativePlayer();
+      // 换档重建与首次激活同规则：桌面走 media_kit（见 [activate]）。
+      final fresh = candidate = playerFactory?.call() ?? createPlayerForCurrentPlatform();
       _player = fresh;
       await fresh.create(variant.url, variant.keyHex);
       if (!_current(generation, fresh)) {

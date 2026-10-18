@@ -73,7 +73,10 @@ void main() {
       await tester.pumpWidget(_app(player, shortSeries: true));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('video-controls')), findsNothing);
-      expect(find.byTooltip('快进10秒'), findsNothing);
+      expect(find.byTooltip('上一集'), findsNothing);
+      // 桌面专属（flutter test 跑在 Windows 上）：快捷键 ±10 秒/音量的
+      // 可点击控件补在目录条右侧；运输条本体（video-controls）不出现。
+      expect(find.byKey(const ValueKey('player-volume')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('video-surface')));
       // 双击点赞已移除，但仍识别双击以吞掉其单击事件；单击要等
       // 手势识别窗口过去才确认，必须推进假时钟。
@@ -92,7 +95,11 @@ void main() {
       expect(find.byKey(const ValueKey('landscape-play')), findsOneWidget);
       expect(find.byKey(const ValueKey('landscape-episodes')), findsOneWidget);
       expect(find.byTooltip('退出全屏'), findsNothing);
-      expect(find.byTooltip('快进10秒'), findsNothing);
+      expect(find.byTooltip('上一集'), findsNothing);
+      expect(find.byKey(const ValueKey('video-controls')), findsNothing);
+      // 横屏底条的桌面专属 ±10 秒钮（快捷键 ↑/↓ 的可点击控件）。
+      expect(find.byKey(const ValueKey('landscape-forward-10')), findsOneWidget);
+      expect(find.byKey(const ValueKey('landscape-replay-10')), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       await player.dispose();
     },
@@ -183,8 +190,8 @@ void main() {
     tester,
   ) async {
     // 官方横屏底条（`c0i` 控制行 + `cw7` 进度块）：播放/暂停 32dp、下一集
-    // 32dp、倍速文本（1.5x）、选集；时间行「当前 / 总」居中 18sp；无
-    // prev/±10/全屏钮（通用运输条残留，批次四删）。
+    // 32dp、倍速文本（1.5x）、选集；时间行「当前 / 总」居中 18sp；通用
+    // 运输条（prev/下一集/±10/全屏那一排）整体不出现（批次四删）。
     final player = FakeNativePlayer()..isPlaying = true;
     final selected = <int>[];
     await tester.pumpWidget(
@@ -195,8 +202,11 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey('video-controls')), findsNothing);
     expect(find.byTooltip('上一集'), findsNothing);
-    expect(find.byTooltip('快退10秒'), findsNothing);
-    expect(find.byTooltip('快进10秒'), findsNothing);
+    expect(find.byTooltip('退出全屏'), findsNothing);
+    // 桌面专属：快捷键 ±10 秒的可点击控件补在横屏底条上（非官方形态，
+    // 但运输条本体仍不出现）。
+    expect(find.byKey(const ValueKey('landscape-replay-10')), findsOneWidget);
+    expect(find.byKey(const ValueKey('landscape-forward-10')), findsOneWidget);
     expect(find.byKey(const ValueKey('landscape-play')), findsOneWidget);
     expect(find.byKey(const ValueKey('landscape-next')), findsOneWidget);
     expect(find.byKey(const ValueKey('landscape-rate')), findsOneWidget);

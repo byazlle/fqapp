@@ -141,6 +141,15 @@ void main() {
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
     app.main();
+    // 「预热帧」的时钟补锅：runApp 走测试 binding 重写的 scheduleWarmUpFrame，
+    // 它用 `_lastRawTimeStamp`（**上一个用例**留下的最后帧时间戳）建帧，又不像
+    // 框架基类那样在帧后 resetEpoch；而每个 testWidgets 的假时钟都从
+    // DateTime.utc(2015) 重新开始。于是预热帧里启动的动画（引导转圈）拿到旧的
+    // `_startTime`，下一个显式 pump 帧的时间戳却更小，Ticker 算出负 elapsed
+    // 并触发 'elapsedInSeconds >= 0.0' 断言——与被测代码无关，纯粹是多个用例
+    // 共用binding 的时序残迹。这里把基类本会做的 resetEpoch 补上，让预热帧
+    // 之后的第一个帧紧接预热帧时间戳。
+    tester.binding.resetEpoch();
     // main() 接管了 debugPrint 与 FlutterError.onError，把应用日志收进缓冲。
     // flutter_test 会在测试体结束时断言这两个 foundation 调试变量未被改动，
     // 所以必须在**测试体内**还原（addTearDown 跑在不变量检查之后，太晚）。

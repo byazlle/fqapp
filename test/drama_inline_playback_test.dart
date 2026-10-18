@@ -929,8 +929,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     await _flush(tester);
     // 听书页有自己的播放器：feed 解码器先进 destroy（不是入池）。
+    // 听书页的播放器也走本页注入的工厂（与视频页同一条 seam），因此
+    // 这里先按第一个（feed）解码器断言销毁。
     expect(find.byKey(const ValueKey('listen-page')), findsOneWidget);
-    expect(session.players.single.calls, contains('dispose'));
+    expect(session.players.first.calls, contains('dispose'));
 
     await tester.tap(find.byKey(const ValueKey('listen-page-back')));
     await tester.pump(const Duration(milliseconds: 400));
@@ -940,8 +942,10 @@ void main() {
     expect(find.byKey(const ValueKey('listen-page')), findsNothing);
     // 官方 sync_progress_strategy_listen_mode：听到的集落历史。
     expect(session.store.writes.last['episodeId'], episodeId);
-    // 回到原卡续播：新解码器按显式起点激活。
-    expect(session.players, hasLength(2));
+    // 回到原卡续播：新解码器按显式起点激活。听书页自己的解码器同样走本页
+    // 注入的工厂（桌面 media_kit 在测试里没有 libmpv，必须走替身），所以
+    // 这里登记到第三个实例：feed 解码器、听书页解码器、续播解码器。
+    expect(session.players, hasLength(3));
     expect(
       session.players.last.calls.whereType<String>().any(
         (call) => call.startsWith('create:'),

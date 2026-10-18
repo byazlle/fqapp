@@ -46,6 +46,49 @@ class SettingsItem {
   });
 }
 
+/// 一行设置项。[SettingsCategoryPage] 与宽屏设置页右列共用这一份渲染，
+/// 避免两处 ListTile 样式漂移。
+Widget settingsItemRow(
+  BuildContext context,
+  SettingsItem item,
+  StateSetter setState,
+) {
+  final rowBuilder = item.rowBuilder;
+  if (rowBuilder != null) return rowBuilder(context);
+  final palette = HomePalette.of(context);
+  return ListTile(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    onTap: item.onTap == null ? null : () => item.onTap!(context, setState),
+    leading: Container(
+      width: 38,
+      height: 38,
+      decoration: BoxDecoration(
+        color: HomePalette.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(item.icon, size: 20, color: HomePalette.accent),
+    ),
+    title: Text(
+      item.title,
+      style: TextStyle(
+        fontWeight: FontWeight.w600,
+        fontSize: 15,
+        color: palette.ink,
+      ),
+    ),
+    subtitle: item.subtitle == null
+        ? null
+        : Text(
+            item.subtitle!,
+            style: TextStyle(
+              fontSize: 12.5,
+              color: palette.muted,
+            ),
+          ),
+    trailing: item.trailingBuilder?.call(context) ?? item.trailing,
+  );
+}
+
 /// The per-category settings page (PiliPlus CommonSetting equivalent):
 /// a titled page rendering one rounded card of setting rows.
 class SettingsCategoryPage extends StatefulWidget {
@@ -110,40 +153,6 @@ class _SettingsCategoryPageState extends State<SettingsCategoryPage> {
     );
   }
 
-  Widget _buildRow(SettingsItem item) {
-    final rowBuilder = item.rowBuilder;
-    if (rowBuilder != null) return rowBuilder(context);
-    final palette = HomePalette.of(context);
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      onTap: item.onTap == null ? null : () => item.onTap!(context, setState),
-      leading: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: HomePalette.accent.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(item.icon, size: 20, color: HomePalette.accent),
-      ),
-      title: Text(
-        item.title,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 15,
-          color: palette.ink,
-        ),
-      ),
-      subtitle: item.subtitle == null
-          ? null
-          : Text(
-              item.subtitle!,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: palette.muted,
-              ),
-            ),
-      trailing: item.trailingBuilder?.call(context) ?? item.trailing,
-    );
-  }
+  Widget _buildRow(SettingsItem item) =>
+      settingsItemRow(context, item, setState);
 }

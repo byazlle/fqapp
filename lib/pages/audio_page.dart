@@ -15,6 +15,7 @@ import '../services/chapter_cache_store.dart';
 import '../services/library_store.dart';
 import '../services/listening_session.dart';
 import '../services/native_player.dart';
+import '../services/desktop_media_player.dart';
 import '../services/playback_format.dart';
 import '../services/shelf_store.dart';
 import '../services/transient_retry.dart';

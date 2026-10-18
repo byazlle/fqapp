@@ -9,6 +9,7 @@ import '../models/media_item.dart';
 import '../services/api_client.dart';
 import '../services/backend_transport.dart';
 import '../services/comic_page_layout.dart';
+import '../services/comic_reader_preferences.dart';
 import '../services/library_store.dart';
 import '../services/media_history_store.dart';
 import '../services/reader_history.dart';
@@ -79,6 +80,18 @@ class _ComicReaderPageState extends State<ComicReaderPage>
   Timer? _saveTimer;
   String? _error;
 
+  /// 每屏页数偏好；加载完成前按自动档渲染。
+  ComicReaderPreferences? _preferences;
+
+  /// 翻页模式的页码控制器。并排页数变化（改偏好或窗口缩放）或换章时，由
+  /// [_schedulePagedSync] 在帧后把视图跳到承载当前页的那一屏。
+  late final PageController _pagedController = PageController();
+  int _syncedGeneration = -1;
+  int _syncedSpread = -1;
+
+  /// 并排页之间的间距，与小说并排阅读一致地保留可点的页边。
+  static const double _spreadGap = 16;
+
   Chapter get _chapter => widget.chapters[_chapterIndex];
 
   @override
@@ -98,6 +111,7 @@ class _ComicReaderPageState extends State<ComicReaderPage>
     } else {
       unawaited(_loadChapter());
     }
+    unawaited(_loadPreferences());
   }
 
   @override
@@ -109,7 +123,18 @@ class _ComicReaderPageState extends State<ComicReaderPage>
     _sessionActive = false;
     unawaited(_saveProgress());
     _scroll.dispose();
+    _pagedController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final preferences = await ComicReaderPreferences.load();
+      if (!mounted) return;
+      setState(() => _preferences = preferences);
+    } catch (_) {
+      // 偏好不可用时保持自动档，阅读功能不受影响。
+    }
   }
 
   @override
@@ -214,16 +239,19 @@ class _ComicReaderPageState extends State<ComicReaderPage>
     _readyImages.add(index);
     final ratio = (width / height).clamp(0.01, 20.0);
     if ((_ratios[index] - ratio).abs() > 0.0001) {
-      // Capture against the layout that is on screen, before changing heights.
-      _restoreAnchor ??= _logicalPosition();
-      _restoring = true;
+      if (!_pagedMode) {
+        // Capture against the layout that is on screen, before changing heights.
+        _restoreAnchor ??= _logicalPosition();
+        _restoring = true;
+      }
       setState(() {
         _ratios[index] = ratio;
         ++_layoutRevision;
       });
-    } else {
+    } else if (!_pagedMode) {
       _recordVisiblePosition();
     }
+    if (_pagedMode) _recordPagedPosition();
   }
 
   void _imageFailed(int generation, int index) {
@@ -297,6 +325,67 @@ class _ComicReaderPageState extends State<ComicReaderPage>
       _settleReadTime();
       unawaited(_saveProgress());
     });
+  }
+
+  /// 翻页模式下承载当前页的那一屏（一屏 = spreadPages 页并排）。
+  int _targetSpread(int spread) {
+    if (_images.isEmpty || spread <= 1) return 0;
+    final count = (_images.length + spread - 1) ~/ spread;
+    return (_visiblePage.clamp(0, _images.length - 1) ~/ spread).clamp(
+      0,
+      count - 1,
+    );
+  }
+
+  /// 换章、改变每屏页数或窗口缩放后，把翻页视图对准承载当前页的那一屏。
+  /// 帧后执行：此刻 PageView 才完成挂载，控制器可用。
+  void _schedulePagedSync() {
+    final target = _targetSpread(_syncedSpread);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _restoring = false;
+      if (_pagedController.hasClients &&
+          (_pagedController.page ?? target).round() != target) {
+        _pagedController.jumpToPage(target);
+      }
+      _recordPagedPosition();
+    });
+  }
+
+  void _onPagedPageChanged(int page) {
+    if (page == _visiblePage) return;
+    setState(() => _visiblePage = page);
+    _recordPagedPosition();
+    _saveTimer?.cancel();
+    if (!_progressReady) return;
+    _saveTimer = Timer(const Duration(milliseconds: 500), () {
+      _settleReadTime();
+      unawaited(_saveProgress());
+    });
+  }
+
+  /// 翻页模式的位置记录：并排时对外暴露的页号是这一屏的第一页，只有成功
+  /// 展示过的图片才推进持久化位置（与滚动模式同一约定）。
+  void _recordPagedPosition() {
+    if (_restoring || _images.isEmpty) return;
+    final page = _visiblePage.clamp(0, _images.length - 1);
+    if (!_readyImages.contains(page)) {
+      _settleReadTime();
+      _sessionActive = false;
+      return;
+    }
+    _lastPosition = page.toDouble();
+    final firstDisplay = !_progressReady;
+    _progressReady = true;
+    _startReadTime();
+    if (firstDisplay) unawaited(_saveProgress(createHistory: true));
+  }
+
+  Future<void> _selectSpreadPages(int value) async {
+    final current = _preferences ?? const ComicReaderPreferences();
+    if (current.spreadPages == value) return;
+    setState(() => _preferences = current.copyWith(spreadPages: value));
+    await _preferences?.save();
   }
 
   void _startReadTime() {
@@ -414,9 +503,28 @@ class _ComicReaderPageState extends State<ComicReaderPage>
             : [
                 IconButton(
                   tooltip: _pagedMode ? '切换为条漫模式' : '切换为翻页模式',
-                  onPressed: _loading ? null : () => setState(() => _pagedMode = !_pagedMode),
+                  onPressed: _loading
+                      ? null
+                      : () => setState(() {
+                          _pagedMode = !_pagedMode;
+                          if (_pagedMode) _syncedGeneration = -1;
+                        }),
                   icon: Icon(_pagedMode ? Icons.view_day : Icons.auto_stories),
                 ),
+                if (_pagedMode)
+                  PopupMenuButton<int>(
+                    tooltip: '每屏页数',
+                    icon: const Icon(Icons.grid_view),
+                    initialValue: _preferences?.spreadPages ?? 0,
+                    onSelected: _selectSpreadPages,
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 0, child: Text('自动')),
+                      PopupMenuItem(value: 1, child: Text('单页')),
+                      PopupMenuItem(value: 2, child: Text('双页')),
+                      PopupMenuItem(value: 3, child: Text('三页')),
+                      PopupMenuItem(value: 4, child: Text('四页')),
+                    ],
+                  ),
                 IconButton(
                   tooltip: '刷新章节',
                   onPressed: _loading ? null : _reloadChapter,
@@ -487,34 +595,89 @@ class _ComicReaderPageState extends State<ComicReaderPage>
             ? _errorView(canRetry: !empty)
             : LayoutBuilder(
                 builder: (context, constraints) {
-                  final width = math.min(
-                    math.max(constraints.maxWidth, 1.0),
-                    900.0,
-                  );
-                  final layout = _layoutFor(width);
+                  final available = math.max(constraints.maxWidth, 1.0);
                   final generation = _loadGeneration;
                   if (_pagedMode) {
-                    return PageView.builder(
-                      key: const ValueKey('comic-reader-paged-view'),
-                      itemCount: _images.length,
-                      onPageChanged: (page) => setState(() => _visiblePage = page),
-                      itemBuilder: (context, index) => Center(
-                        child: SizedBox(
-                          width: width,
-                          child: _ComicImageTile(
-                            key: ValueKey('comic-image-$generation-$index'),
-                            image: _images[index],
-                            pageNumber: index + 1,
-                            providerFactory: widget.imageProviderFactory,
-                            onReady: (w, h) =>
-                                _updateImageSize(generation, index, w, h),
-                            onFailure: () => _imageFailed(generation, index),
-                            onTap: () => _showImage(index),
+                    final spread = ComicReaderPreferences.spreadForWidth(
+                      available,
+                      preferred: _preferences?.spreadPages ?? 0,
+                    );
+                    if (_syncedGeneration != _loadGeneration ||
+                        _syncedSpread != spread) {
+                      _syncedGeneration = _loadGeneration;
+                      _syncedSpread = spread;
+                      _schedulePagedSync();
+                    }
+                    if (spread <= 1) {
+                      return PageView.builder(
+                        key: const ValueKey('comic-reader-paged-view'),
+                        controller: _pagedController,
+                        itemCount: _images.length,
+                        onPageChanged: _onPagedPageChanged,
+                        itemBuilder: (context, index) => Center(
+                          child: SizedBox(
+                            width: math.min(available, 900.0),
+                            child: _ComicImageTile(
+                              key: ValueKey('comic-image-$generation-$index'),
+                              image: _images[index],
+                              pageNumber: index + 1,
+                              providerFactory: widget.imageProviderFactory,
+                              onReady: (w, h) =>
+                                  _updateImageSize(generation, index, w, h),
+                              onFailure: () => _imageFailed(generation, index),
+                              onTap: () => _showImage(index),
+                            ),
                           ),
                         ),
-                      ),
+                      );
+                    }
+                    final spreadCount =
+                        (_images.length + spread - 1) ~/ spread;
+                    return PageView.builder(
+                      key: const ValueKey('comic-reader-paged-view'),
+                      controller: _pagedController,
+                      itemCount: spreadCount,
+                      onPageChanged: (index) =>
+                          _onPagedPageChanged(index * spread),
+                      itemBuilder: (context, index) {
+                        final from = index * spread;
+                        final to = math.min(from + spread, _images.length);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (var page = from; page < to; page++) ...[
+                                if (page > from)
+                                  const SizedBox(width: _spreadGap),
+                                Expanded(
+                                  child: _ComicImageTile(
+                                    key: ValueKey(
+                                      'comic-image-$generation-$page',
+                                    ),
+                                    image: _images[page],
+                                    pageNumber: page + 1,
+                                    providerFactory: widget.imageProviderFactory,
+                                    onReady: (w, h) => _updateImageSize(
+                                      generation,
+                                      page,
+                                      w,
+                                      h,
+                                    ),
+                                    onFailure: () =>
+                                        _imageFailed(generation, page),
+                                    onTap: () => _showImage(page),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
                     );
                   }
+                  final layout = _layoutFor(math.min(available, 900.0));
+                  final width = math.min(available, 900.0);
                   return ListView.builder(
                     key: const ValueKey('comic-reader-pages'),
                     controller: _scroll,

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -13,22 +14,26 @@ import 'reader_text_selection.dart';
 /// Between chapters the reader rebuilds the whole pagination, so there is no
 /// PageView transition to ride on: the surface used to jump straight from the
 /// last page of one chapter to the first page of the next. The host captures
-/// the page that was on screen here, and the view slides it away while the
-/// incoming page (whatever the rebuilt pagination now shows) slides in.
+/// the spread that was on screen here, and the view slides it away while the
+/// incoming spread (whatever the rebuilt pagination now shows) slides in.
 class ReaderChapterTurn {
   /// `1` turns forward, `-1` turns backward.
   final int direction;
 
-  /// The page on screen when the turn started.
-  final ReaderTextPage page;
+  /// The pages on screen when the turn started, left to right. A single-page
+  /// spread carries exactly one page.
+  final List<ReaderTextPage> pages;
   final ReaderLayoutSpec spec;
 
   const ReaderChapterTurn({
     required this.direction,
-    required this.page,
+    required this.pages,
     required this.spec,
   });
 }
+
+/// Horizontal gap between two pages of one spread.
+const double kReaderSpreadGap = 24;
 
 class ReaderPagedView extends StatefulWidget {
   final ReaderChapterLayout layout;
@@ -62,6 +67,12 @@ class ReaderPagedView extends StatefulWidget {
   final ReaderPageTurnStyle turnStyle;
   final Color backgroundColor;
 
+  /// Pages shown side by side in one PageView item (多页并排). 1 keeps the
+  /// classic one-page-per-item layout; the pagination itself always measures a
+  /// single column, so this only changes how many of those pages sit next to
+  /// each other. Clamped to 1..3 by the view.
+  final int spreadColumns;
+
   /// Optional stop after the final chapter only. Between chapters, turning
   /// past the last/first text page requests the next/previous chapter directly.
   // Note: .agents/notes/implemented/bug-fix/2026-10-15-reader-chapter-turn.md
@@ -85,6 +96,7 @@ class ReaderPagedView extends StatefulWidget {
     required this.onDragStart,
     required this.turnStyle,
     required this.backgroundColor,
+    this.spreadColumns = 1,
     this.endPage,
     this.onBookEnd,
     this.chapterTurn,
@@ -169,15 +181,27 @@ class ReaderPagedViewState extends State<ReaderPagedView>
   }
 
   bool get _hasEndPage => !widget.hasNextChapter && widget.endPage != null;
-  int get _itemCount => widget.layout.pages.length + (_hasEndPage ? 1 : 0);
+
+  /// Pages per PageView item; the layout itself is always single-column.
+  int get _columns => widget.spreadColumns.clamp(1, 3);
+
+  /// One item = one spread, so the host's page index maps in and out.
+  int get _spreadCount =>
+      (widget.layout.pages.length + _columns - 1) ~/ _columns;
+
+  int get _itemCount => _spreadCount + (_hasEndPage ? 1 : 0);
+
+  int get _spreadIndexOfPage => widget.pageIndex ~/ _columns;
 
   bool get isAtEndPage =>
       _controller.hasClients &&
-      (_attachedPage ?? _controller.initialPage.toDouble()) >=
-          widget.layout.pages.length - .01;
+      (_attachedPage ?? _spreadIndexOfPage.toDouble()) >=
+          _spreadCount - .01;
 
-  PageController _newController() =>
-      PageController(initialPage: widget.pageIndex, keepPage: false);
+  PageController _newController() => PageController(
+    initialPage: _spreadIndexOfPage,
+    keepPage: false,
+  );
 
   @override
   void didUpdateWidget(covariant ReaderPagedView oldWidget) {
@@ -251,8 +275,9 @@ class ReaderPagedViewState extends State<ReaderPagedView>
     if (_turning || _boundaryPending || !_controller.hasClients) return;
     final pages = widget.layout.pages.length;
     if (pages == 0) return;
-    final target = (progress * pages).floor().clamp(0, pages - 1);
-    final current = _attachedPage ?? _controller.initialPage.toDouble();
+    final targetPage = (progress * pages).floor().clamp(0, pages - 1);
+    final target = targetPage ~/ _columns;
+    final current = _attachedPage ?? _spreadIndexOfPage.toDouble();
     if ((current - target).abs() < 1) return;
     _controller.jumpToPage(target);
   }
@@ -271,7 +296,7 @@ class ReaderPagedViewState extends State<ReaderPagedView>
     } finally {
       if (mounted && identical(layout, widget.layout)) {
         if (_controller.hasClients) {
-          _controller.jumpToPage(widget.pageIndex);
+          _controller.jumpToPage(_spreadIndexOfPage);
         }
         setState(() => _boundaryPending = false);
       }
@@ -340,33 +365,20 @@ class ReaderPagedViewState extends State<ReaderPagedView>
               ),
         itemCount: _itemCount,
         onPageChanged: (index) {
-          if (index >= widget.layout.pages.length) {
+          if (index >= _spreadCount) {
             widget.onBookEnd?.call();
             return;
           }
-          widget.onPageChanged(index);
+          widget.onPageChanged(index * _columns);
         },
         itemBuilder: (context, index) {
-          final page = index;
-          if (page >= widget.layout.pages.length) {
+          if (index >= _spreadCount) {
             return widget.endPage!;
           }
-          Widget content = ReaderPageContent(
-            key: ValueKey('reader-text-page-$page'),
-            page: widget.layout.pages[page],
-            spec: widget.layout.spec,
-            imageProviderFactory: widget.imageProviderFactory,
-            // Paged mode has to forward this too: without it the inner
-            // GestureDetector has a null onLongPress and a long press does
-            // nothing at all — which is exactly how 翻页 readers saw it, since
-            // scroll mode was the only path that passed it down.
-            onParagraphLongPress: widget.onParagraphLongPress,
-            onParagraphLongPressMoveUpdate:
-                widget.onParagraphLongPressMoveUpdate,
-            onParagraphLongPressEnd: widget.onParagraphLongPressEnd,
-            selectionScope: widget.selectionScope,
-            selection: widget.selection,
-            rangeUnderlines: widget.rangeUnderlines,
+          Widget content = _buildSpread(
+            index * _columns,
+            (index + 1) * _columns,
+            withPlumbing: true,
           );
           if (widget.turnStyle == ReaderPageTurnStyle.cover) {
             // 覆盖: the outgoing page stays pinned while the incoming one
@@ -379,7 +391,7 @@ class ReaderPagedViewState extends State<ReaderPagedView>
                 var shift = 0.0;
                 final current = _attachedPage;
                 if (current != null) {
-                  final delta = current - page;
+                  final delta = current - index;
                   if (delta > 0 && delta < 1) {
                     shift = delta * _viewportWidth;
                   }
@@ -398,6 +410,56 @@ class ReaderPagedViewState extends State<ReaderPagedView>
     ),
   );
 
+  /// Renders `pages[from..to)` side by side as one spread. The pagination
+  /// always measures a single column, so each page keeps its own layout; only
+  /// the horizontal arrangement changes.
+  Widget _buildSpread(int from, int to, {required bool withPlumbing}) {
+    final spec = widget.layout.spec;
+    final pages = widget.layout.pages;
+    final end = math.min(to, pages.length);
+    // Centred so a single column on a wide window sits in the middle instead
+    // of hugging the left edge; a full spread already fills the width.
+    return SizedBox(
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var page = from; page < end; page++) ...[
+            if (page > from) const SizedBox(width: kReaderSpreadGap),
+            SizedBox(
+              width: spec.width + spec.horizontalPadding * 2,
+              child: ReaderPageContent(
+                key: ValueKey('reader-text-page-$page'),
+                page: pages[page],
+                spec: spec,
+                imageProviderFactory: widget.imageProviderFactory,
+                // Paged mode has to forward this too: without it the inner
+                // GestureDetector has a null onLongPress and a long press does
+                // nothing at all — which is exactly how 翻页 readers saw it, since
+                // scroll mode was the only path that passed it down.
+                onParagraphLongPress: withPlumbing
+                    ? widget.onParagraphLongPress
+                    : null,
+                onParagraphLongPressMoveUpdate: withPlumbing
+                    ? widget.onParagraphLongPressMoveUpdate
+                    : null,
+                onParagraphLongPressEnd: withPlumbing
+                    ? widget.onParagraphLongPressEnd
+                    : null,
+                selectionScope: withPlumbing ? widget.selectionScope : null,
+                selection: withPlumbing ? widget.selection : null,
+                rangeUnderlines: withPlumbing
+                    ? widget.rangeUnderlines
+                    : const [],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   /// Paints the animated chapter boundary: the outgoing page slides away while
   /// the incoming page — whatever the rebuilt pagination now shows — slides in.
   ///
@@ -408,8 +470,10 @@ class ReaderPagedViewState extends State<ReaderPagedView>
     final layout = widget.layout;
     final pages = layout.pages;
     if (pages.isEmpty) return const SizedBox.shrink();
-    final incoming = pages[widget.pageIndex.clamp(0, pages.length - 1)];
-    // 覆盖 keeps the outgoing page pinned and slides the new one over it;
+    // The incoming side is the spread the rebuilt pagination landed on.
+    final start = _spreadIndexOfPage * _columns;
+    final incoming = _buildSpread(start, start + _columns, withPlumbing: false);
+    // 覆盖 keeps the outgoing spread pinned and slides the new one over it;
     // the slide style moves both.
     final cover = widget.turnStyle == ReaderPageTurnStyle.cover;
     final forward = turn.direction >= 0;
@@ -429,11 +493,11 @@ class ReaderPagedViewState extends State<ReaderPagedView>
             ColoredBox(color: widget.backgroundColor),
             Transform.translate(
               offset: Offset(outgoingShift, 0),
-              child: _buildTurnPage(turn.page, turn.spec),
+              child: _buildTurnSpread(turn.pages, turn.spec),
             ),
             Transform.translate(
               offset: Offset(incomingShift, 0),
-              child: _buildTurnPage(incoming, layout.spec),
+              child: ColoredBox(color: widget.backgroundColor, child: incoming),
             ),
           ],
         );
@@ -441,15 +505,32 @@ class ReaderPagedViewState extends State<ReaderPagedView>
     );
   }
 
-  Widget _buildTurnPage(ReaderTextPage page, ReaderLayoutSpec spec) =>
-      ColoredBox(
-        color: widget.backgroundColor,
-        child: ReaderPageContent(
-          page: page,
-          spec: spec,
-          imageProviderFactory: widget.imageProviderFactory,
+  Widget _buildTurnSpread(List<ReaderTextPage> pages, ReaderLayoutSpec spec) {
+    if (pages.isEmpty) return const SizedBox.shrink();
+    return ColoredBox(
+      color: widget.backgroundColor,
+      child: SizedBox(
+        width: double.infinity,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < pages.length; i++) ...[
+              if (i > 0) const SizedBox(width: kReaderSpreadGap),
+              SizedBox(
+                width: spec.width + spec.horizontalPadding * 2,
+                child: ReaderPageContent(
+                  page: pages[i],
+                  spec: spec,
+                  imageProviderFactory: widget.imageProviderFactory,
+                ),
+              ),
+            ],
+          ],
         ),
-      );
+      ),
+    );
+  }
 }
 
 class ReaderPageContent extends StatelessWidget {
