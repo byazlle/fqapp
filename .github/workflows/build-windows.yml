@@ -107,9 +107,11 @@ jobs:
         run: |
           $ver = (Select-String -Path pubspec.yaml -Pattern '^version:\s*([\d.]+)').Matches.Groups[1].Value
           (Get-Content windows/installer.iss) -replace '#define MyAppVersion "1.0.0"', "#define MyAppVersion `"$ver`"" | Set-Content windows/installer.iss
+          $src  = (Resolve-Path 'build/windows/x64/runner/Release').Path
+          $lang = (Resolve-Path 'windows/languages').Path
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { $iscc = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" }
-          & "$iscc" "windows/installer.iss"
+          & "$iscc" "windows/installer.iss" "/DAppSourceDir=$src" "/DLangDir=$lang"
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
