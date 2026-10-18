@@ -1,0 +1,126 @@
+# =============================================================================
+# fqapp - Windows 桌面版云端自动构建 (GitHub Actions, 免费 Windows runner)
+# -----------------------------------------------------------------------------
+# 触发方式:
+#   1. 手动: Actions 页 -> "Build Windows (cloud)" -> Run workflow
+#   2. 打 tag: git tag v1.2.3 && git push --tags  -> 自动出安装包并建 Release
+#   3. 推送 master 且改动涉及 rust/lib/pubspec/scripts 等 (见下方 paths)
+#
+# 产物:
+#   - 每次运行在 "Artifacts" 里提供 fqapp-setup-x64.exe (可直接下载安装)
+#   - 打 tag 时额外在 Releases 页发布同一安装包
+#
+# 说明:
+#   - 本流程使用 GitHub 自动提供的 secrets.GITHUB_TOKEN，无需把你的 PAT 写进来。
+#   - 仓库里的 .env / GITHUB_TOKEN 仅用于「本地」运行，与云端构建无关。
+#   - 构建在 GitHub 托管的 Windows 机器上完成，本地电脑无需安装任何开发环境。
+# =============================================================================
+
+name: Build Windows (cloud)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile'
+        required: false
+        default: 'release'
+        type: choice
+        options: [release, debug]
+  push:
+    tags: ['v*']
+    branches: [master]
+    paths:
+      - 'rust/**'
+      - 'lib/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - 'flutter_rust_bridge.yaml'
+      - 'scripts/**'
+      - '.github/workflows/build-windows.yml'
+
+permissions:
+  contents: write   # 用于 softprops/action-gh-release 在打 tag 时发布安装包
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.6'
+  FRB_VERSION: '2.13.0'
+
+jobs:
+  build-windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache cargo (registry, git, target, codegen bin)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Show tool versions
+        shell: pwsh
+        run: |
+          flutter --version
+          rustc --version
+          cargo --version
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build (codegen + Rust core dll + Flutter Windows)
+        shell: pwsh
+        run: .\scripts\build_windows.ps1 -Profile ${{ github.event.inputs.profile || 'release' }}
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y
+
+      - name: Build installer (substitute version from pubspec)
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path pubspec.yaml -Pattern '^version:\s*([\d.]+)').Matches.Groups[1].Value
+          (Get-Content windows/installer.iss) -replace '#define MyAppVersion "1.0.0"', "#define MyAppVersion `"$ver`"" | Set-Content windows/installer.iss
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "${env:ProgramFiles}\Inno Setup 6\ISCC.exe" }
+          & "$iscc" "windows/installer.iss"
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fqapp-windows-setup
+          path: installer-out/fqapp-setup-x64.exe
+          if-no-files-found: error
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer-out/fqapp-setup-x64.exe
+          generate_release_notes: true
