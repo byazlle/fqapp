@@ -1,8 +1,10 @@
 ; =============================================================================
 ; fqapp Windows 桌面版安装包 (Inno Setup 6)
-; 由 CI 在打包前把 "#define MyAppVersion" 的版本号替换成 pubspec.yaml 里的版本。
-; 输入目录: build\windows\x64\runner\Release\  (flututer build windows 产物)
-; 输出:     installer-out\fqapp-setup-x64.exe
+; 由 CI 打包。两个关键路径用 ISCC 命令行 /D 以绝对路径传入，避免相对路径歧义:
+;   {#AppSourceDir} = <repo>\build\windows\x64\runner\Release   (flutter build 产物)
+;   {#LangDir}      = <repo>\windows\languages                  (本地中文语言文件)
+; 版本号: CI 打包前把 "#define MyAppVersion" 替换成 pubspec.yaml 的版本。
+; 输出:   installer-out\fqapp-setup-x64.exe
 ; =============================================================================
 
 #ifndef MyAppVersion
@@ -29,10 +31,10 @@ SetupLogging=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "chinese"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinese"; MessagesFile: "{#LangDir}\ChineseSimplified.isl"
 
 [Files]
-Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#AppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\fqapp"; Filename: "{app}\fqapp.exe"
