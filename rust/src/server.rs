@@ -156,8 +156,13 @@ async fn handler(State(state): State<AppState>, req: axum::extract::Request) -> 
     }
     let request_path = scoped.unwrap_or(path).to_string();
     // 短剧/漫剧解密流：直接流式输出解密 MP4（支持 Range），不经过 dispatch。
-    if request_path == "/media/play" {
-        return serve_media(req.uri().query().unwrap_or(""), req.headers()).await;
+    // Android 不编 `media_decrypt`（lib.rs 用同一道 cfg 门），所以路由与实现
+    // 一起缺席；那边请求落到正常 dispatch，与加入这个端点之前的路由行为一致。
+    #[cfg(not(target_os = "android"))]
+    {
+        if request_path == "/media/play" {
+            return serve_media(req.uri().query().unwrap_or(""), req.headers()).await;
+        }
     }
     let session_cookie = format!(
         "{cookie_name}={}; Path=/; HttpOnly; SameSite=Strict",
