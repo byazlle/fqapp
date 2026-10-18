@@ -274,8 +274,10 @@ jobs:
           printf 'has_release_signing=true\n' >> "$GITHUB_OUTPUT"
           printf 'Verified release signing certificate: %s\n' "$actual_signer"
 
-      # Dependencies were resolved once, before the Rust gates; every step from
-      # there on runs with --no-pub against that resolved package config.
+      # Dependencies were resolved once, before the Rust gates; the steps that
+      # follow run with --no-pub against that resolved package config. The one
+      # exception is the release APK build below: it must regenerate the Android
+      # plugin registrant in release mode, which --no-pub would skip.
       # --reporter compact prints progress ticks instead of one line per
       # passing test: passing tests whose names contain "failed"/"error"
       # (error-handling coverage) no longer look like failures in the log,
@@ -285,8 +287,18 @@ jobs:
           flutter analyze --no-pub
           flutter test --no-pub --concurrency=2 --reporter compact
 
+      # 发布构建是下面「依赖只解析一次」那条纪律的**例外**，必须让它自己跑 pub：
+      # Android 插件注册表 GeneratedPluginRegistrant.java 只在 pub 被允许运行时才
+      # 重新生成（flutter_command.dart 的 regeneratePlatformSpecificToolingIfApplicable
+      # 首行就是 `if (!shouldRunPub) return;`），而上一站的 `flutter pub get` 用的是
+      # 「忽略 release 模式」的插件集，会把 dev_dependencies 里的 integration_test
+      # 一起写进注册表；release 构建里 Gradle 不会接那个模块，javac 因此报
+      # “package dev.flutter.plugins.integration_test does not exist”。
+      # 放开 pub 后，构建按 release 插件集（releaseMode: true）重新生成注册表。
+      # 锁文件已在 Resolve Dart package dependencies 一站用 --enforce-lockfile
+      # 校验过，这里不会解析出别的结果。
       - name: Compile ARM64 release APK
-        run: flutter build apk --release --target-platform android-arm64 --no-pub
+        run: flutter build apk --release --target-platform android-arm64
 
       - name: Test Android runtime boundaries
         working-directory: app/android
