@@ -354,7 +354,10 @@ async fn serve_media(query: &str, headers: &HeaderMap) -> Response {
             .status(StatusCode::PARTIAL_CONTENT)
             .header(header::CONTENT_TYPE, "video/mp4")
             .header(header::ACCEPT_RANGES, "bytes")
-            .header(header::CONTENT_RANGE, format!("bytes {start}-{end}/{total}"))
+            .header(
+                header::CONTENT_RANGE,
+                format!("bytes {start}-{end}/{total}"),
+            )
             .header(header::CONTENT_LENGTH, length)
             .header(header::CACHE_CONTROL, "no-store")
             .body(body)

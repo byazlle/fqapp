@@ -40,22 +40,14 @@ struct SpStream {
 }
 
 unsafe extern "C" {
-    fn sp_stream_open(
-        io: *const SpIo,
-        key: *const u8,
-        error: *mut SpError,
-    ) -> *mut SpStream;
+    fn sp_stream_open(io: *const SpIo, key: *const u8, error: *mut SpError) -> *mut SpStream;
     fn sp_stream_read(
         stream: *mut SpStream,
         buffer: *mut u8,
         length: usize,
         error: *mut SpError,
     ) -> isize;
-    fn sp_stream_seek(
-        stream: *mut SpStream,
-        position: i64,
-        error: *mut SpError,
-    ) -> i64;
+    fn sp_stream_seek(stream: *mut SpStream, position: i64, error: *mut SpError) -> i64;
     fn sp_stream_cancel(stream: *mut SpStream);
     fn sp_stream_close(stream: *mut SpStream);
 }
@@ -250,10 +242,7 @@ impl DecryptReader {
                 drop(Box::from_raw(io_ctx));
                 return Err(err_message(&err));
             }
-            let inner = Box::new(Inner {
-                stream,
-                io_ctx,
-            });
+            let inner = Box::new(Inner { stream, io_ctx });
             Ok(SendPtr(Box::into_raw(inner)))
         })
         .await
@@ -311,10 +300,9 @@ impl AsyncRead for DecryptReader {
                         me.current += n as u64;
                         Poll::Ready(Ok(()))
                     }
-                    Ok(Err(e)) => Poll::Ready(Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e,
-                    ))),
+                    Ok(Err(e)) => {
+                        Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
+                    }
                     Err(e) => Poll::Ready(Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         e.to_string(),
@@ -368,10 +356,9 @@ impl AsyncSeek for DecryptReader {
                         me.current = pos;
                         Poll::Ready(Ok(pos))
                     }
-                    Ok(Err(e)) => Poll::Ready(Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        e,
-                    ))),
+                    Ok(Err(e)) => {
+                        Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
+                    }
                     Err(e) => Poll::Ready(Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         e.to_string(),

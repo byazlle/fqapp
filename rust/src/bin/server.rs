@@ -20,15 +20,42 @@ use fqapi_core::upstream::UpstreamClient;
 
 /// (相对 runtime 目录的路径, 内嵌字节)。
 const FILES: &[(&str, &[u8])] = &[
-    ("config.json", include_bytes!("../../../assets/config/config.json")),
-    ("filter.json", include_bytes!("../../../assets/config/filter.json")),
-    ("web/index.html", include_bytes!("../../../assets/web/index.html")),
-    ("web/comic.html", include_bytes!("../../../assets/web/comic.html")),
-    ("web/detail.html", include_bytes!("../../../assets/web/detail.html")),
-    ("web/listen.html", include_bytes!("../../../assets/web/listen.html")),
-    ("web/read.html", include_bytes!("../../../assets/web/read.html")),
-    ("web/video.html", include_bytes!("../../../assets/web/video.html")),
-    ("web/favicon.png", include_bytes!("../../../assets/web/favicon.png")),
+    (
+        "config.json",
+        include_bytes!("../../../assets/config/config.json"),
+    ),
+    (
+        "filter.json",
+        include_bytes!("../../../assets/config/filter.json"),
+    ),
+    (
+        "web/index.html",
+        include_bytes!("../../../assets/web/index.html"),
+    ),
+    (
+        "web/comic.html",
+        include_bytes!("../../../assets/web/comic.html"),
+    ),
+    (
+        "web/detail.html",
+        include_bytes!("../../../assets/web/detail.html"),
+    ),
+    (
+        "web/listen.html",
+        include_bytes!("../../../assets/web/listen.html"),
+    ),
+    (
+        "web/read.html",
+        include_bytes!("../../../assets/web/read.html"),
+    ),
+    (
+        "web/video.html",
+        include_bytes!("../../../assets/web/video.html"),
+    ),
+    (
+        "web/favicon.png",
+        include_bytes!("../../../assets/web/favicon.png"),
+    ),
     (
         "web/assets/css/all.min.css",
         include_bytes!("../../../assets/web/assets/css/all.min.css"),
