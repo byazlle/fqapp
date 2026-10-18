@@ -2,10 +2,14 @@
   Windows 构建脚本 (云端 CI 与本地 Windows 共用)
   --------------------------------------------------------------------------
   职责:
-    1. 生成 flutter_rust_bridge 绑定 (lib/src/rust + rust/src/bridge_generated.rs)
+    1. (可选, 非致命) 生成 flutter_rust_bridge 绑定。仓库已提交绑定
+       (lib/src/rust/frb_generated.dart + rust/src/frb_generated.rs),
+       若 codegen 可用则刷新, 失败则回退到已提交绑定, 不阻断构建。
     2. 编译 Rust 核心为 Windows cdylib -> fqapi_core.dll  (不依赖 Android NDK)
     3. 生成 Flutter Windows 运行器 (若缺失) 并构建 release/debug
-    4. 将 fqapi_core.dll 拷贝到可执行文件同目录 (FRB 在桌面端运行时动态加载)
+    4. 将 fqapi_core.dll 放到 FRB 期望的位置:
+         <Release>/fqapi_core.dll                        (兜底)
+         <Release>/rust/target/release/fqapi_core.dll    (匹配 frb ioDirectory)
 
   与 scripts/build_rust_backend.ps1 的区别:
     原脚本在 -HostLib 分支之前就硬校验 Android NDK，纯桌面构建被迫装 NDK。
@@ -46,22 +50,28 @@ function Invoke-NativeCommand {
 }
 
 # --------------------------------------------------------------------------
-# 1) FRB codegen
+# 1) FRB codegen (非致命: 失败则用仓库已提交的绑定)
 # --------------------------------------------------------------------------
-if (-not (Get-Command flutter_rust_bridge_codegen -ErrorAction SilentlyContinue)) {
-    Write-Host '==> installing flutter_rust_bridge_codegen ...'
-    Invoke-NativeCommand -Exe 'cargo' `
-        -Arguments @('install', 'flutter_rust_bridge_codegen', '--version', '2.13.0', '--locked') `
-        -FailureMessage 'cargo install flutter_rust_bridge_codegen failed'
-}
-Write-Host '==> generating flutter_rust_bridge bindings ...'
-Push-Location -LiteralPath $AppDir
 try {
-    Invoke-NativeCommand -Exe 'flutter_rust_bridge_codegen' `
-        -Arguments @('generate', '--config-file', 'flutter_rust_bridge.yaml') `
-        -FailureMessage 'flutter_rust_bridge_codegen generate failed'
+    if (-not (Get-Command flutter_rust_bridge_codegen -ErrorAction SilentlyContinue)) {
+        Write-Host '==> installing flutter_rust_bridge_codegen ...'
+        Invoke-NativeCommand -Exe 'cargo' `
+            -Arguments @('install', 'flutter_rust_bridge_codegen', '--version', '2.13.0', '--locked') `
+            -FailureMessage 'cargo install flutter_rust_bridge_codegen failed'
+    }
+    Write-Host '==> generating flutter_rust_bridge bindings ...'
+    Push-Location -LiteralPath $AppDir
+    try {
+        Invoke-NativeCommand -Exe 'flutter_rust_bridge_codegen' `
+            -Arguments @('generate', '--config-file', 'flutter_rust_bridge.yaml') `
+            -FailureMessage 'flutter_rust_bridge_codegen generate failed'
+    }
+    finally { Pop-Location }
+    Write-Host '==> codegen OK'
 }
-finally { Pop-Location }
+catch {
+    Write-Warning "codegen failed, using committed bindings. detail: $_"
+}
 
 # --------------------------------------------------------------------------
 # 2) Rust core cdylib (Windows MSVC, no NDK)
@@ -102,13 +112,20 @@ Invoke-NativeCommand -Exe 'flutter' `
     -FailureMessage 'flutter build windows failed'
 
 # --------------------------------------------------------------------------
-# 4) place the native core next to the executable
+# 4) place the native core where FRB expects it
+#    frb_generated.dart: ExternalLibraryLoaderConfig(stem:'fqapi_core',
+#      ioDirectory:'rust/target/release/')  -> 相对 exe 目录解析
 # --------------------------------------------------------------------------
 $DllDst = Join-Path $AppDir "build/windows/x64/runner/$FlutterOut"
 if (-not (Test-Path -LiteralPath $DllDst)) {
-    New-Item -ItemType Directory -Path $DllDst -Force | Out-Null
+    throw "Flutter output dir not found: $DllDst"
 }
+# (a) 兜底: exe 同目录
 Copy-Item -Force -LiteralPath $DllSrc -Destination $DllDst
-Write-Host "==> copied $DllSrc -> $DllDst"
+# (b) 匹配 FRB ioDirectory: <Release>/rust/target/release/
+$DllDstIo = Join-Path $DllDst 'rust/target/release'
+New-Item -ItemType Directory -Path $DllDstIo -Force | Out-Null
+Copy-Item -Force -LiteralPath $DllSrc -Destination $DllDstIo
+Write-Host "==> copied fqapi_core.dll -> $DllDst and $DllDstIo"
 
 Write-Host 'BUILD DONE'
