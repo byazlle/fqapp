@@ -15,6 +15,10 @@ enum PlaybackIssue {
   service('播放服务暂时不可用', '请稍后重试，或先观看其他剧集。'),
   decoding('视频解析失败', '视频格式可能不受支持，可以重试或切换其他剧集。'),
   unknown('播放失败', '请重试，或切换其他剧集。'),
+  playerMissing(
+    '播放组件缺失',
+    '桌面视频播放依赖的 libmpv 未能加载，通常是安装包缺少运行库或 Visual C++ 2015-2022 运行库未安装。请重新安装本应用，或在安装 Visual C++ 运行库后重试。',
+  ),
   empty('暂无可播放剧集', '返回后试试其他作品。');
 
   final String title;
@@ -25,6 +29,7 @@ enum PlaybackIssue {
   static PlaybackIssue fromError(Object error) {
     if (error is TimeoutException) return timeout;
     if (error is NativePlaybackException) {
+      if (error.errorCode == 9001) return playerMissing;
       final status = error.httpStatusCode;
       // The native crypto reader also reports successful 200/206 responses.
       // Those describe the last transfer, not the cause of a decoder failure.

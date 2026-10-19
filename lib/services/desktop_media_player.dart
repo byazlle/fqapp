@@ -11,6 +11,13 @@ import 'package:media_kit_video/media_kit_video.dart'
 import 'backend_service.dart';
 import 'native_player.dart';
 
+// 启动期 libmpv 初始化结果。为 false 时桌面播放器直接报「播放组件缺失」，
+// 而不是苦等到首帧闸门 25s 超时后才泛泛地说「播放失败」。
+bool _libMpvReady = false;
+
+/// 由 [runApp] 之前 `MediaKit.ensureInitialized()` 成功时调用一次。
+void markLibMpvReady() => _libMpvReady = true;
+
 /// 平台自适应的播放器工厂。
 ///
 /// Android 用 [NativePlayer]（ExoPlayer 原生宿主，播放器内解密）；
@@ -176,6 +183,14 @@ class DesktopMediaPlayer extends NativePlayer {
   Future<int> create(String cdnUrl, String keyHex) async {
     if (_disposed) {
       return Future<int>.error(StateError('DesktopMediaPlayer is disposed'));
+    }
+    if (!_libMpvReady) {
+      // 启动期 libmpv 初始化未成功（打包漏件 / 缺少 VC++ 运行库）。不再等待
+      // 首帧闸门 25s 超时，直接给出可识别的缺失提示，让问题一眼可见。
+      throw const NativePlaybackException(
+        '桌面播放组件缺失',
+        errorCode: 9001,
+      );
     }
     try {
       // media_kit 懒初始化兜底：main() 已在启动时调用过一次（同 zone 纪律见

@@ -4,6 +4,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart' show MediaKit;
+import 'services/desktop_media_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -53,6 +54,9 @@ void main() {
       if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
         try {
           MediaKit.ensureInitialized();
+          // 初始化成功才放行桌面播放；失败时保持未就绪，播放器会直接提示
+          // 「播放组件缺失」而非含糊地等待加载超时。
+          markLibMpvReady();
         } catch (error, stack) {
           AppLog.e(
             'media_kit',
