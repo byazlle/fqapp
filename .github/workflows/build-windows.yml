@@ -155,23 +155,43 @@ jobs:
           if (-not $exe) { throw '找不到 fqapp-setup-x64.exe' }
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
           $size = '{0:N1} MB' -f ($exe.Length / 1MB)
-          $lines = @(
-            "## fqapp $ver",
-            "",
-            "Windows 桌面版安装包（x64）。",
-            "",
-            "- 文件：fqapp-setup-x64.exe（$size）",
-            "- SHA256：$hash",
-            "",
-            "下载后在 PowerShell 中校验：",
-            "",
-            '```powershell',
-            'Get-FileHash .\fqapp-setup-x64.exe -Algorithm SHA256',
-            '```',
-            "",
-            "输出应与上方 SHA256 一致。"
-          )
-          $lines -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
+          # 若仓库带 CHANGELOG.md，取出本 tag 对应的小节拼进 Release 说明。
+          $changelog = ''
+          if (Test-Path CHANGELOG.md) {
+            $cl = Get-Content CHANGELOG.md
+            $start = -1
+            for ($i = 0; $i -lt $cl.Count; $i++) {
+              if ($cl[$i] -match "^##\s*\[?$([regex]::Escape($ver))\]?") { $start = $i + 1; break }
+            }
+            if ($start -ge 0) {
+              $section = New-Object System.Collections.Generic.List[string]
+              for ($i = $start; $i -lt $cl.Count; $i++) {
+                if ($cl[$i] -match '^##\s') { break }
+                $section.Add($cl[$i])
+              }
+              $changelog = ($section -join "`n").Trim()
+            }
+          }
+          $body = New-Object System.Collections.Generic.List[string]
+          $body.Add("## fqapp $ver")
+          $body.Add("")
+          if ($changelog) {
+            $body.Add($changelog)
+            $body.Add("")
+          }
+          $body.Add("### 安装包")
+          $body.Add("")
+          $body.Add("- 文件：fqapp-setup-x64.exe（$size）")
+          $body.Add("- SHA256：$hash")
+          $body.Add("")
+          $body.Add("下载后在 PowerShell 中校验：")
+          $body.Add("")
+          $body.Add('```powershell')
+          $body.Add('Get-FileHash .\fqapp-setup-x64.exe -Algorithm SHA256')
+          $body.Add('```')
+          $body.Add("")
+          $body.Add("输出应与上方 SHA256 一致。")
+          $body -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
           "$hash  fqapp-setup-x64.exe" | Out-File -FilePath SHA256SUMS.txt -Encoding ascii
           Write-Host "SHA256=$hash"
 
