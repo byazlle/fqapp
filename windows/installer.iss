@@ -60,6 +60,13 @@ Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; S
 #endif
 Filename: "{app}\fqapp.exe"; Description: "运行 fqapp"; Flags: nowait postinstall skipifsilent
 
+; 卸载时彻底清除程序数据目录，避免章节缓存 / 离线剧集 / 历史等残留。
+; getApplicationSupportDirectory 在 Windows 指向 %APPDATA%\fqapp（Roaming），
+; 海报缓存等落在 %LOCALAPPDATA%\fqapp（Local），两者都删。
+[UninstallDelete]
+Type: filesandordirs; Name: "{userappdata}\fqapp"
+Type: filesandordirs; Name: "{localappdata}\fqapp"
+
 [Code]
 function VCRedistInstalled: Boolean;
 var

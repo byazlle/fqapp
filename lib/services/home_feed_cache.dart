@@ -143,6 +143,16 @@ class HomeFeedCache {
     }
   }
 
+  /// 清除首页 feed 缓存（不影响书架 / 历史等用户数据）。
+  Future<void> clear() async {
+    try {
+      final box = await _ensureBox();
+      await box.clear();
+    } catch (_) {
+      // 清不掉就当没有缓存，不拖住调用方。
+    }
+  }
+
   /// Test seam: closes the memoized box so a later save reloads fresh storage.
   Future<void> close() async {
     final box = _box;

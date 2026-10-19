@@ -108,6 +108,16 @@ def main() -> None:
     save_png(source.resize((64, 64), Image.Resampling.LANCZOS),
              ROOT / "assets/web/favicon.png")
 
+    # Windows runner icon (title bar / taskbar / exe resource). The master is
+    # a full-bleed square, so every size is a direct downscale — no Android
+    # adaptive safe-zone insets needed here.
+    ico_path = ROOT / "windows/runner/resources/app_icon.ico"
+    ico_path.parent.mkdir(parents=True, exist_ok=True)
+    ico_sizes = [(s, s) for s in (16, 24, 32, 48, 64, 128, 256)]
+    source.save(ico_path, format="ICO", sizes=ico_sizes)
+    print(f"{ico_path.relative_to(ROOT).as_posix()} "
+          f"(sizes {', '.join(str(s) for s, _ in ico_sizes)})")
+
 
 if __name__ == "__main__":
     main()

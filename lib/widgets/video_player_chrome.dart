@@ -2093,6 +2093,16 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                 _topBar(insets, landscape: landscape),
                 if (!landscape && !catalogStyle) _rightBar(insets),
               ],
+              // 横屏桌面：画面上下缘隐形点击区（鼠标点画面上/下半部切上/下一集）。
+              // 仅覆盖边缘条，不挡中央播放/暂停与底部横屏控制条。
+              if (landscape &&
+                  widget.shortSeries &&
+                  _ready &&
+                  !_locked &&
+                  !_panelOpen &&
+                  !_overlayOpen &&
+                  !_seeking)
+                _episodeTapZones(window, insets),
               if (catalogStyle && (controls || bandVisible))
                 _portraitControls(
                   insets: insets,
@@ -3133,6 +3143,13 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
             child: Row(
               children: [
                 _landIconButton(
+                  'landscape-prev',
+                  Icons.skip_previous_rounded,
+                  '上一集',
+                  widget.episodes.length > 1 ? _prevEpisodeOrToast : null,
+                ),
+                const SizedBox(width: 8),
+                _landIconButton(
                   'landscape-play',
                   _playbackRequested
                       ? Icons.pause_rounded
@@ -3140,25 +3157,22 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                   _playbackRequested ? '暂停' : '播放',
                   _togglePlayback,
                 ),
-                // 桌面专属：键盘 ±10 秒（↑/↓，长按连续步进）的可点击控件。
-                if (_desktopKeyboard) ...[
-                  const SizedBox(width: 8),
-                  _landIconButton(
-                    'landscape-replay-10',
-                    Icons.replay_10,
-                    '快退10秒',
-                    widget.duration > Duration.zero
-                        ? () => _seekBy(-10)
-                        : null,
-                  ),
-                  const SizedBox(width: 8),
-                  _landIconButton(
-                    'landscape-forward-10',
-                    Icons.forward_10,
-                    '快进10秒',
-                    widget.duration > Duration.zero ? () => _seekBy(10) : null,
-                  ),
-                ],
+                // 快退/快进 10 秒：短剧横屏控制条常驻按钮（桌面键盘 ↑/↓ 的
+                // 鼠标等价入口），不再限定桌面快捷键平台。
+                const SizedBox(width: 8),
+                _landIconButton(
+                  'landscape-replay-10',
+                  Icons.replay_10,
+                  '快退10秒',
+                  widget.duration > Duration.zero ? () => _seekBy(-10) : null,
+                ),
+                const SizedBox(width: 8),
+                _landIconButton(
+                  'landscape-forward-10',
+                  Icons.forward_10,
+                  '快进10秒',
+                  widget.duration > Duration.zero ? () => _seekBy(10) : null,
+                ),
                 const SizedBox(width: 12),
                 if (widget.episodes.length > 1)
                   _landIconButton(
@@ -3377,6 +3391,46 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('当前已在最后一集')));
+  }
+
+  void _prevEpisodeOrToast() {
+    if (widget.currentIndex > 0) {
+      _selectEpisode(widget.currentIndex - 1);
+      return;
+    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('当前已是第一集')));
+  }
+
+  /// 横屏桌面端：画面上下缘的隐形点击区，鼠标点画面上半部切上一集、
+  /// 下半部切下一集（官方竖滑翻页的鼠标等价交互）。命中区只覆盖边缘条，
+  /// 不挡中央的播放/暂停点按，也不挡底部横屏控制条。
+  Widget _episodeTapZones(Size window, EdgeInsets insets) {
+    final barHeight = insets.bottom + 130;
+    final topZone = Positioned(
+      top: insets.top,
+      left: 0,
+      right: 0,
+      height: 72,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _prevEpisodeOrToast,
+        child: const ColoredBox(color: Color(0x00000000)),
+      ),
+    );
+    final bottomZone = Positioned(
+      left: 0,
+      right: 0,
+      bottom: insets.bottom + 8,
+      height: math.max(48, barHeight - insets.bottom - 8),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _nextEpisodeOrToast,
+        child: const ColoredBox(color: Color(0x00000000)),
+      ),
+    );
+    return Stack(children: [topZone, bottomZone]);
   }
 }
 

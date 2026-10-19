@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io' as io;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,7 +13,10 @@ import '../services/audio_preferences.dart';
 import '../services/backend_service.dart';
 import '../services/book_open_preferences.dart';
 import '../services/drama_mute_preferences.dart';
+import '../services/home_feed_cache.dart';
 import '../services/library_store.dart';
+import '../services/poster_cache.dart';
+import '../services/rank_cache.dart';
 import '../widgets/home/home_design.dart';
 import 'about_page.dart';
 import 'cached_books_page.dart';
@@ -111,6 +116,29 @@ class _SettingsPageState extends State<SettingsPage> {
               context,
               MaterialPageRoute(builder: (_) => const CachedDramasPage()),
             ),
+          ),
+          SettingsItem(
+            icon: LucideIcons.folder_open,
+            title: '缓存目录',
+            subtitle: '打开程序缓存所在文件夹',
+            onTap: (context, setState) => _openCacheDir(context),
+          ),
+          SettingsItem(
+            icon: LucideIcons.eraser,
+            title: '清除缓存',
+            subtitle: '清理图片与首页/榜单缓存（不影响书架与历史）',
+            onTap: (context, setState) => _confirmClear(
+              context,
+              '清除缓存',
+              '确定清除图片缓存和首页/榜单缓存吗？不会影响你的书架、收藏与历史。',
+              _clearCaches,
+            ),
+          ),
+          SettingsItem(
+            icon: LucideIcons.folder_input,
+            title: '缓存位置',
+            subtitle: '更改缓存/数据存放目录（重启后生效）',
+            onTap: (context, setState) => _relocateCacheDialog(context),
           ),
           _clearHistItem(),
         ],
@@ -590,6 +618,126 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('清空失败，请重试')));
+      }
+    }
+  }
+
+  // ── 缓存管理 ────────────────────────────────────────────────────────
+
+  /// 与 main.dart 中 Hive 初始化使用的覆盖键保持一致。
+  static const _cacheDirOverrideKey = 'cacheDirOverride';
+
+  /// 当前生效的缓存/数据目录：若用户在设置中迁移过则取其覆盖值，
+  /// 否则为默认的应用支持目录（Windows 上即 %APPDATA%\fqapp）。
+  Future<String> _activeCacheDir() async {
+    final sp = await SharedPreferences.getInstance();
+    final override = sp.getString(_cacheDirOverrideKey);
+    if (override != null && override.isNotEmpty) return override;
+    final dir = await getApplicationSupportDirectory();
+    return dir.path;
+  }
+
+  Future<void> _openCacheDir(BuildContext context) async {
+    final path = await _activeCacheDir();
+    final dir = io.Directory(path);
+    if (!await dir.exists()) {
+      try {
+        await dir.create(recursive: true);
+      } catch (_) {}
+    }
+    var launched = false;
+    try {
+      launched = await launchUrl(
+        Uri.file(path),
+        mode: LaunchMode.externalApplication,
+      );
+    } catch (_) {}
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('无法打开缓存目录')));
+    }
+  }
+
+  /// 清除不影响用户数据的缓存：图片缓存 + 首页/榜单 feed 缓存。
+  Future<void> _clearCaches() async {
+    try {
+      await PosterCache.instance.emptyCache();
+    } catch (_) {}
+    try {
+      await HomeFeedCache.instance.clear();
+    } catch (_) {}
+    try {
+      await RankCache.instance.clear();
+    } catch (_) {}
+  }
+
+  Future<void> _relocateCacheDialog(BuildContext context) async {
+    final current = await _activeCacheDir();
+    if (!context.mounted) return;
+    final controller = TextEditingController(text: current);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('更改缓存位置'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('输入新的缓存/数据目录（绝对路径），重启后生效：'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: '例如 D:\\fqapp-data',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('迁移并应用'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final target = controller.text.trim();
+    if (target.isEmpty || target == current) return;
+    try {
+      final source = io.Directory(current);
+      final dest = io.Directory(target);
+      if (await source.exists()) {
+        await for (final entity in source.list(recursive: true)) {
+          if (entity is io.File) {
+            final relative = entity.path.substring(current.length);
+            final newPath = '$target$relative';
+            final newFile = io.File(newPath);
+            await newFile.parent.create(recursive: true);
+            await entity.copy(newFile.path);
+          }
+        }
+      } else {
+        await dest.create(recursive: true);
+      }
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(_cacheDirOverrideKey, target);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已设置新缓存位置，重启应用后生效')),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('迁移失败，请检查路径是否可写')),
+        );
       }
     }
   }

@@ -28,6 +28,7 @@ import 'services/drama_downloader.dart';
 import 'services/connectivity_status.dart';
 import 'services/home_feed_cache.dart';
 import 'services/library_store.dart';
+import 'services/native_player.dart';
 import 'services/rank_cache.dart';
 import 'services/player_style_config.dart';
 import 'services/short_series_font_scale.dart';
@@ -92,7 +93,17 @@ void main() {
 }
 
 Future<void> _initializeLocalData() async {
-  await Hive.initFlutter();
+  // 允许在设置中把缓存/数据目录迁移到自定义位置：读出覆盖值后用 Hive.init
+  // 指向新目录；否则走默认的 Hive.initFlutter()（应用支持目录）。
+  final sp0 = await SharedPreferences.getInstance();
+  final cacheOverride = sp0.getString('cacheDirOverride');
+  if (cacheOverride != null && cacheOverride.isNotEmpty) {
+    Hive.init(cacheOverride);
+  } else {
+    await Hive.initFlutter();
+  }
+  // 保证同一时间只有一个播放实例在播放：任一播放器开始播放时，其余自动暂停。
+  NativePlayer.beforePlay = (active) => NativePlayer.pauseOthers(active);
   await LibraryStore.instance.init();
   // The 加入书架 collection is optional data: a failure here must not block
   // startup, which is why it shares the retryable bootstrap with the history.
@@ -682,10 +693,60 @@ class _RootShellState extends State<RootShell> {
           child: _floatingSurface(
             eink: eink,
             glassDark: glassDark,
-            child: rail,
+            child: Column(
+              children: [
+                _railHeader(
+                  eink: eink,
+                  palette: palette,
+                  extended: extended,
+                ),
+                Expanded(child: rail),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  /// 侧边栏顶部品牌区：Logo + 应用名。扩展态横排，折叠态居中显示 Logo。
+  Widget _railHeader({
+    required bool eink,
+    required HomePalette palette,
+    required bool extended,
+  }) {
+    final accent = eink ? Colors.black : HomePalette.accent;
+    final logo = ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.asset(
+        'assets/images/app_logo.webp',
+        width: 32,
+        height: 32,
+        fit: BoxFit.contain,
+        color: eink ? Colors.black : null,
+      ),
+    );
+    return SizedBox(
+      height: 56,
+      child: extended
+          ? Padding(
+              padding: const EdgeInsets.only(left: 18, right: 16),
+              child: Row(
+                children: [
+                  logo,
+                  const SizedBox(width: 12),
+                  Text(
+                    'fqapp',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: accent,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Center(child: logo),
     );
   }
 }
