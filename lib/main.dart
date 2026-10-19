@@ -99,6 +99,9 @@ Future<void> _initializeLocalData() async {
   final cacheOverride = sp0.getString('cacheDirOverride');
   if (cacheOverride != null && cacheOverride.isNotEmpty) {
     Hive.init(cacheOverride);
+    // 图片缓存也跟随迁移目录，和 Hive 数据同处一地。必须在 PosterCache
+    // 单例首次被访问（下方 enforceBudget）之前赋值，否则仍会落到临时目录。
+    PosterCache.overrideBaseDir = cacheOverride;
   } else {
     await Hive.initFlutter();
   }

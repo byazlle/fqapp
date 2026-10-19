@@ -144,9 +144,91 @@ jobs:
           path: '**/fqapp-setup-x64.exe'
           if-no-files-found: error
 
+      # 计算安装包 SHA256，写入 Release 说明并附带校验文件，便于用户核对下载
+      # 完整性（P3-⑨/⑫）。
+      - name: Compute SHA256 and build release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $ver = (Select-String -Path pubspec.yaml -Pattern '^version:\s*([\d.]+)').Matches.Groups[1].Value
+          $exe = Get-ChildItem -Recurse -Filter fqapp-setup-x64.exe | Select-Object -First 1
+          if (-not $exe) { throw '找不到 fqapp-setup-x64.exe' }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          $size = '{0:N1} MB' -f ($exe.Length / 1MB)
+          $lines = @(
+            "## fqapp $ver",
+            "",
+            "Windows 桌面版安装包（x64）。",
+            "",
+            "- 文件：fqapp-setup-x64.exe（$size）",
+            "- SHA256：$hash",
+            "",
+            "下载后在 PowerShell 中校验：",
+            "",
+            '```powershell',
+            'Get-FileHash .\fqapp-setup-x64.exe -Algorithm SHA256',
+            '```',
+            "",
+            "输出应与上方 SHA256 一致。"
+          )
+          $lines -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
+          "$hash  fqapp-setup-x64.exe" | Out-File -FilePath SHA256SUMS.txt -Encoding ascii
+          Write-Host "SHA256=$hash"
+
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: '**/fqapp-setup-x64.exe'
-          generate_release_notes: true
+          files: |
+            **/fqapp-setup-x64.exe
+            SHA256SUMS.txt
+          body_path: release-notes.md
+
+  # ---------------------------------------------------------------------------
+  # ARM64 实验性构建（P3-⑩）：Windows on ARM 的 Flutter 桌面支持仍在演进，
+  # 该任务只做「能构建就产出未打包原始产物」的探索。continue-on-error 保证它
+  # 失败时不影响 x64 正式安装包的构建与发布；手动触发或打 tag 时才运行。
+  # ---------------------------------------------------------------------------
+  build-windows-arm64:
+    name: Build Windows ARM64 (experimental)
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-11-arm
+    continue-on-error: true
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Rust (arm64)
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          targets: aarch64-pc-windows-msvc
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build Rust core (arm64)
+        working-directory: rust
+        shell: pwsh
+        run: cargo build --release --target aarch64-pc-windows-msvc
+
+      - name: Build Flutter Windows (arm64)
+        shell: pwsh
+        run: |
+          flutter config --enable-windows-desktop | Out-Null
+          flutter build windows --release
+
+      - name: Upload raw ARM64 build (if produced)
+        uses: actions/upload-artifact@v4
+        with:
+          name: fqapp-windows-arm64-raw
+          path: build/windows/**/runner/Release/**
+          if-no-files-found: warn

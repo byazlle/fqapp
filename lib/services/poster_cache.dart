@@ -1,5 +1,7 @@
 import 'dart:io' as io;
 
+import 'package:file/file.dart' as pfile;
+import 'package:file/local.dart' show LocalFileSystem;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,16 +28,40 @@ class PosterCache extends CacheManager with ImageCacheManager {
   /// Byte budget for the whole store.
   static const maxBytes = 256 << 20;
 
+  /// 自定义缓存根目录（设置页迁移缓存时写入 `cacheDirOverride`）。
+  ///
+  /// 非空时，图片缓存的文件与数据库都落在该目录下，和 Hive 数据同处一地，
+  /// 迁移/卸载时不会出现「数据搬走了、图片还留在系统临时目录」的割裂。
+  /// 必须在 [instance] 首次被访问前赋值（见 main.dart 的启动流程）。
+  static String? overrideBaseDir;
+
   static final PosterCache instance = PosterCache._();
 
-  PosterCache._()
-    : super(
-        Config(
-          cacheKey,
-          stalePeriod: stalePeriod,
-          maxNrOfCacheObjects: maxEntries,
-        ),
+  PosterCache._() : super(_buildConfig());
+
+  /// 按 [overrideBaseDir] 组装缓存配置：默认走系统临时目录；设置过迁移
+  /// 目录则文件与数据库都指向该目录。
+  ///
+  /// 文件和数据库必须同目录：`JsonCacheInfoRepository` 的 `path` 决定缓存
+  /// 元数据文件的位置，`fileSystem` 决定图片文件的位置，二者分离会让「库
+  /// 里有记录、文件却找不到」。参见 flutter_cache_manager 的 Config 文档。
+  static Config _buildConfig() {
+    final base = overrideBaseDir;
+    if (base == null || base.isEmpty) {
+      return Config(
+        cacheKey,
+        stalePeriod: stalePeriod,
+        maxNrOfCacheObjects: maxEntries,
       );
+    }
+    return Config(
+      cacheKey,
+      stalePeriod: stalePeriod,
+      maxNrOfCacheObjects: maxEntries,
+      fileSystem: _BaseDirFileSystem(base, cacheKey),
+      repo: JsonCacheInfoRepository(path: '${_joinPath(base, cacheKey)}.json'),
+    );
+  }
 
   /// Deletes the oldest files under the cache directory until it fits
   /// [limit]. Returns the number of files removed. Best-effort: an
@@ -45,11 +71,16 @@ class PosterCache extends CacheManager with ImageCacheManager {
   Future<int> enforceBudget({int limit = maxBytes}) async {
     if (kIsWeb) return 0;
     io.Directory root;
-    try {
-      final temporary = await getTemporaryDirectory();
-      root = _join(temporary, cacheKey);
-    } catch (_) {
-      return 0;
+    final base = overrideBaseDir;
+    if (base != null && base.isNotEmpty) {
+      root = io.Directory(_joinPath(base, cacheKey));
+    } else {
+      try {
+        final temporary = await getTemporaryDirectory();
+        root = _join(temporary, cacheKey);
+      } catch (_) {
+        return 0;
+      }
     }
     return enforceImageCacheBudget(root: root, limit: limit);
   }
@@ -92,10 +123,34 @@ Future<int> enforceImageCacheBudget({
   return removed;
 }
 
-io.Directory _join(io.Directory base, String key) {
+io.Directory _join(io.Directory base, String key) =>
+    io.Directory(_joinPath(base.path, key));
+
+/// 拼接 `<base>/<key>`，容忍 [base] 末尾已经带分隔符。
+String _joinPath(String base, String key) {
   final separator = io.Platform.pathSeparator;
-  final parent = base.path.endsWith(separator)
-      ? base.path.substring(0, base.path.length - separator.length)
-      : base.path;
-  return io.Directory('$parent$separator$key');
+  final parent = base.endsWith(separator)
+      ? base.substring(0, base.length - separator.length)
+      : base;
+  return '$parent$separator$key';
+}
+
+/// 把缓存文件写到指定根目录下的 [FileSystem] 实现。
+///
+/// `flutter_cache_manager` 自带的 `IOFileSystem` 固定使用
+/// `getTemporaryDirectory()`，无法跟随用户在设置里选择的迁移目录；这里沿用
+/// 同样的 `package:file` 本地文件系统，只把根目录换成 [baseDir]。
+class _BaseDirFileSystem implements FileSystem {
+  _BaseDirFileSystem(this.baseDir, this.cacheKey);
+
+  final String baseDir;
+  final String cacheKey;
+
+  @override
+  Future<pfile.File> createFile(String name) async {
+    const fs = LocalFileSystem();
+    final directory = fs.directory(_joinPath(baseDir, cacheKey));
+    await directory.create(recursive: true);
+    return directory.childFile(name);
+  }
 }

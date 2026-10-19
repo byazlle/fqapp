@@ -4,7 +4,7 @@
 
 > **核心设计**：Rust 原生核心在 Flutter 进程内运行，UI 通过 flutter_rust_bridge 直接调用；同一分发器另开 loopback HTTP 适配器（`127.0.0.1:8080`），继续服务内置 Web UI、`/api/*` 桥和 `/src/*` 漫画图。不需要自建服务器，不需要 root；签名、解密和本地缓存由本机完成，但在线内容仍需访问上游。
 >
-> **本版定位**：仅发布 **Windows 桌面版**（x64）。`android/` 目录作为源码保留，但本版本不构建、不发布 Android APK。`ios/` 等同理不在此版本范围内。
+> **本版定位**：仅发布 **Windows 桌面版**（x64）。自 v0.9.123 起已移除 `android/` 构建目标，不再保留或发布 Android APK；`ios/` 等同理不在此版本范围内。
 
 ---
 
@@ -78,7 +78,6 @@ fqapp/
 │   ├── widgets/                     # 按界面分组的组件与通用组件
 │   └── src/rust/                    # FRB 生成绑定
 ├── rust/                            # fqapi_core 源码、协议夹具和 Rust 测试
-├── android/                         # Android 构建目标（保留源码，本版不发布）
 ├── native/                          # CENC 流式 C 解密库、FFI 与 CMake
 ├── assets/                          # 配置示例、Web UI、插件、图片和动画
 ├── test/                            # Flutter 测试及 Node 主机回归

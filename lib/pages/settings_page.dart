@@ -689,7 +689,8 @@ class _SettingsPageState extends State<SettingsPage> {
               '输入新的缓存/数据目录（绝对路径）。确认后应用会：\n'
               '1. 安全迁移现有书架、历史、离线等数据到新目录；\n'
               '2. 自动重启以在新目录加载数据。\n\n'
-              '注意：迁移到非默认目录后，卸载程序不会自动清除该目录。',
+              '注意：迁移到非默认目录后，卸载程序不会自动清除该目录；'
+              '目录内会生成 fqapp-data.txt 说明文件，便于日后识别与手动清理。',
             ),
             const SizedBox(height: 10),
             TextField(
@@ -764,6 +765,17 @@ class _SettingsPageState extends State<SettingsPage> {
 
       final sp = await SharedPreferences.getInstance();
       await sp.setString(_cacheDirOverrideKey, target);
+      // 在自定义目录留一份说明：卸载程序只清理默认目录，此目录需用户手动
+      // 删除。文件本身不参与任何数据读写，只是给用户/排障一个明确标识。
+      try {
+        await io.File(
+          '$target${io.Platform.pathSeparator}fqapp-data.txt',
+        ).writeAsString(
+          '此目录由 fqapp 的「更改缓存位置」迁移而来，'
+          '存放书架、历史、离线缓存与图片缓存。\n'
+          '卸载 fqapp 不会自动删除此目录；如需彻底清理，请手动删除整个目录。\n',
+        );
+      } catch (_) {}
       if (!context.mounted) {
         io.exit(0);
       }

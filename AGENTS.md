@@ -21,7 +21,6 @@
 | `lib/`、`test/` | Flutter 页面、组件、服务、模型及测试 |
 | `rust/src/`、`rust/tests/`、`rust/testdata/` | 原生核心、协议回归与离线黄金夹具 |
 | `native/` | C 流式解密与原生测试 |
-| `android/` | 平台插件、签名打包配置与 JVM 测试 |
 | `assets/`、`rust/assets/` | Flutter 部署资源与 Rust 内嵌资源，各有加载入口 |
 | `scripts/`、`.github/workflows/` | 构建、校验脚本与 CI 配置 |
 
@@ -66,6 +65,8 @@
 - Dart 沿用相对导入、单引号和默认格式；注释解释决策及限制。整理看似重复的资源前先确认各自加载路径。
 
 ## 5. APK 构建、安装与本地归档
+
+> 说明：`android/` 构建目标已于 v0.9.123 移除，本节仅作历史 Android 版本的参考，当前 Windows 专版不适用。
 
 仅在任务需要 APK 交付或真机验证时执行；普通文档改动不触发此流程。
 
