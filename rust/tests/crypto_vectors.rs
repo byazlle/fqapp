@@ -4,17 +4,17 @@
 //! reference implementation. The vectors are checked in so the port is never
 //! compared against its own output.
 
-use fqapi_core::device::crypto::{
+use liuguang_core::device::crypto::{
     decrypt_register_key, encrypt_register_key_request, reverse_hex, tt_encrypt,
 };
-use fqapi_core::sign::argus::{
+use liuguang_core::sign::argus::{
     argus_body_hash, argus_encrypt, argus_encrypt_enc_pb, argus_get_sign, argus_query_hash,
     ArgusBeanStyle, ArgusParams,
 };
-use fqapi_core::sign::ladon::{ladon_encrypt, ladon_encrypt_raw};
-use fqapi_core::sign::protobuf::ProtoBuf;
-use fqapi_core::sign::simon::{simon_dec, simon_enc, simon_key_expansion};
-use fqapi_core::sign::sm3::sm3_hash;
+use liuguang_core::sign::ladon::{ladon_encrypt, ladon_encrypt_raw};
+use liuguang_core::sign::protobuf::ProtoBuf;
+use liuguang_core::sign::simon::{simon_dec, simon_enc, simon_key_expansion};
+use liuguang_core::sign::sm3::sm3_hash;
 use serde_json::Value;
 
 fn vectors() -> Value {
@@ -216,7 +216,7 @@ fn argus_551_matches_go_vectors() {
             timestamp: ts,
             aid: 1967,
             license_id: 1_611_921_764,
-            device_id: fqapi_core::sign::query_param(query, "device_id").unwrap_or_default(),
+            device_id: liuguang_core::sign::query_param(query, "device_id").unwrap_or_default(),
             install_id: String::new(),
             style: ArgusBeanStyle::ArgusBean551,
             rand_field: f3,
@@ -237,7 +237,7 @@ fn recover_argus551_field3(argus_b64: &str) -> i32 {
     let aes_iv = hex::decode("ea180a0336ed352fcd24e4d50018ae54").unwrap();
 
     let ct = &raw[2..];
-    let pt = fqapi_core::crypto::aes_cbc_decrypt(ct, &aes_key, &aes_iv);
+    let pt = liuguang_core::crypto::aes_cbc_decrypt(ct, &aes_key, &aes_iv);
     let pad = *pt.last().unwrap() as usize;
     let body = &pt[..pt.len() - pad];
     let body = &body[..body.len() - 2];

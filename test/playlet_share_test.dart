@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/services/playlet_share.dart';
+import 'package:liuguang/services/playlet_share.dart';
 
 /// 保留的分享服务兼容性用例；短剧分享面板已按用户要求移除。
 ///

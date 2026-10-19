@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/pages/library_page.dart';
-import 'package:fqapp/pages/stats_page.dart';
-import 'package:fqapp/services/library_store.dart';
-import 'package:fqapp/widgets/lazy_indexed_stack.dart';
+import 'package:liuguang/pages/library_page.dart';
+import 'package:liuguang/pages/stats_page.dart';
+import 'package:liuguang/services/library_store.dart';
+import 'package:liuguang/widgets/lazy_indexed_stack.dart';
 
 void main() {
   late Directory directory;

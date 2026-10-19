@@ -1,4 +1,4 @@
-# AGENTS.md — fqapp 协作指南
+# AGENTS.md — 流光（Liuguang）协作指南
 
 本文件是代理在本仓库的执行入口，记录项目边界、常用命令和交付要求。使用中文沟通，先完成用户要求的工作，再报告结果与未验项。
 
@@ -10,10 +10,10 @@
 
 ## 1. 项目与技术基线
 
-- fqapp 是内容聚合 Android 客户端，提供小说阅读、听书、短剧、漫剧和漫画。Flutter UI 通过 flutter_rust_bridge 调用进程内 Rust 核心 `fqapi_core`；`127.0.0.1:8080` loopback 服务承载 Web UI 与漫画图。无需 root，不部署独立后端进程。
+- 流光（Liuguang）是内容聚合 Windows 桌面客户端，提供小说阅读、听书、短剧、漫剧和漫画。Flutter UI 通过 flutter_rust_bridge 调用进程内 Rust 核心 `liuguang_core`；`127.0.0.1:8080` loopback 服务承载 Web UI 与漫画图。不部署独立后端进程，内容解密与缓存全部在本机完成。
 - 不提供登录或上游账号写操作；已裁撤的追剧、点赞、分享等入口不作为待办恢复。已有本机书架与详情页收藏按现有产品范围保留；没有真实能力时不放占位控件。
 - 基线：Flutter **3.44.6 stable**、Dart **^3.12.2**、Rust stable；FRB 的 Rust crate、Dart 包和 codegen **统一固定 2.13.0**。
-- Android：SDK 36、NDK **28.2.13676358**、JDK 17、Gradle **9.1.0**；仅构建 `arm64-v8a`。原生 C CENC 库由 CMake 生成 `libshortplay_crypto.so`，原生库须满足 **16 KiB** 对齐。
+- Windows：Flutter Windows desktop（x64 / ARM64），MSVC 2022 生成工具 + CMake，安装包用 Inno Setup 6；Rust 静态库由 `scripts/build_rust_backend.ps1` 产出，C 流式解密目标在 `native/` 内由 CMake 编译。本机无 MSVC 时改用云端 workflow 出包，不硬凑本地构建。
 - 状态存储使用 Hive（`LibraryStore`）与 SharedPreferences。依赖、工具链或架构调整须服务于当前任务，不顺手升级。
 
 | 路径 | 职责 |
@@ -44,15 +44,15 @@
 | --- | --- |
 | 纯文档、注释、排版 | 检查差异、路径和命令准确性，执行 `git diff --check`；无需构建与测试，不递增版本 |
 | Flutter / Dart 逻辑 | `flutter analyze --no-pub` 静态排查；跑定向 `flutter test` 验证，必要时扩大范围 |
-| Android 插件 / Kotlin | 选择相关编译任务排查；涉及系统 UI、生命周期时做真机验收；跑定向单元测试 |
+| Windows 原生 runner / C++ | 选择相关 CMake / MSVC 编译任务排查；涉及窗口、DPI、生命周期时做人工验收；跑定向单元测试 |
 | Rust | 检查 `.rs` 格式与 Clippy 静态检查；跑定向 `cargo test` |
 | FRB 接口 / 绑定 | 用 2.13.0 codegen 生成，验证代码生成一致性；跑相关绑定测试 |
 | C / 构建脚本 / 资源 | 静态差异检查；跑相关测试脚本 |
-| APK 交付 | 构建并检查签名、库、版本、资源和 16 KiB 对齐；真机由用户或按需验收 |
+| 安装包交付 | 构建并核对版本、图标、向导图与安装后数据目录；人工安装验收 |
 
 - Rust 格式检查使用 `rustfmt --check --edition 2021 --config skip_children=true <文件>`。覆盖检查时枚举 Git 跟踪的全部手写 `.rs`，并包含本轮新增文件；排除 `frb_generated.rs`。禁止使用 `cargo fmt --all -- --check`，也不能只查 `rust/src/lib.rs` 冒充全部检查。
 - 需要 Clippy 时使用 `cargo clippy --manifest-path rust/Cargo.toml --locked --all-targets -- -D warnings`。协议实现变更必须覆盖受影响的黄金夹具，未执行部分如实列出。
-- 门禁串行的原因：loopback `8080` 端口、Cargo target、Gradle 与 FRB 宿主动态库存在独占资源。Windows 符号链接权限导致的已知失败须核实原因后单列，不能记为通过或一概忽略。
+- 门禁串行的原因：loopback `8080` 端口、Cargo target、`flutter build` 与 FRB 宿主动态库存在独占资源。Windows 符号链接权限、文件占用导致的已知失败须核实原因后单列，不能记为通过或一概忽略。
 - 不为低风险可逆修改添加只复述实现的测试。未执行、跳过、环境失败、代码失败分别记录；定向测试通过不等于全量回归通过。
 
 ## 4. 代码边界与不变量
@@ -64,26 +64,24 @@
 - 修改 loopback 时保留 Host / Origin 校验、访问控制与请求体上限；涉及缓存解密和设备池持久化时检查幂等性与并发保护。
 - Dart 沿用相对导入、单引号和默认格式；注释解释决策及限制。整理看似重复的资源前先确认各自加载路径。
 
-## 5. APK 构建、安装与本地归档
+## 5. Windows 构建、安装包与本地归档
 
-> 说明：`android/` 构建目标已于 v0.9.123 移除，本节仅作历史 Android 版本的参考，当前 Windows 专版不适用。
+仅在任务需要安装包交付或人工验收时执行；普通文档改动不触发此流程。
 
-仅在任务需要 APK 交付或真机验证时执行；普通文档改动不触发此流程。
+1. **版本**：用户可见功能变更递增 `pubspec.yaml` 的 `version: <versionName>+<buildNumber>`，同步核对 About 页版本展示与 `CHANGELOG.md`；`windows/installer.iss` 的 `MyAppVersion` 由构建脚本写入，不手改。仅文档或无行为变化的整理不升版。
+2. **Rust 库新鲜度**：检查 `git log --oneline <上一归档提交或标签>..HEAD -- rust/`，同时检查未提交及新增的 Rust 文件。Rust 已改变或无法证明来源时，执行 `scripts/build_rust_backend.ps1` 重建；仅 Dart 改动且库已证实匹配时可复用。
+3. **构建**：执行 `scripts/build_windows.ps1`，其内部完成 Cargo release 构建、`flutter build windows --release --no-pub` 与 Inno Setup 打包。本机没有 MSVC 时不强行本地出包，改由 `.github/workflows/build-windows.yml` 云端产出。
+4. **安装包校验**：核对 `OutputBaseFilename=liuguang-setup-x64`、`SetupIconFile` 与 `WizardImageFile` / `WizardSmallImageFile` 存在且尺寸正确、卸载项显示名与图标正确、`[UninstallDelete]` 覆盖的历史数据目录未误伤用户当前数据。
+5. **人工验收**：安装后核对快捷方式名称「流光」、窗口标题、关于页名称与版本、数据目录 `%APPDATA%\byazlle\Liuguang`。以截图或运行日志佐证；不代替用户覆盖卸载或清除数据。
+6. **归档**：验收后立即将安装包、`SHA256SUMS` 和实测记录保存到 `release-archives/<tag>/`，注明对应提交及未验项。目录名不代表已创建 Git tag 或已发布 Release；不得覆盖已有归档。
 
-1. **版本**：用户可见功能变更递增 `pubspec.yaml` 的 `version: <versionName>+<versionCode>`，同步核对 About 页版本展示。仅文档或无行为变化的整理不升版。
-2. **Rust 库新鲜度**：检查 `git log --oneline <上一归档提交或标签>..HEAD -- rust/`，同时检查未提交及新增的 Rust 文件。Rust 已改变、`.so` 缺失或无法证明来源时，执行 `scripts/build_rust_backend.ps1` 重建；仅 Dart 改动且库已证实匹配时可复用。Gradle 只检查 `.so` 存在，不会重编 Rust。
-3. **原生校验**：重建后运行 `node scripts/check_native_alignment.cjs android/app/src/main/jniLibs/arm64-v8a/libfqapi_core.so`。可用 `node scripts/check_so_freshness.cjs <so路径> --since <归档提交或标签>` 辅查提交时间，但时间戳不能证明未提交代码已编入。
-4. **打包**：执行 `flutter build apk --release --target-platform android-arm64 --no-pub`，然后运行 `python scripts/verify_android_apk.py --apk <APK路径> --build-tools <SDK构建工具目录> --report-dir <报告目录> --expected-signer-sha256 <正式证书SHA256>`。占位符须替换为实际值；正式证书指纹核对 `.github/workflows/android-apk.yml` 与本地签名记录，不输出密码。
-5. **安装验收**：在用户已授权的设备上使用 `adb -s <设备序列号> install -r <APK路径>`，核对包名 `com.fqapp.fqapp`、版本和实际画面。点击、滑动或返回前重新确认前台包名；用户切到其他应用时停止输入。以截图 / UI XML 证明页面状态，日志只作辅助；不要为覆盖安装擅自卸载应用或清除数据。
-6. **归档**：验收后立即将 APK、`SHA256SUMS` 和实际验证报告保存到 `release-archives/<tag>/`，注明对应提交及未验项。目录名不代表已创建 Git tag 或已发布 Release；不得覆盖已有归档。
-
-构建故障先查本地 CRIT-011 / CRIT-012；签名细节见 `docs/release-signing.md`，完整流程见 `docs/运维/构建与发布.md`。
+构建故障先查本地 CRIT 判据；完整流程见 `docs/运维/构建与发布.md`。
 
 ## 6. Git 与发布边界
 
 - 主分支为 `master`，默认沿用当前工作分支。提交和普通推送按用户授权执行；已授权的操作无需反复确认，不擅自改远端、重写历史或混入其他任务。
 - 提交前检查暂存差异，按明确文件路径暂存，避免 `git add .` / `git add -A` 混入本地文件。推送后核对远端提交，不仅凭命令退出码判断成功。
-- **推送代码、本地构建、本地归档、GitHub Release 是不同动作。** “上传 gh”在源码语境下按提交 / 推送代码处理，不自动创建 Release、发布 tag 或上传 APK。用户要求“不要发布”时保持该限制，直到明确变更授权。
+- **推送代码、本地构建、本地归档、GitHub Release 是不同动作。** “上传 gh”在源码语境下按提交 / 推送代码处理，不自动创建 Release、发布 tag 或上传安装包。用户要求“不要发布”时保持该限制，直到明确变更授权。
 - 发布 Release、推送发布 tag、上传发布资产及在 issue 中回复或关单，均须有覆盖该动作的明确授权。需要审批时先准备可审阅的产物和说明，再申请；用户已授权时直接完成并核对远端结果。
 - 推送前检查 workflow 触发条件；用户要求不跑 CI 时，按需使用提交消息 `[skip ci]`，不手动触发 workflow，不擅自修改 CI 配置规避检查。
 

@@ -15,12 +15,12 @@ use axum::extract::State;
 use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response as AxumResponse};
 use axum::Router;
-use fqapi_core::config::Config;
-use fqapi_core::device::DevicePool;
-use fqapi_core::endpoints::{Ctx, Server};
-use fqapi_core::filter::FilterManager;
-use fqapi_core::sign::Manager;
-use fqapi_core::upstream::UpstreamClient;
+use liuguang_core::config::Config;
+use liuguang_core::device::DevicePool;
+use liuguang_core::endpoints::{Ctx, Server};
+use liuguang_core::filter::FilterManager;
+use liuguang_core::sign::Manager;
+use liuguang_core::upstream::UpstreamClient;
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -33,7 +33,7 @@ impl TempDir {
     pub fn new(tag: &str) -> Self {
         let n = COUNTER.fetch_add(1, Ordering::SeqCst);
         let path =
-            std::env::temp_dir().join(format!("fqapi-core-test-{tag}-{}-{n}", std::process::id()));
+            std::env::temp_dir().join(format!("liuguang-core-test-{tag}-{}-{n}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         std::fs::create_dir_all(&path).expect("create temp dir");
         TempDir { path }
@@ -199,7 +199,7 @@ impl Loopback {
 
 /// Starts the real loopback adapter on an ephemeral port.
 pub async fn start_loopback(server: Arc<Server>) -> Loopback {
-    let handle = fqapi_core::server::serve(server, 0)
+    let handle = liuguang_core::server::serve(server, 0)
         .await
         .expect("loopback adapter");
     Loopback {

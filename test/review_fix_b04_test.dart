@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/chapter_summary.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/detail_page.dart';
-import 'package:fqapp/services/chapter_cache_store.dart';
-import 'package:fqapp/services/chapter_text_formatter.dart';
-import 'package:fqapp/widgets/chapter_cache_sheet.dart';
+import 'package:liuguang/models/chapter_summary.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/detail_page.dart';
+import 'package:liuguang/services/chapter_cache_store.dart';
+import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:liuguang/widgets/chapter_cache_sheet.dart';
 
 import 'support/fakes.dart';
 

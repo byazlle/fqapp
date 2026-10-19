@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/models/series_detail.dart';
-import 'package:fqapp/pages/detail_page.dart';
-import 'package:fqapp/widgets/detail/detail_sections.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/models/series_detail.dart';
+import 'package:liuguang/pages/detail_page.dart';
+import 'package:liuguang/widgets/detail/detail_sections.dart';
 
 import 'support/fakes.dart';
 

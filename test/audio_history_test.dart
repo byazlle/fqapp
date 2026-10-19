@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/audio_history.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/audio_history.dart';
 
 import 'support/controlled_player.dart';
 

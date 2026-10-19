@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/drama_download_sheet.dart';
-import 'package:fqapp/services/drama_download_store.dart';
-import 'package:fqapp/services/drama_downloader.dart';
-import 'package:fqapp/services/episode_source_cache.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/drama_download_sheet.dart';
+import 'package:liuguang/services/drama_download_store.dart';
+import 'package:liuguang/services/drama_downloader.dart';
+import 'package:liuguang/services/episode_source_cache.dart';
 
 import 'support/fakes.dart';
 

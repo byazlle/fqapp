@@ -631,7 +631,7 @@ class _LibraryPageState extends State<LibraryPage> {
         if (!didPop && _editing) _exitEdit();
       },
       child: Scaffold(
-        backgroundColor: palette.canvas,
+        backgroundColor: palette.ambientCanvas,
         body: SafeArea(
           bottom: false,
           child: Column(

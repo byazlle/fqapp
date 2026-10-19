@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/search_page.dart';
-import 'package:fqapp/services/search_history_store.dart';
-import 'package:fqapp/widgets/media_card.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/search_page.dart';
+import 'package:liuguang/services/search_history_store.dart';
+import 'package:liuguang/widgets/media_card.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));

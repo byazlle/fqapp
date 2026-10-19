@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/services/library_store.dart';
-import 'package:fqapp/services/media_history_store.dart';
+import 'package:liuguang/services/library_store.dart';
+import 'package:liuguang/services/media_history_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

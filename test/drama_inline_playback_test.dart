@@ -8,17 +8,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/models/playlet_comment.dart';
-import 'package:fqapp/pages/drama_page.dart';
-import 'package:fqapp/pages/home_provider.dart';
-import 'package:fqapp/services/api_client.dart';
-import 'package:fqapp/services/digg_store.dart';
-import 'package:fqapp/services/drama_mute_preferences.dart';
-import 'package:fqapp/services/player_preferences.dart';
-import 'package:fqapp/services/shelf_store.dart';
-import 'package:fqapp/services/swipe_guide_store.dart';
-import 'package:fqapp/widgets/player/playlet_danmaku_layer.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/models/playlet_comment.dart';
+import 'package:liuguang/pages/drama_page.dart';
+import 'package:liuguang/pages/home_provider.dart';
+import 'package:liuguang/services/api_client.dart';
+import 'package:liuguang/services/digg_store.dart';
+import 'package:liuguang/services/drama_mute_preferences.dart';
+import 'package:liuguang/services/player_preferences.dart';
+import 'package:liuguang/services/shelf_store.dart';
+import 'package:liuguang/services/swipe_guide_store.dart';
+import 'package:liuguang/widgets/player/playlet_danmaku_layer.dart';
 
 import 'support/controlled_player.dart';
 

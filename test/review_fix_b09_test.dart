@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/services/chapter_text_formatter.dart';
+import 'package:liuguang/services/chapter_text_formatter.dart';
 
 void main() {
   test('image URLs with malformed escapes never break needsImageRefresh', () {

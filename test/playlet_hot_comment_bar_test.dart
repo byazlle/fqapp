@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/playlet_comment.dart';
-import 'package:fqapp/widgets/player/playlet_hot_comment_bar.dart';
+import 'package:liuguang/models/playlet_comment.dart';
+import 'package:liuguang/widgets/player/playlet_hot_comment_bar.dart';
 
 /// 热评行保留轮播行为：第 0 条常显、条数 >1 时每 5 秒换下一条、
 /// 点击回调带上当前那条（官方据此组 hot_comment_id/hot_reply_id）。

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/native_player.dart';
+import 'package:liuguang/services/native_player.dart';
 
 const _methods = MethodChannel('fqapp/native_player');
 const _eventMethods = MethodChannel('fqapp/native_player/events');

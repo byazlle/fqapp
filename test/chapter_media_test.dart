@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/models/chapter_media.dart';
+import 'package:liuguang/models/chapter_media.dart';
 
 import 'support/audio_play_fixture.dart';
 

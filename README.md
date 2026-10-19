@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/images/app_logo.webp" width="120" height="120" alt="fqapp Logo">
+  <img src="assets/images/app_logo.webp" width="120" height="120" alt="流光 Liuguang Logo">
 </p>
 
-<h1 align="center">fqapp（Windows 版）</h1>
+<h1 align="center">流光 · Liuguang</h1>
 
 <p align="center">
   <strong>内容聚合客户端 · Windows 桌面版</strong><br>
@@ -21,11 +21,11 @@
 
 <p align="center">
   <a href="https://github.com/byazlle/fqapp/releases/latest">
-    <img alt="Release" src="https://img.shields.io/github/v/release/byazlle/fqapp?color=EF5038&label=Release&logo=github">
+    <img alt="Release" src="https://img.shields.io/github/v/release/byazlle/fqapp?color=7C5CFF&label=Release&logo=github">
   </a>
   &nbsp;
   <a href="https://github.com/byazlle/fqapp/releases">
-    <img alt="Downloads" src="https://img.shields.io/github/downloads/byazlle/fqapp/total?color=14B8A6&label=Downloads&logo=github">
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/byazlle/fqapp/total?color=22D3EE&label=Downloads&logo=github">
   </a>
   &nbsp;
   <img alt="Platform" src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078D4?logo=windows&logoColor=white">
@@ -45,8 +45,12 @@
   </a>
 </p>
 
-> **当前版本：`v1.0.0`（构建号 131）** —— 首个正式版。`0.9.x` 为预发布线（`0.9.121`–`0.9.128`），
+> **当前版本：`v1.1.0`（构建号 132）** —— 品牌焕新版。`0.9.x` 与 `1.0.0` 为历史版本，
 > 完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+
+> **关于更名**：本项目原名为 `fqapp`，自 `v1.1.0` 起更名为 **流光（Liuguang）**。安装包、可执行文件、
+> 安装目录与界面标识已全部切换；升级时首次启动会自动把 `%APPDATA%\fqapp` 的旧数据迁移到新目录，
+> 书架、历史与离线缓存不会丢失。
 
 > ⚠️ **免责声明**：本项目仅供学习与研究交流，不内置、不分发任何内容资源；在线内容均来自第三方公开接口，版权归原权利方所有。本项目与内容提供方无关联，未获其授权；使用产生的一切后果由使用者自行承担，如有侵权请联系删除。
 
@@ -79,28 +83,28 @@
 ### 获取安装包
 
 **推荐：[GitHub Releases](https://github.com/byazlle/fqapp/releases/latest)** —— 下载最新发布版的
-`fqapp-setup-x64.exe`；打 tag 发布的版本同时附带 `SHA256SUMS.txt`，可对照 Release 说明中的 SHA256 自行核对：
+`liuguang-setup-x64.exe`；打 tag 发布的版本同时附带 `SHA256SUMS.txt`，可对照 Release 说明中的 SHA256 自行核对：
 
 ```powershell
-Get-FileHash .\fqapp-setup-x64.exe -Algorithm SHA256
+Get-FileHash .\liuguang-setup-x64.exe -Algorithm SHA256
 ```
 
 其他方式：
 
-1. **GitHub Actions 云端构建**：打开仓库的 [Actions → Build Windows (cloud)](https://github.com/byazlle/fqapp/actions/workflows/build-windows.yml)，点击 **Run workflow** 运行一次构建；成功后在本次运行的 **Artifacts** 中下载 `fqapp-windows-setup`，解压得到 `fqapp-setup-x64.exe`（产物保留 14 天，长期留存请用 Releases）。
+1. **GitHub Actions 云端构建**：打开仓库的 [Actions → Build Windows (cloud)](https://github.com/byazlle/fqapp/actions/workflows/build-windows.yml)，点击 **Run workflow** 运行一次构建；成功后在本次运行的 **Artifacts** 中下载 `liuguang-windows-setup`，解压得到 `liuguang-setup-x64.exe`（产物保留 14 天，长期留存请用 Releases）。
 2. **本地构建**：需要 Flutter / Rust / Visual Studio (MSVC) / Inno Setup，步骤见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ### 安装与首次启动
 
-1. 双击 `fqapp-setup-x64.exe` 按向导安装（会自动部署 VC++ 运行库），从开始菜单或桌面快捷方式启动。
+1. 双击 `liuguang-setup-x64.exe` 按向导安装（会自动部署 VC++ 运行库），从开始菜单或桌面快捷方式启动。
 2. 首次启动时 App 自动完成初始化：部署运行资源 → 启动本地核心并注册设备 → 健康检查通过后进入主界面。首次请保持联网。
 3. 之后即可随时离线打开 App，阅读已缓存的内容。
 
 ### 升级与卸载
 
 - **升级**：同一发布渠道的安装包可直接覆盖升级（安装包都未签名，覆盖安装不涉及签名校验）；阅读历史、收藏与缓存会被保留。
-- **卸载**：卸载程序会删除默认数据目录 `%APPDATA%\fqapp`，阅读历史、收藏与缓存一并清除。
-- **迁移过数据目录时**：卸载程序**不会**清理自定义目录，需要手动删除；该目录中的 `fqapp-data.txt` 写有这条说明。
+- **卸载**：卸载程序会删除默认数据目录 `%APPDATA%\byazlle\Liuguang`，阅读历史、收藏与缓存一并清除。
+- **迁移过数据目录时**：卸载程序**不会**清理自定义目录，需要手动删除；该目录中的 `liuguang-data.txt` 写有这条说明。
 
 ## 🚀 快速上手
 
@@ -152,7 +156,7 @@ Get-FileHash .\fqapp-setup-x64.exe -Algorithm SHA256
 
 ### 数据目录
 
-- 默认数据目录为 `%APPDATA%\fqapp`（Hive 数据库、阅读历史、收藏与缓存）。
+- 默认数据目录为 `%APPDATA%\byazlle\Liuguang`（Hive 数据库、阅读历史、收藏与缓存）。
 - 设置 → 数据 → **缓存目录**：可把数据整体迁移到其他磁盘。迁移流程是「关闭数据库 → 复制 → 校验文件数与字节数 → 原子移动」，任一步失败都不会写覆盖值、也不会删除原数据，完成后自动重启生效。
 - 迁移后图片缓存也跟随新目录，不会在系统盘留下残余。
 
@@ -171,13 +175,13 @@ Get-FileHash .\fqapp-setup-x64.exe -Algorithm SHA256
 桌面播放依赖安装包随附的 libmpv 与 VC++ 运行库：请先用官方安装包重新安装 / 修复一次；仍失败时，播放前的预检会把原因区分为「组件缺失」「流 401/502」或「网络异常」。
 
 **Q：下载的内容保存在哪？**
-保存在应用私有目录 `%APPDATA%\fqapp`（或你迁移后的自定义目录），不进入相册等公共空间；在应用内「设置 → 数据 → 章节缓存」管理。
+保存在应用私有目录 `%APPDATA%\byazlle\Liuguang`（或你迁移后的自定义目录），不进入相册等公共空间；在应用内「设置 → 数据 → 章节缓存」管理。
 
 **Q：换电脑怎样迁移收藏和进度？**
 先退出阅读或暂停播放，在「设置 → 数据 → 备份与恢复」导出 JSON 文件，传到新电脑后在同一页面选择文件，核对预览并确认合并。支持在线作品的收藏、阅读 / 播放进度和已看剧集；已有收藏和进度保留本机记录，已看剧集取并集，可重复导入。文件不包含本地 TXT/EPUB 书籍及其进度、下载缓存、阅读时长、划线和应用设置；本地书籍请另行保留原文件。暂不提供 WebDAV 同步。
 
 **Q：卸载后数据还在吗？**
-默认数据目录会随卸载删除；如果你迁移过数据目录，卸载程序不会清理自定义目录，需要手动删除（目录中的 `fqapp-data.txt` 有说明）。
+默认数据目录会随卸载删除；如果你迁移过数据目录，卸载程序不会清理自定义目录，需要手动删除（目录中的 `liuguang-data.txt` 有说明）。
 
 **Q：安装或运行时被 SmartScreen / 杀毒软件拦截？**
 安装包没有购买代码签名证书，属于正常现象，可按「更多信息 → 仍要运行」。若杀软误报，请把安装目录加入白名单后重试。

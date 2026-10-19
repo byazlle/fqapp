@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/brand.dart';
+import '../widgets/brand/glass.dart';
 import '../widgets/home/home_design.dart';
 
 /// About page styled after PiliPlus: centered logo/name header followed by
@@ -12,13 +14,7 @@ class AboutPage extends StatelessWidget {
   /// `version`. Without a package_info dependency the value is
   /// static, so test/about_version_test.dart parses the pubspec and fails the
   /// build check when the two drift apart after a version bump.
-  static const versionText = '1.0.0 (131)';
-
-  /// Pixel width of the bundled logo (assets/images/app_logo.webp). The logo
-  /// is displayed at 96dp, so it only needs re-decoding above 4× DPI; clamping
-  /// to the asset's real width keeps a high-DPI device from asking the decoder
-  /// to upscale a surface the asset does not have.
-  static const _logoPixelWidth = 384;
+  static const versionText = '1.1.0 (132)';
 
   @override
   Widget build(BuildContext context) {
@@ -26,59 +22,47 @@ class AboutPage extends StatelessWidget {
     final outline = theme.colorScheme.outline;
     final palette = HomePalette.of(context);
 
-    return Scaffold(
-      backgroundColor: palette.canvas,
-      appBar: AppBar(title: const Text('关于'), centerTitle: true),
-      body: ListView(
+    return BrandBackdrop(
+      eink: palette.eink,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('关于'),
+          centerTitle: true,
+          backgroundColor: Colors.transparent,
+        ),
+        body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
           const SizedBox(height: 16),
-          Center(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: HomePalette.accent.withValues(alpha: 0.20),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Image.asset(
-                  'assets/images/app_logo.webp',
-                  width: 88,
-                  height: 88,
-                  // Decode at the display size rather than the whole 384²
-                  // surface, which would hold ~590 KB in the image cache for a
-                  // 96dp logo.
-                  cacheWidth: (88 * MediaQuery.devicePixelRatioOf(context))
-                      .round()
-                      .clamp(88, _logoPixelWidth),
-                  fit: BoxFit.contain,
-                  excludeFromSemantics: true,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
+          Center(child: BrandMark(size: 88, radius: 24, eink: palette.eink)),
+          const SizedBox(height: 16),
           Column(
             children: [
               Text(
-                'fqapp',
+                Brand.name,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.3,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 3,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Text(
-                '小说 / 短剧 / 漫剧 / 漫画 / 听书聚合客户端',
+                Brand.latin.toUpperCase(),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: outline, fontSize: 13),
+                style: TextStyle(
+                  color: outline,
+                  fontSize: 10,
+                  letterSpacing: 3.4,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                Brand.discipline,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: outline, fontSize: 12.5),
               ),
             ],
           ),
@@ -127,7 +111,8 @@ class AboutPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-        ],
+          ],
+        ),
       ),
     );
   }

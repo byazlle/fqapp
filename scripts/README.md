@@ -2,6 +2,8 @@
 
 除单独注明工作目录外，下列命令从仓库根目录执行。脚本路径被 CI、Gradle 或测试引用；调整位置时同时更新调用方。
 
+> **当前发布目标**：流光只出 Windows 桌面安装包（`liuguang-setup-x64.exe`），日常构建入口是 `build_windows.ps1`——它跳过 Android NDK，只产出 `liuguang_core.dll`。表中 Android 相关条目（`verify_android_apk.py`、`check_native_alignment.cjs`、`check_so_freshness.cjs` 及 `build_rust_backend.*` 的交叉编译分支）属于历史目标，`android/` 已于 v0.9.123 移除；保留它们只为归档旧产物时仍可校验。
+
 ## 常用入口
 
 | 脚本 | 用途 | 依赖与输出 |
@@ -10,9 +12,9 @@
 | [run_rust_host_tests.ps1](run_rust_host_tests.ps1) / [.sh](run_rust_host_tests.sh) | 构建宿主核心，运行真实 Dart → FRB → Rust 集成测试 | Rust、Flutter；使用本地 Mock 上游和临时运行目录 |
 | [verify_android_apk.py](verify_android_apk.py) | 检查 APK 签名、库、版本、资源及 16 KiB 对齐 | Python 3、Android Build-Tools；报告目录由参数指定 |
 | [check_native_alignment.cjs](check_native_alignment.cjs) | 检查一个或多个 ARM64 ELF 库的 LOAD 段对齐 | Node.js；只读取指定 `.so` |
-| [check_so_freshness.cjs](check_so_freshness.cjs) | 打版前检查 `libfqapi_core.so` 是否比 `rust/` 的最新改动新（判据 CRIT-011） | Node.js、git；只读取文件时间与 git 历史 |
+| [check_so_freshness.cjs](check_so_freshness.cjs) | 打版前检查 `libliuguang_core.so` 是否比 `rust/` 的最新改动新（判据 CRIT-011） | Node.js、git；只读取文件时间与 git 历史 |
 | [verify_audio_cenc.cjs](verify_audio_cenc.cjs) | 检查播放响应和加密 AAC 样本 | Node.js；会按响应中的地址有限下载 HTTPS 音频，属于在线诊断 |
-| [generate_app_icons.py](generate_app_icons.py) | 从品牌源图生成 Android 图标及应用 Logo | Python 3、Pillow；修改已提交图片，普通构建直接使用现有图片 |
+| [generate_brand_assets.py](generate_brand_assets.py) | 从品牌源图生成 Windows 图标、应用内 Logo、favicon 与安装向导配图 | Python 3、Pillow；修改已提交图片，普通构建直接使用现有图片 |
 
 ## Rust 构建与宿主集成
 
@@ -51,22 +53,30 @@ flutter test --no-pub --concurrency=2
 node --test test/web_assets_test.cjs test/verify_audio_cenc_test.cjs test/build_rust_backend_scripts_test.cjs
 ```
 
-`flutter test` 在宿主动态库存在时会运行 FRB 集成；库缺失时相关测试会明确跳过。`run_rust_host_tests.*` 可先重建宿主库再执行这组测试。C/JNI 主机回归和编译器要求见 [native/README.md](../native/README.md)。Android JVM 测试须在 `android/` 目录中执行：Windows 使用 `.\gradlew.bat :app:testDebugUnitTest`，Linux/macOS 使用 `./gradlew :app:testDebugUnitTest`。
+`flutter test` 在宿主动态库存在时会运行 FRB 集成；库缺失时相关测试会明确跳过。`run_rust_host_tests.*` 可先重建宿主库再执行这组测试。C 解密库的主机回归和编译器要求见 [native/README.md](../native/README.md)。Android JVM 测试属于历史目标，需在 `android/` 目录执行（该目录当前不存在）。
 
-## APK、诊断与资源
+## 安装包、诊断与资源
+
+```powershell
+.\scripts\build_windows.ps1
+node scripts/verify_audio_cenc.cjs build/diagnostics/play-response.json
+python scripts/generate_brand_assets.py
+```
+
+历史 Android 目标（当前不产出，仅归档校验时使用）：
 
 ```powershell
 flutter build apk --release --target-platform android-arm64 --no-pub
 python scripts/verify_android_apk.py --help
-node scripts/check_native_alignment.cjs android/app/src/main/jniLibs/arm64-v8a/libfqapi_core.so
-node scripts/check_so_freshness.cjs android/app/src/main/jniLibs/arm64-v8a/libfqapi_core.so --since v1.0.88
-node scripts/verify_audio_cenc.cjs build/diagnostics/play-response.json
-python scripts/generate_app_icons.py
+node scripts/check_native_alignment.cjs android/app/src/main/jniLibs/arm64-v8a/libliuguang_core.so
+node scripts/check_so_freshness.cjs android/app/src/main/jniLibs/arm64-v8a/libliuguang_core.so --since v1.0.88
 ```
 
-APK 校验须传入 `--apk`、`--build-tools`、`--report-dir` 以及预期签名指纹，完整示例见本地
+Windows 安装包由 Inno Setup 6 生成，版本号从 `pubspec.yaml` 注入 `windows/installer.iss`，图标与向导图取自 `windows/installer/` 与 `windows/runner/resources/app_icon.ico`。
+
+APK 校验（历史目标）须传入 `--apk`、`--build-tools`、`--report-dir` 以及预期签名指纹，完整示例见本地
 `docs/release-signing.md`（不入库）。只在没有正式签名材料的场景（fork、本地检视构建）才加
 `--allow-unsigned`，此时报告里 `signature.signed` 为 `false`，其余检查照常执行。
 `--help` 只显示参数，不算通过 APK 验证。
 
-`verify_audio_cenc.cjs` 的 AAC 样本头匹配是诊断线索，不等于解码器播放成功。图标生成细节见 [品牌资源说明](../assets/branding/README.md)。诊断输出放在 `build/`；经用户验收的发布资料按版本存入 `release-archives/`。
+`verify_audio_cenc.cjs` 的 AAC 样本头匹配是诊断线索，不等于解码器播放成功。图标与品牌图生成细节见 [品牌资源说明](../assets/branding/README.md)。诊断输出放在 `build/`；经用户验收的发布资料按版本存入 `release-archives/`。

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/channel_tab.dart';
+import 'package:liuguang/models/channel_tab.dart';
 
 /// F08：服务端频道表。
 ///

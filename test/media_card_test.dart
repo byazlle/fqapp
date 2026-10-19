@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/widgets/media_card.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/widgets/media_card.dart';
 
 void main() {
   testWidgets('cover size does not depend on title length', (tester) async {

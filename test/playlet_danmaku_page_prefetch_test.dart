@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/models/playlet_comment.dart';
-import 'package:fqapp/pages/player_page.dart';
-import 'package:fqapp/services/player_style_config.dart';
-import 'package:fqapp/widgets/player/playlet_danmaku_layer.dart';
-import 'package:fqapp/widgets/player/playlet_danmaku_loader.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/models/playlet_comment.dart';
+import 'package:liuguang/pages/player_page.dart';
+import 'package:liuguang/services/player_style_config.dart';
+import 'package:liuguang/widgets/player/playlet_danmaku_layer.dart';
+import 'package:liuguang/widgets/player/playlet_danmaku_loader.dart';
 
 import 'support/controlled_player.dart';
 

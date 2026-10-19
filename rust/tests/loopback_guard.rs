@@ -9,7 +9,7 @@ mod common;
 
 use common::{build_server, build_server_with_config, pool_json, start_loopback};
 use common::{MockReply, MockUpstream, TempDir};
-use fqapi_core::dispatch::{dispatch, Request};
+use liuguang_core::dispatch::{dispatch, Request};
 use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -20,7 +20,7 @@ async fn comment_server(
 ) -> (
     TempDir,
     MockUpstream,
-    std::sync::Arc<fqapi_core::endpoints::Server>,
+    std::sync::Arc<liuguang_core::endpoints::Server>,
 ) {
     let upstream = MockUpstream::start(|_| {
         MockReply::json(json!({"code": 0, "data": {"comment_info": {"comment_id": "c9"}}}))
@@ -182,7 +182,7 @@ async fn oversized_bodies_are_refused_and_moderate_ones_accepted() {
 
     // Announced oversize: refused from the header, before any body is read.
     // The 413 check sits behind the session gate, so the target must be scoped.
-    let limit = fqapi_core::server::MAX_REQUEST_BODY;
+    let limit = liuguang_core::server::MAX_REQUEST_BODY;
     let (status, text) = raw(
         lb.port,
         &format!(

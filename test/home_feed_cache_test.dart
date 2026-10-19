@@ -3,10 +3,10 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/home_provider.dart';
-import 'package:fqapp/services/api_client.dart';
-import 'package:fqapp/services/home_feed_cache.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/home_provider.dart';
+import 'package:liuguang/services/api_client.dart';
+import 'package:liuguang/services/home_feed_cache.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 MediaItem _item(String id, {String kind = 'video'}) => MediaItem(

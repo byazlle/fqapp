@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/widgets/player/player_video_layout.dart';
+import 'package:liuguang/widgets/player/player_video_layout.dart';
 
 /// The official feed card fills its frame (`cq3/o.java:181`, mode 4) and only
 /// demotes a source whose width/height ratio reaches `landscapeRatio`

@@ -1,12 +1,12 @@
 [package]
-name = "fqapi_core"
+name = "liuguang_core"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "Rust native core for fqapp"
+description = "Rust native core for Liuguang (流光)"
 
 [lib]
-name = "fqapi_core"
+name = "liuguang_core"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]

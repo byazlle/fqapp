@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/player_page.dart';
-import 'package:fqapp/widgets/player/story_seek_bar.dart';
-import 'package:fqapp/widgets/video_player_chrome.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/player_page.dart';
+import 'package:liuguang/widgets/player/story_seek_bar.dart';
+import 'package:liuguang/widgets/video_player_chrome.dart';
 
 import 'support/controlled_player.dart';
 import 'support/fakes.dart';

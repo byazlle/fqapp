@@ -7,10 +7,10 @@ import 'package:media_kit/media_kit.dart' show MediaKit;
 import 'services/desktop_media_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'dart:async';
-import 'dart:io' show Platform, File;
-import 'dart:ui' show ImageFilter;
+import 'dart:io' show Platform, File, Directory;
 
 import 'pages/home_page.dart';
 import 'pages/audio_page.dart';
@@ -20,8 +20,10 @@ import 'pages/library_page.dart';
 import 'pages/mine_page.dart';
 import 'services/app_log.dart';
 import 'services/app_theme.dart';
+import 'services/brand.dart';
 import 'services/audio_preferences.dart';
 import 'services/backend_service.dart';
+import 'widgets/brand/glass.dart';
 import 'services/digg_store.dart';
 import 'services/drama_download_store.dart';
 import 'services/drama_downloader.dart';
@@ -85,11 +87,57 @@ void main() {
       // Rust 核心日志的读取入口：日志页「Rust」视图读 runtime_dir/rust.log。
       // 核心只在 Android 落盘（桌面/测试构建不装 logger），读不到时页面给空态。
       RustLogSource.reader = BackendService.instance.readRustLog;
-      runApp(const ProviderScope(child: FqApp()));
+      runApp(const ProviderScope(child: LiuguangApp()));
     },
     (error, stack) =>
         AppLog.e('zone', '未捕获异步异常', error: error, stack: stack),
   );
+}
+
+/// 旧品牌 fqapp 的数据目录。更名「流光」后默认目录变成
+/// `%APPDATA%\byazlle\Liuguang`，这里做一次性搬迁，避免老用户的书架、
+/// 历史与离线缓存凭空消失。
+///
+/// 只在「新目录不存在或为空」时搬迁：已经有数据的用户不会被覆盖；
+/// 用过自定义目录的人走 `cacheDirOverride`，不经过这里。
+Future<void> _migrateLegacyDataDir() async {
+  if (!Platform.isWindows) return;
+  final appData = Platform.environment['APPDATA'];
+  if (appData == null || appData.isEmpty) return;
+  try {
+    final target = await getApplicationSupportDirectory();
+    if (target.existsSync() && target.listSync().isNotEmpty) return;
+    for (final legacy in <String>[
+      '$appData\\fqapp',
+      '$appData\\com.example\\fqapp',
+    ]) {
+      final dir = Directory(legacy);
+      if (!dir.existsSync()) continue;
+      final entries = dir.listSync();
+      if (entries.isEmpty) continue;
+      _copyTree(dir, target);
+      AppLog.i('boot', '已从旧目录迁移用户数据：$legacy -> ${target.path}');
+      return;
+    }
+  } catch (error, stack) {
+    // 迁移失败不能拦住启动：拿不到旧数据就当新用户，原目录保持不动。
+    AppLog.e('boot', '旧目录迁移失败', error: error, stack: stack);
+  }
+}
+
+void _copyTree(Directory from, Directory to) {
+  to.createSync(recursive: true);
+  for (final entity in from.listSync(recursive: true, followLinks: false)) {
+    final relative = entity.path.substring(from.path.length + 1);
+    final destination = '${to.path}${Platform.pathSeparator}$relative';
+    if (entity is Directory) {
+      Directory(destination).createSync(recursive: true);
+    } else if (entity is File) {
+      File(destination)
+        ..parent.createSync(recursive: true)
+        ..writeAsBytesSync(entity.readAsBytesSync(), flush: false);
+    }
+  }
 }
 
 Future<void> _initializeLocalData() async {
@@ -103,6 +151,7 @@ Future<void> _initializeLocalData() async {
     // 单例首次被访问（下方 enforceBudget）之前赋值，否则仍会落到临时目录。
     PosterCache.overrideBaseDir = cacheOverride;
   } else {
+    await _migrateLegacyDataDir();
     await Hive.initFlutter();
   }
   // 保证同一时间只有一个播放实例在播放：任一播放器开始播放时，其余自动暂停。
@@ -190,14 +239,14 @@ Future<void> _initializeLocalData() async {
   einkModeNotifier.value = sp.getBool(einkModeKey) ?? false;
 }
 
-class FqApp extends StatefulWidget {
-  const FqApp({super.key});
+class LiuguangApp extends StatefulWidget {
+  const LiuguangApp({super.key});
 
   @override
-  State<FqApp> createState() => _FqAppState();
+  State<LiuguangApp> createState() => _LiuguangAppState();
 }
 
-class _FqAppState extends State<FqApp> {
+class _LiuguangAppState extends State<LiuguangApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -216,7 +265,7 @@ class _FqAppState extends State<FqApp> {
                 navigatorKey: _navigatorKey,
                 child: child ?? const SizedBox.shrink(),
               ),
-              title: 'fqapp',
+              title: Brand.name,
               debugShowCheckedModeBanner: false,
               theme: _theme(Brightness.light, eink: eink),
               darkTheme: _theme(Brightness.dark, eink: eink),
@@ -553,31 +602,41 @@ class _RootShellState extends State<RootShell> {
     );
 
     if (wideShell) {
-      return Scaffold(
-        body: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _wideRail(eink: eink, glassDark: glassDark, palette: palette),
-            Expanded(child: body),
-          ],
+      // 液态底放在壳层最外层：四个 Tab 的 Scaffold 画布是透明的，
+      // 渐变与极光晕从这里透上来，玻璃面板才有东西可以“透”。
+      return BrandBackdrop(
+        eink: eink,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _wideRail(eink: eink, glassDark: glassDark, palette: palette),
+              Expanded(child: body),
+            ],
+          ),
         ),
       );
     }
 
-    return Scaffold(
-      extendBody: true,
-      body: body,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        left: false,
-        right: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: RepaintBoundary(
-            child: _floatingSurface(
-              eink: eink,
-              glassDark: glassDark,
-              child: navBar,
+    return BrandBackdrop(
+      eink: eink,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        extendBody: true,
+        body: body,
+        bottomNavigationBar: SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: RepaintBoundary(
+              child: _floatingSurface(
+                eink: eink,
+                glassDark: glassDark,
+                child: navBar,
+              ),
             ),
           ),
         ),
@@ -585,70 +644,20 @@ class _RootShellState extends State<RootShell> {
     );
   }
 
-  /// 壳层悬浮面（底部药丸与宽屏侧栏共用）：圆角 28 的毛玻璃盒，或墨水屏
-  /// 模式的实线白盒。抽成一份是为了两端控件视觉同源，不各写一套装饰。
+  /// 壳层悬浮面（底部药丸与宽屏侧栏共用）：品牌玻璃面板。
+  /// 抽成一份是为了两端控件视觉同源，不各写一套装饰。
   Widget _floatingSurface({
     required Widget child,
     required bool eink,
     required bool glassDark,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        // 墨水屏：阴影是灰阶 + 刷新残影来源，直接去掉，改用实线边框。
-        boxShadow: eink
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: glassDark ? 0.38 : 0.08,
-                  ),
-                  blurRadius: 22,
-                  offset: const Offset(0, 8),
-                ),
-                BoxShadow(
-                  color: HomePalette.accent.withValues(
-                    alpha: glassDark ? 0.06 : 0.03,
-                  ),
-                  blurRadius: 14,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        // 墨水屏：BackdropFilter 毛玻璃会把悬浮面变成一团灰，改实色。
-        child: eink
-            ? Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: Colors.black,
-                    width: 0.8,
-                  ),
-                ),
-                child: child,
-              )
-            : BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: glassDark
-                        ? const Color(0xFF161619).withValues(alpha: 0.72)
-                        : Colors.white.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: glassDark
-                          ? Colors.white.withValues(alpha: 0.16)
-                          : Colors.white.withValues(alpha: 0.75),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: child,
-                ),
-              ),
-      ),
+    return GlassPanel(
+      radius: BrandRadii.panel + 2,
+      blur: 20,
+      eink: eink,
+      tinted: true,
+      opacity: glassDark ? 0.62 : 0.78,
+      child: child,
     );
   }
 
@@ -778,17 +787,8 @@ class _RootShellState extends State<RootShell> {
     required HomePalette palette,
     required bool extended,
   }) {
-    final accent = eink ? Colors.black : HomePalette.accent;
-    final logo = ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.asset(
-        'assets/images/app_logo.webp',
-        width: 32,
-        height: 32,
-        fit: BoxFit.contain,
-        color: eink ? Colors.black : null,
-      ),
-    );
+    final accent = eink ? Colors.black : Brand.primary;
+    final logo = BrandMark(size: 32, radius: 9, eink: eink);
     return SizedBox(
       height: 56,
       child: extended
@@ -798,13 +798,29 @@ class _RootShellState extends State<RootShell> {
                 children: [
                   logo,
                   const SizedBox(width: 12),
-                  Text(
-                    'fqapp',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: accent,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        Brand.name,
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: accent,
+                        ),
+                      ),
+                      Text(
+                        Brand.latin.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 2.2,
+                          color: palette.muted,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -7,10 +7,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/reader_page.dart';
-import 'package:fqapp/services/reader_device.dart';
-import 'package:fqapp/services/reader_preferences.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/reader_page.dart';
+import 'package:liuguang/services/reader_device.dart';
+import 'package:liuguang/services/reader_preferences.dart';
 
 import 'support/fakes.dart';
 

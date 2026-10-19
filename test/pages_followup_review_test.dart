@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/chapter_media.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/models/search_discovery.dart';
-import 'package:fqapp/pages/audio_page.dart';
-import 'package:fqapp/pages/reader_page.dart';
-import 'package:fqapp/pages/search_page.dart';
-import 'package:fqapp/services/listening_session.dart';
-import 'package:fqapp/services/search_history_store.dart';
+import 'package:liuguang/models/chapter_media.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/models/search_discovery.dart';
+import 'package:liuguang/pages/audio_page.dart';
+import 'package:liuguang/pages/reader_page.dart';
+import 'package:liuguang/pages/search_page.dart';
+import 'package:liuguang/services/listening_session.dart';
+import 'package:liuguang/services/search_history_store.dart';
 
 import 'support/controlled_player.dart';
 import 'support/fakes.dart';

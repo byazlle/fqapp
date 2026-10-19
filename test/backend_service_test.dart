@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/backend_service.dart';
-import 'package:fqapp/services/backend_transport.dart';
+import 'package:liuguang/services/backend_service.dart';
+import 'package:liuguang/services/backend_transport.dart';
 
 /// Lifecycle tests for the Rust-backed [BackendService].
 ///

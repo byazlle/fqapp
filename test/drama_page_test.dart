@@ -8,23 +8,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 
-import 'package:fqapp/main.dart';
-import 'package:fqapp/models/channel_tab.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/models/playlet_comment.dart';
-import 'package:fqapp/models/series_detail.dart';
-import 'package:fqapp/pages/drama_page.dart';
-import 'package:fqapp/pages/player_page.dart';
-import 'package:fqapp/pages/series_detail_page.dart';
-import 'package:fqapp/pages/home_provider.dart';
-import 'package:fqapp/services/api_client.dart';
-import 'package:fqapp/services/library_store.dart';
-import 'package:fqapp/services/player_style_config.dart';
-import 'package:fqapp/services/shelf_store.dart';
-import 'package:fqapp/services/swipe_guide_store.dart';
+import 'package:liuguang/main.dart';
+import 'package:liuguang/models/channel_tab.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/models/playlet_comment.dart';
+import 'package:liuguang/models/series_detail.dart';
+import 'package:liuguang/pages/drama_page.dart';
+import 'package:liuguang/pages/player_page.dart';
+import 'package:liuguang/pages/series_detail_page.dart';
+import 'package:liuguang/pages/home_provider.dart';
+import 'package:liuguang/services/api_client.dart';
+import 'package:liuguang/services/library_store.dart';
+import 'package:liuguang/services/player_style_config.dart';
+import 'package:liuguang/services/shelf_store.dart';
+import 'package:liuguang/services/swipe_guide_store.dart';
 
-import 'package:fqapp/services/digg_store.dart';
-import 'package:fqapp/widgets/video_player_chrome.dart';
+import 'package:liuguang/services/digg_store.dart';
+import 'package:liuguang/widgets/video_player_chrome.dart';
 import 'support/controlled_player.dart';
 
 MediaItem _item(

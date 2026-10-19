@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/book_txt_export.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/book_txt_export.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/watched_episodes.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/watched_episodes.dart';
 
 import 'support/fakes.dart';
 

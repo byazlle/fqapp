@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/playlet_comment.dart';
-import 'package:fqapp/widgets/player/playlet_comment_panel.dart';
+import 'package:liuguang/models/playlet_comment.dart';
+import 'package:liuguang/widgets/player/playlet_comment_panel.dart';
 
 /// 评论面板的交互用例：官方筛选、分页、空态、失败重试。
 ///

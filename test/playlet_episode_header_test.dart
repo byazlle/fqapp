@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/widgets/player/story_player_panel.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/widgets/player/story_player_panel.dart';
 
 /// F06 第二批：选集面板**头部剧信息**。
 ///

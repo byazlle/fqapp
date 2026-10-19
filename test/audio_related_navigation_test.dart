@@ -7,15 +7,15 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/audio_extra.dart';
-import 'package:fqapp/models/chapter_media.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/audio_page.dart';
-import 'package:fqapp/pages/detail_page.dart';
-import 'package:fqapp/services/api_client.dart';
-import 'package:fqapp/services/listening_session.dart';
-import 'package:fqapp/widgets/audio/audio_sections.dart';
-import 'package:fqapp/widgets/detail/detail_read_bar.dart';
+import 'package:liuguang/models/audio_extra.dart';
+import 'package:liuguang/models/chapter_media.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/audio_page.dart';
+import 'package:liuguang/pages/detail_page.dart';
+import 'package:liuguang/services/api_client.dart';
+import 'package:liuguang/services/listening_session.dart';
+import 'package:liuguang/widgets/audio/audio_sections.dart';
+import 'package:liuguang/widgets/detail/detail_read_bar.dart';
 
 import 'support/controlled_player.dart';
 

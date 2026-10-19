@@ -28,8 +28,8 @@ if [ "$SKIP_BUILD" -eq 0 ]; then
 fi
 
 case "$(uname -s)" in
-  Darwin) LIBRARY_NAME="libfqapi_core.dylib" ;;
-  *)      LIBRARY_NAME="libfqapi_core.so" ;;
+  Darwin) LIBRARY_NAME="libliuguang_core.dylib" ;;
+  *)      LIBRARY_NAME="libliuguang_core.so" ;;
 esac
 LIBRARY="$APP_DIR/rust/target/debug/$LIBRARY_NAME"
 if [ ! -f "$LIBRARY" ]; then
@@ -37,7 +37,7 @@ if [ ! -f "$LIBRARY" ]; then
   exit 1
 fi
 
-export FQAPP_RUST_HOST_LIB="$LIBRARY"
+export LIUGUANG_RUST_HOST_LIB="$LIBRARY"
 echo "==> host core: $LIBRARY"
 if command -v sha256sum >/dev/null 2>&1; then
   sha256sum "$LIBRARY"

@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/book_comment.dart';
-import 'package:fqapp/models/chapter_ideas.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/reader_page.dart';
-import 'package:fqapp/services/listening_session.dart';
+import 'package:liuguang/models/book_comment.dart';
+import 'package:liuguang/models/chapter_ideas.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/reader_page.dart';
+import 'package:liuguang/services/listening_session.dart';
 
 import 'support/fakes.dart';
 

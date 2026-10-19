@@ -122,7 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
 
     return Scaffold(
-      backgroundColor: palette.canvas,
+      backgroundColor: palette.ambientCanvas,
       body: Stack(
         children: [
           Positioned.fill(child: AmbientBackdrop(scroll: _scroll)),

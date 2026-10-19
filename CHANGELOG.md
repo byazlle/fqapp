@@ -1,6 +1,6 @@
 # 更新日志
 
-版本线约定：`0.9.x` 为 Windows 桌面版预发布线，**`v1.0.0` 为当前最新正式版**。
+版本线约定：`0.9.x` 为 Windows 桌面版预发布线，`v1.0.0` 为首个正式版，**`v1.1.0` 为当前最新版（品牌焕新）**。
 
 > ## 2026-10-19 版本号重编号
 >
@@ -23,6 +23,36 @@
 >
 > 说明：安装包是当时构建的原始产物，**内部版本字符串不随标签改名而变化**（例如 `v0.9.128` 的安装包内部仍是 `1.0.120+125`）。本次只调整发布编号，未重新构建任何产物。
 > 四个原有安装包的版本已标为预发布（Pre-release），`v1.0.0` 保持为 Latest。
+
+## [1.1.0] - 2026-10-19
+
+品牌焕新：项目更名为 **流光 / Liuguang**，视觉体系整体切换为「极光玻璃」。
+
+### 更名
+
+- 应用名、窗口标题、开始菜单与桌面快捷方式、卸载项、可执行文件（`liuguang.exe`）、安装包（`liuguang-setup-x64.exe`）全部切换。
+- Dart 包名 `fqapp` → `liuguang`；Windows 工程名与二进制名同步；Rust 核心 `fqapi_core` → `liuguang_core`。
+- 数据目录迁移到 `%APPDATA%\byazlle\Liuguang`：首次启动自动把 `%APPDATA%\fqapp` 或 `%APPDATA%\com.example\fqapp` 的旧数据复制过来，原目录保留不动，书架 / 历史 / 离线缓存不丢。
+- 安装器卸载时同时清理新旧三个数据目录位置。
+- 日志导出、备份文件与自定义目录说明文件统一改为 `liuguang-*` 前缀。
+
+### 视觉
+
+- **新图标**：极光渐变方圆形 + 三道光束；16/24/32 像素改用简化版构图，避免小尺寸糊成一块紫色。
+- **液态底**：主壳层铺紫→青渐变与三团极光晕，首页环境光同步换成紫 / 青 / 品红三色雾。
+- **玻璃面板**：底部导航与宽屏侧栏改为「模糊 + 双道高光边 + 柔光投影」，圆角 28；主 Tab 改用透明画布让底纹透上来。
+- **统一圆角与色板**：控件 14 / 卡片 20 / 面板 26 / 弹层 30；主色 `#7C5CFF`、辅助色 `#22D3EE`，各页不再各写硬编码色值。
+- **安装向导**：左侧 164×314 品牌竖图 + 右上 55×55 小图，控件主色跟随品牌紫。
+
+### 工程
+
+- 新增 `scripts/generate_brand_assets.py`：一条命令重建 ico（七档）/ 应用内 Logo / favicon / 两张向导图；移除已随 Android 目标一起失效的 `generate_app_icons.py`。
+- 安装向导图必须是 24 位 BMP，脚本固定输出该格式。
+- 安装器修正 `SetupIconFile` 相对路径（以 `windows\` 为基准）；`DisableProgramGroupPage=yes` 去掉多余的开始菜单页；`CloseApplications=yes` 让覆盖升级先关掉占用文件的旧进程。卸载项显示名与图标改为「流光」。
+- 书架备份格式标识改为 `liuguang.library-backup`，导入时仍接受旧标识 `fqapp.library-backup`，升级后旧备份可直接恢复。
+- `FqApp` → `LiuguangApp`；Linux 目标二进制名与 GTK 标题同步为 `liuguang` /「流光」。
+- 文档与脚本统一改名：`AGENTS.md`、`DEVELOPMENT.md`、`scripts/README.md` 换成新名称，并按「只发 Windows 安装包」的现状重写构建/验收小节；删除描述旧控制台版单文件程序的 `.github/readme-使用说明.txt`。
+- 修正 `test/build_rust_backend_scripts_test.cjs`：原断言指向已删除的 `android-apk.yml`，改为校验 `build-windows.yml`。
 
 ## [1.0.0] - 2026-10-19
 

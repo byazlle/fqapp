@@ -11,7 +11,10 @@ class LibraryBackup {
   static const maxBytes = 16 * 1024 * 1024;
   static const _maxRecords = 10000;
   static const _maxEpisodes = 100000;
-  static const _format = 'fqapp.library-backup';
+  /// 新导出的备份标识。更名前的旧标识仍被接受（见 [\_legacyFormats]），
+  /// 否则升级后用户手里的旧备份会直接打不开。
+  static const _format = 'liuguang.library-backup';
+  static const _legacyFormats = {'fqapp.library-backup'};
   static const _kinds = {'book', 'audio', 'manga', 'video', 'manju'};
   static final _idPattern = RegExp(r'^[a-zA-Z0-9_-]{1,128}$');
 
@@ -90,8 +93,12 @@ class LibraryBackup {
   }
 
   factory LibraryBackup._fromJson(Map<String, dynamic> raw) {
-    if (raw['format'] != _format || raw['version'] != 1) {
-      throw const FormatException('不是受支持的 FQApp 备份，请使用兼容版本导出的文件');
+    final format = raw['format'];
+    final formatOk =
+        format == _format ||
+        (format is String && _legacyFormats.contains(format));
+    if (!formatOk || raw['version'] != 1) {
+      throw const FormatException('不是受支持的流光备份，请使用兼容版本导出的文件');
     }
     final createdAt = _integer(raw['createdAt'], '备份时间', 8640000000000000);
     final shelf = <ShelfRecord>[];

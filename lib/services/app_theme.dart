@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import 'brand.dart';
+
 /// Persisted theme-mode preference key: 'theme_mode' = 'light'|'dark'|'system'.
 const themeModeKey = 'theme_mode';
 
 /// Brand seed color for the whole app (also used by the player slider and
 /// the detail page's accent text).
-const appSeedColor = Color(0xFFEF5038);
+const appSeedColor = Brand.primary;
 
 /// Global theme-mode notifier; the settings page writes it, MaterialApp
 /// rebuilds with the new mode.
@@ -48,11 +50,11 @@ ThemeMode themeModeFromName(String? name) {
   }
 }
 
-/// Unified design system and theme factory for fqapp.
+/// Unified design system and theme factory for 流光.
 class AppTheme {
-  static const Color accent = Color(0xFFEF5038);
-  static const Color accentStrong = Color(0xFFC73D29);
-  static const Color accentDark = Color(0xFFF05E47);
+  static const Color accent = Brand.primary;
+  static const Color accentStrong = Brand.primaryDeep;
+  static const Color accentDark = Brand.primarySoft;
 
   /// Pure black-on-white theme for e-ink (#15/#9). No tonal / seed palette,
   /// no grey scale except black-on-white, no ripple, no page transition.
@@ -154,7 +156,7 @@ class AppTheme {
         modalBackgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(BrandRadii.sheet)),
         ),
         dragHandleColor: Colors.black,
         dragHandleSize: Size(36, 4),
@@ -176,7 +178,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BrandRadii.control)),
         backgroundColor: Colors.black,
         contentTextStyle: const TextStyle(fontSize: 13, color: Colors.white),
       ),
@@ -190,33 +192,33 @@ class AppTheme {
     if (einkMode) return _createEinkTheme();
     final isDark = brightness == Brightness.dark;
     final primary = isDark ? accentDark : accent;
-    final canvas = isDark ? const Color(0xFF151517) : const Color(0xFFFCFAF7);
-    final surface = isDark ? const Color(0xFF242427) : Colors.white;
+    final canvas = isDark ? Brand.darkCanvas : Brand.lightCanvas;
+    final surface = isDark ? const Color(0xFF141827) : Colors.white;
     final surfaceContainerLow =
-        isDark ? const Color(0xFF1C1C1F) : const Color(0xFFF7F5F0);
+        isDark ? const Color(0xFF0F121D) : const Color(0xFFF1F2FA);
     final surfaceContainer =
-        isDark ? const Color(0xFF242428) : const Color(0xFFF2EFE9);
+        isDark ? const Color(0xFF171B2B) : const Color(0xFFECEEF8);
     final surfaceContainerHigh =
-        isDark ? const Color(0xFF2C2C32) : const Color(0xFFEBE7DF);
-    final ink = isDark ? const Color(0xFFF5F1EB) : const Color(0xFF262522);
-    final muted = isDark ? const Color(0xFFA7A39E) : const Color(0xFF706C66);
-    final line = isDark ? const Color(0xFF333336) : const Color(0xFFE8E4DE);
+        isDark ? const Color(0xFF1D2234) : const Color(0xFFE4E7F4);
+    final ink = isDark ? const Color(0xFFF2F3FB) : const Color(0xFF191B26);
+    final muted = isDark ? const Color(0xFF9BA1B8) : const Color(0xFF6B7089);
+    final line = isDark ? const Color(0xFF262B3D) : const Color(0xFFE4E7F2);
 
     final scheme = ColorScheme(
       brightness: brightness,
       primary: primary,
       onPrimary: Colors.white,
       primaryContainer:
-          isDark ? const Color(0xFF381C17) : const Color(0xFFFFECE8),
+          isDark ? const Color(0xFF2A2154) : const Color(0xFFEDE8FF),
       onPrimaryContainer:
-          isDark ? const Color(0xFFFFDAD4) : const Color(0xFF410002),
-      secondary: isDark ? const Color(0xFFE5806B) : const Color(0xFFD3513B),
-      onSecondary: Colors.white,
+          isDark ? const Color(0xFFE3DCFF) : const Color(0xFF2A1A6B),
+      secondary: isDark ? const Color(0xFF67E8F9) : const Color(0xFF0EA5B7),
+      onSecondary: isDark ? const Color(0xFF00343D) : Colors.white,
       secondaryContainer:
-          isDark ? const Color(0xFF33201C) : const Color(0xFFFFECE5),
+          isDark ? const Color(0xFF103B45) : const Color(0xFFD8F6FB),
       onSecondaryContainer:
-          isDark ? const Color(0xFFFFDAD2) : const Color(0xFF3C0E07),
-      tertiary: isDark ? const Color(0xFF7DB3EC) : const Color(0xFF4A90D9),
+          isDark ? const Color(0xFFB6F1FA) : const Color(0xFF05323A),
+      tertiary: isDark ? const Color(0xFFF9A8D4) : const Color(0xFFDB2777),
       onTertiary: Colors.white,
       surface: surface,
       onSurface: ink,
@@ -261,7 +263,7 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(BrandRadii.card),
           side: BorderSide(color: line, width: 0.6),
         ),
         clipBehavior: Clip.antiAlias,
@@ -270,7 +272,7 @@ class AppTheme {
         backgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(BrandRadii.panel + 2),
           side: BorderSide(color: line, width: 0.6),
         ),
         titleTextStyle: TextStyle(
@@ -289,7 +291,7 @@ class AppTheme {
         modalBackgroundColor: surface,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(BrandRadii.sheet)),
         ),
         dragHandleColor: line,
         dragHandleSize: const Size(36, 4),
@@ -314,7 +316,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(BrandRadii.control)),
         backgroundColor:
             isDark ? const Color(0xFF2C2C30) : const Color(0xFF2C2825),
         contentTextStyle: const TextStyle(fontSize: 13, color: Colors.white),

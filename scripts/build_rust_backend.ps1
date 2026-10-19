@@ -1,5 +1,5 @@
 <#
-Builds the Rust native core (rust/ -> libfqapi_core.so) for Android arm64 and
+Builds the Rust native core (rust/ -> libliuguang_core.so) for Android arm64 and
 copies it into android/app/src/main/jniLibs/arm64-v8a.
 
 This is the single entry point for the Rust build: it regenerates the
@@ -142,13 +142,13 @@ try {
 finally { Pop-Location }
 
 $ProfileDir = if ($Profile -eq 'release') { 'release' } else { 'debug' }
-$BuiltSo = Join-Path $AppDir "rust\target\$Target\$ProfileDir\libfqapi_core.so"
+$BuiltSo = Join-Path $AppDir "rust\target\$Target\$ProfileDir\libliuguang_core.so"
 if (-not (Test-Path -LiteralPath $BuiltSo)) {
     Write-Error "rust build produced no $BuiltSo"
     exit 1
 }
 
-$DestSo = Join-Path $JniDir 'libfqapi_core.so'
+$DestSo = Join-Path $JniDir 'libliuguang_core.so'
 Copy-Item -LiteralPath $BuiltSo -Destination $DestSo -Force
 Write-Host "==> jniLibs: $DestSo"
 Get-FileHash -Algorithm SHA256 -LiteralPath $DestSo | Format-List

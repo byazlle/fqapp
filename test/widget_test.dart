@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/main.dart';
+import 'package:liuguang/main.dart';
 
 void main() {
   testWidgets('long startup failures stay scrollable and retryable', (
@@ -37,9 +37,9 @@ void main() {
   });
 
   testWidgets('App boots', (WidgetTester tester) async {
-    await tester.pumpWidget(const ProviderScope(child: FqApp()));
+    await tester.pumpWidget(const ProviderScope(child: LiuguangApp()));
     await tester.pump();
     // The app should show the backend startup screen or the main shell.
-    expect(find.byType(FqApp), findsOneWidget);
+    expect(find.byType(LiuguangApp), findsOneWidget);
   });
 }

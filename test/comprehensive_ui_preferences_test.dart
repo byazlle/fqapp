@@ -7,13 +7,13 @@ import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
-import 'package:fqapp/pages/library_page.dart';
-import 'package:fqapp/pages/settings_page.dart';
-import 'package:fqapp/pages/stats_page.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/library_store.dart';
-import 'package:fqapp/services/shelf_store.dart';
-import 'package:fqapp/services/app_theme.dart';
+import 'package:liuguang/pages/library_page.dart';
+import 'package:liuguang/pages/settings_page.dart';
+import 'package:liuguang/pages/stats_page.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/library_store.dart';
+import 'package:liuguang/services/shelf_store.dart';
+import 'package:liuguang/services/app_theme.dart';
 
 void main() {
   late Directory directory;

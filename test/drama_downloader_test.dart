@@ -4,10 +4,10 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/drama_download_store.dart';
-import 'package:fqapp/services/drama_downloader.dart';
-import 'package:fqapp/services/episode_source_cache.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/drama_download_store.dart';
+import 'package:liuguang/services/drama_downloader.dart';
+import 'package:liuguang/services/episode_source_cache.dart';
 
 import 'support/fakes.dart';
 

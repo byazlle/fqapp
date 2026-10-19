@@ -8,13 +8,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/main.dart';
-import 'package:fqapp/pages/drama_page.dart';
-import 'package:fqapp/pages/home_page.dart';
-import 'package:fqapp/pages/home_provider.dart';
-import 'package:fqapp/pages/settings_page.dart';
-import 'package:fqapp/services/api_client.dart';
-import 'package:fqapp/widgets/lazy_indexed_stack.dart';
+import 'package:liuguang/main.dart';
+import 'package:liuguang/pages/drama_page.dart';
+import 'package:liuguang/pages/home_page.dart';
+import 'package:liuguang/pages/home_provider.dart';
+import 'package:liuguang/pages/settings_page.dart';
+import 'package:liuguang/services/api_client.dart';
+import 'package:liuguang/widgets/lazy_indexed_stack.dart';
 
 /// 空回包的 notifier：不触网、不起定时器，pumpAndSettle 不会挂起。
 HomeNotifier _emptyNotifier({int initialTabIndex = 0}) => HomeNotifier(

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../services/app_log.dart';
 import '../services/book_txt_export.dart';
+import '../services/brand.dart';
 import '../services/playlet_share.dart';
 import '../widgets/logs/log_entry_card.dart';
 import '../widgets/logs/log_filter_sheet.dart';
@@ -287,9 +288,9 @@ class _LogViewerPageState extends State<LogViewerPage>
     final now = DateTime.now();
     try {
       final target = await widget.exportSink.saveText(
-        fileName: 'fqapp-${source.name}-logs-${now.microsecondsSinceEpoch}.txt',
+        fileName: 'liuguang-${source.name}-logs-${now.microsecondsSinceEpoch}.txt',
         text:
-            'fqapp ${source.label}日志\n'
+            '${Brand.name} ${source.label}日志\n'
             '导出时间：${now.toIso8601String()}\n'
             '范围：${all ? '当前来源全部可用日志' : '当前筛选结果'}\n'
             '共 ${entries.length} 条\n\n${formatLogLines(entries)}',
@@ -335,7 +336,7 @@ class _LogViewerPageState extends State<LogViewerPage>
           ? '未获取（文件不存在或读取失败）'
           : '${rustEntries.length} 条';
       final text =
-          'fqapp 应用 + 核心日志\n'
+          '${Brand.name} 应用 + 核心日志\n'
           '导出时间：${now.toIso8601String()}\n'
           '范围：应用与核心全部可用日志，不受筛选影响\n'
           '应用日志：${appEntries.length} 条\n'
@@ -345,7 +346,7 @@ class _LogViewerPageState extends State<LogViewerPage>
           '===== 核心日志 =====\n'
           '${rustEntries == null ? coreSummary : formatLogLines(rustEntries)}\n';
       final target = await widget.exportSink.saveText(
-        fileName: 'fqapp-all-logs-${now.microsecondsSinceEpoch}.txt',
+        fileName: 'liuguang-all-logs-${now.microsecondsSinceEpoch}.txt',
         text: text,
       );
       _message(

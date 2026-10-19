@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 
+import '../../services/brand.dart';
+import '../brand/glass.dart';
 import 'home_design.dart';
 
 /// A compact masthead leaves the first screen to the actual stories.
@@ -31,30 +33,7 @@ class HomeHero extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFF6954), HomePalette.accent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(11),
-                  boxShadow: [
-                    BoxShadow(
-                      color: HomePalette.accent.withValues(alpha: 0.28),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  LucideIcons.book_open,
-                  color: Colors.white,
-                  size: 19,
-                ),
-              ),
+              BrandMark(size: 36, radius: 11, eink: palette.eink),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -62,7 +41,7 @@ class HomeHero extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'fqapp',
+                      Brand.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

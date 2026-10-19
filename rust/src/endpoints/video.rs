@@ -2016,7 +2016,7 @@ mod cenc_sample_fixture {
         let key = hex::decode(c["key_hex"].as_str().unwrap()).unwrap();
 
         let dir = std::env::temp_dir().join(format!(
-            "fqapp-cenc-{}-{:?}",
+            "liuguang-cenc-{}-{:?}",
             std::process::id(),
             std::thread::current().id()
         ));

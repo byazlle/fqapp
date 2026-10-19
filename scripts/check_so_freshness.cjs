@@ -4,13 +4,13 @@
 // Guards CRIT-011: the packaged Android Rust core must not be older than the
 // newest rust/ source change.
 //
-// Gradle only checks that jniLibs/arm64-v8a/libfqapi_core.so exists; it never
+// Gradle only checks that jniLibs/arm64-v8a/libliuguang_core.so exists; it never
 // recompiles it, and that directory is gitignored. Releasing therefore needs an
 // explicit rebuild whenever rust/ moved since the last archive, or the APK ships
 // without the latest Rust fix while every other gate stays green.
 //
 // Usage:
-//   node scripts/check_so_freshness.cjs <path-to-libfqapi_core.so> --since <git-ref>
+//   node scripts/check_so_freshness.cjs <path-to-libliuguang_core.so> --since <git-ref>
 //   node scripts/check_so_freshness.cjs <path> --since <ref> --allow-missing
 //
 // Exits 0 when the library is at least as new as the newest rust/ change in
@@ -78,7 +78,7 @@ function parseArgs(argv) {
     }
   }
   if (positional.length !== 1 || !sinceRef) {
-    throw new Error('usage: check_so_freshness.cjs <libfqapi_core.so> --since <git-ref> [--allow-missing]');
+    throw new Error('usage: check_so_freshness.cjs <libliuguang_core.so> --since <git-ref> [--allow-missing]');
   }
   return { soPath: positional[0], sinceRef, allowMissing };
 }

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/chapter_ideas.dart';
-import 'package:fqapp/services/chapter_text_formatter.dart';
-import 'package:fqapp/services/reader_preferences.dart';
-import 'package:fqapp/widgets/reader/reader_bubble.dart';
-import 'package:fqapp/widgets/reader/reader_chapter_layout.dart';
-import 'package:fqapp/widgets/reader/reader_paged_view.dart';
+import 'package:liuguang/models/chapter_ideas.dart';
+import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:liuguang/services/reader_preferences.dart';
+import 'package:liuguang/widgets/reader/reader_bubble.dart';
+import 'package:liuguang/widgets/reader/reader_chapter_layout.dart';
+import 'package:liuguang/widgets/reader/reader_paged_view.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

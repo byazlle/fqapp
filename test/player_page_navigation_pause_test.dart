@@ -7,12 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/models/series_detail.dart';
-import 'package:fqapp/pages/detail_page.dart';
-import 'package:fqapp/pages/player_page.dart';
-import 'package:fqapp/pages/series_detail_page.dart';
-import 'package:fqapp/services/player_style_config.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/models/series_detail.dart';
+import 'package:liuguang/pages/detail_page.dart';
+import 'package:liuguang/pages/player_page.dart';
+import 'package:liuguang/pages/series_detail_page.dart';
+import 'package:liuguang/services/player_style_config.dart';
 
 import 'support/controlled_player.dart';
 

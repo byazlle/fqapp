@@ -11,11 +11,11 @@
 mod common;
 
 use common::{build_server, pool_json, start_loopback, MockReply, MockUpstream, TempDir};
-use fqapi_core::dispatch::{dispatch, Request};
+use liuguang_core::dispatch::{dispatch, Request};
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-async fn server_with(dir: &TempDir, origin: &str) -> Arc<fqapi_core::endpoints::Server> {
+async fn server_with(dir: &TempDir, origin: &str) -> Arc<liuguang_core::endpoints::Server> {
     build_server(dir, Some(origin.to_string()), &[], &[], &pool_json(5)).await
 }
 
@@ -39,7 +39,7 @@ fn api_post(path: &str, query: &str, body: &str) -> Request {
     }
 }
 
-async fn json_body(resp: fqapi_core::dispatch::Response) -> (u16, Value) {
+async fn json_body(resp: liuguang_core::dispatch::Response) -> (u16, Value) {
     let status = resp.status;
     let bytes = resp.into_bytes().await.expect("body");
     let value = serde_json::from_slice(&bytes).unwrap_or_else(|e| {

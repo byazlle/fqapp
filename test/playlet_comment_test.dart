@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/playlet_comment.dart';
+import 'package:liuguang/models/playlet_comment.dart';
 
 /// 短剧评论/热评/弹幕的解析用例。
 ///

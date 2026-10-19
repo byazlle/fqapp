@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/pages/stats_page.dart';
+import 'package:liuguang/pages/stats_page.dart';
 
 void main() {
   test('heatmap columns follow calendar weeks for every selected weekday', () {

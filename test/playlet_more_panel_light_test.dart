@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/widgets/player/playlet_more_panel_light.dart';
+import 'package:liuguang/widgets/player/playlet_more_panel_light.dart';
 
 void main() {
   testWidgets('light panel shows a danmaku-settings row after the danmaku switch', (

@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fqapp/models/chapter_media.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/comic_reader_page.dart';
-import 'package:fqapp/services/comic_reader_preferences.dart';
-import 'package:fqapp/services/library_store.dart';
+import 'package:liuguang/models/chapter_media.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/comic_reader_page.dart';
+import 'package:liuguang/services/comic_reader_preferences.dart';
+import 'package:liuguang/services/library_store.dart';
 
 late ui.Image _portrait;
 

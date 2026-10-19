@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/imported_book_store.dart';
+import 'package:liuguang/services/imported_book_store.dart';
 import 'package:image/image.dart' as img;
 
 void main() {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the Rust native core (rust/ -> libfqapi_core.so) for Android arm64 and
+# Builds the Rust native core (rust/ -> libliuguang_core.so) for Android arm64 and
 # copies it into android/app/src/main/jniLibs/arm64-v8a.
 #
 # This is the single entry point for the Rust build: it regenerates the
@@ -103,17 +103,17 @@ if [ "$PROFILE" = "release" ]; then PROFILE_ARGS=(--release); fi
 echo "==> cargo build --target aarch64-linux-android ($PROFILE)..."
 ( cd "$APP_DIR" && cargo build --manifest-path "$MANIFEST" --target aarch64-linux-android "${PROFILE_ARGS[@]}" )
 
-BUILT_SO="$APP_DIR/rust/target/aarch64-linux-android/$PROFILE/libfqapi_core.so"
+BUILT_SO="$APP_DIR/rust/target/aarch64-linux-android/$PROFILE/libliuguang_core.so"
 if [ ! -s "$BUILT_SO" ]; then
   echo "错误：Rust 交叉编译未产出 $BUILT_SO" >&2
   exit 1
 fi
-cp -f "$BUILT_SO" "$JNI_DIR/libfqapi_core.so"
-echo "==> jniLibs: $JNI_DIR/libfqapi_core.so"
+cp -f "$BUILT_SO" "$JNI_DIR/libliuguang_core.so"
+echo "==> jniLibs: $JNI_DIR/libliuguang_core.so"
 if command -v sha256sum >/dev/null 2>&1; then
-  sha256sum "$JNI_DIR/libfqapi_core.so"
+  sha256sum "$JNI_DIR/libliuguang_core.so"
 else
-  shasum -a 256 "$JNI_DIR/libfqapi_core.so"
+  shasum -a 256 "$JNI_DIR/libliuguang_core.so"
 fi
 
 if [ "$HOST_LIB" -eq 1 ]; then

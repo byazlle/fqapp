@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 
+import '../services/brand.dart';
 import '../widgets/home/home_design.dart';
 import 'about_page.dart';
 import 'cached_books_page.dart';
@@ -20,11 +21,11 @@ class MinePage extends StatelessWidget {
     final palette = HomePalette.of(context);
 
     return Scaffold(
-      backgroundColor: palette.canvas,
+      backgroundColor: palette.ambientCanvas,
       appBar: AppBar(
         title: const Text('我的'),
         centerTitle: false,
-        backgroundColor: palette.canvas,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         actions: [
@@ -67,7 +68,7 @@ class MinePage extends StatelessWidget {
                 height: 52,
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFFEF5038), Color(0xFFF27A65)],
+                    colors: [Brand.primary, Brand.secondary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),

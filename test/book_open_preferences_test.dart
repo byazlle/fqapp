@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:fqapp/services/book_open_preferences.dart';
+import 'package:liuguang/services/book_open_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

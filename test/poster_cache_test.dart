@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/poster_cache.dart';
+import 'package:liuguang/services/poster_cache.dart';
 
 /// Creates a file with [bytes] content whose mtime is [ageMinutes] in the past.
 Future<File> _file(

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/search_discovery.dart';
+import 'package:liuguang/models/search_discovery.dart';
 
 /// Recorded from a live `/api/v1/search/suggest?q=修仙` response.
 Map<String, dynamic> _suggest() => {

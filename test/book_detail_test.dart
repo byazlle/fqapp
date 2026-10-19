@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/book_detail.dart';
+import 'package:liuguang/models/book_detail.dart';
 
 /// Field names and value shapes mirror a live `/api/v1/books/{id}/detail`
 /// response, where every numeric value arrives as a string.

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/models/playlet_comment.dart';
-import 'package:fqapp/widgets/player/playlet_comment_panel.dart';
+import 'package:liuguang/models/playlet_comment.dart';
+import 'package:liuguang/widgets/player/playlet_comment_panel.dart';
 
 void main() {
   for (final oldFails in [false, true]) {

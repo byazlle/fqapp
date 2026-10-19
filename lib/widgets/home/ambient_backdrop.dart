@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/brand.dart';
 import 'home_design.dart';
 
 /// How far the wash is allowed to travel over the whole feed. The contour
@@ -68,34 +69,35 @@ class AmbientBackdrop extends StatelessWidget {
   }
 }
 
+/// 首页的环境光：三团极光色雾（紫 / 青 / 品红），随滚动产生轻微位移。
+/// 只画半透明径向渐变，不挂 BackdropFilter——滚动时零额外采样开销。
 class _PaperLightPainter extends CustomPainter {
   final bool dark;
 
   const _PaperLightPainter({required this.dark});
 
-  static final _lightWash = _wash(0.055);
-  static final _darkWash = _wash(0.07);
-
-  static RadialGradient _wash(double alpha) => RadialGradient(
-    colors: [
-      HomePalette.accent.withValues(alpha: alpha),
-      HomePalette.accent.withValues(alpha: 0),
-    ],
-  );
+  /// (对齐点, 半径系数, 颜色, 浅色透明度, 深色透明度)
+  static const List<(Alignment, double, Color, double, double)> _washes = [
+    (Alignment(1.05, -0.55), 0.95, Brand.primary, 0.10, 0.22),
+    (Alignment(-0.85, 0.35), 0.85, Brand.secondary, 0.075, 0.14),
+    (Alignment(0.35, 1.15), 0.70, Brand.highlight, 0.05, 0.10),
+  ];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final radius = size.width * 0.8;
-    if (radius <= 0) return;
-    final center = Offset(size.width * 0.98, 40);
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..shader = (dark ? _darkWash : _lightWash).createShader(
-          Rect.fromCircle(center: center, radius: radius),
-        ),
-    );
+    for (final (align, scale, color, lightAlpha, darkAlpha) in _washes) {
+      final radius = size.width * scale;
+      if (radius <= 0) continue;
+      final center = Offset(
+        align.x * size.width,
+        align.y * size.height,
+      );
+      final alpha = dark ? darkAlpha : lightAlpha;
+      final shader = RadialGradient(
+        colors: [color.withValues(alpha: alpha), color.withValues(alpha: 0)],
+      ).createShader(Rect.fromCircle(center: center, radius: radius));
+      canvas.drawCircle(center, radius, Paint()..shader = shader);
+    }
   }
 
   @override

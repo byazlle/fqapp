@@ -4,11 +4,11 @@ import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/chapter_cache_store.dart';
-import 'package:fqapp/services/drama_download_store.dart';
-import 'package:fqapp/services/library_store.dart';
-import 'package:fqapp/services/native_player.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/chapter_cache_store.dart';
+import 'package:liuguang/services/drama_download_store.dart';
+import 'package:liuguang/services/library_store.dart';
+import 'package:liuguang/services/native_player.dart';
 
 class MemoryReaderStore implements ReaderStore {
   Map<String, dynamic>? entry;

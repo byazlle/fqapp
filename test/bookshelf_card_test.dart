@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/widgets/bookshelf_card.dart';
-import 'package:fqapp/widgets/shelf/shelf_design.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/widgets/bookshelf_card.dart';
+import 'package:liuguang/widgets/shelf/shelf_design.dart';
 
 void main() {
   test('每种内容类型都有中文标签', () {

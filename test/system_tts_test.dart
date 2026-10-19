@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/services/audio_preferences.dart';
-import 'package:fqapp/services/chapter_text_formatter.dart';
-import 'package:fqapp/services/listening_session.dart';
-import 'package:fqapp/services/system_tts.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/services/audio_preferences.dart';
+import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:liuguang/services/listening_session.dart';
+import 'package:liuguang/services/system_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _methods = MethodChannel('fqapp/system_tts');

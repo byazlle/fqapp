@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/reader_history.dart';
+import 'package:liuguang/services/reader_history.dart';
 
 import 'support/controlled_player.dart';
 

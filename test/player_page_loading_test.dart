@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:fqapp/models/media_item.dart';
-import 'package:fqapp/pages/player_page.dart';
-import 'package:fqapp/services/native_player.dart';
-import 'package:fqapp/services/player_load_diagnostics.dart';
-import 'package:fqapp/widgets/player/player_cover.dart';
-import 'package:fqapp/widgets/video_player_chrome.dart';
+import 'package:liuguang/models/media_item.dart';
+import 'package:liuguang/pages/player_page.dart';
+import 'package:liuguang/services/native_player.dart';
+import 'package:liuguang/services/player_load_diagnostics.dart';
+import 'package:liuguang/widgets/player/player_cover.dart';
+import 'package:liuguang/widgets/video_player_chrome.dart';
 
 import 'support/controlled_player.dart';
 

@@ -31,14 +31,14 @@ if (-not $SkipBuild) {
     finally { Pop-Location }
 }
 
-$LibraryName = if ($IsWindows -or $env:OS -eq 'Windows_NT') { 'fqapi_core.dll' } else { 'libfqapi_core.so' }
+$LibraryName = if ($IsWindows -or $env:OS -eq 'Windows_NT') { 'liuguang_core.dll' } else { 'libliuguang_core.so' }
 $Library = Join-Path $AppDir "rust\target\debug\$LibraryName"
 if (-not (Test-Path -LiteralPath $Library)) {
     Write-Error "host core not found at $Library"
     exit 1
 }
 
-$env:FQAPP_RUST_HOST_LIB = $Library
+$env:LIUGUANG_RUST_HOST_LIB = $Library
 Write-Host "==> host core: $Library"
 Get-FileHash -Algorithm SHA256 -LiteralPath $Library | Format-List
 

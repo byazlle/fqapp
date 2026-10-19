@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/player_load_diagnostics.dart';
+import 'package:liuguang/services/player_load_diagnostics.dart';
 
 void main() {
   test('records disjoint phases, frame delay and background time once', () {

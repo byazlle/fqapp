@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/services/player_pool.dart';
+import 'package:liuguang/services/player_pool.dart';
 
 import 'support/controlled_player.dart';
 

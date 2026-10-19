@@ -35,7 +35,7 @@ class LibraryBackupService {
         .split('.')
         .first;
     return await _channel.invokeMethod<bool>('saveBackup', {
-          'name': 'fqapp-backup-$stamp.json',
+          'name': 'liuguang-backup-$stamp.json',
           'bytes': bytes,
         }) ??
         false;

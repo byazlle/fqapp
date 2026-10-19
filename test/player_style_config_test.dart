@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/services/player_style_config.dart';
+import 'package:liuguang/services/player_style_config.dart';
 
 /// 官方播放页开关的解析用例。
 ///

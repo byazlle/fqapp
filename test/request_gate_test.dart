@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fqapp/services/backend_transport.dart';
-import 'package:fqapp/services/request_gate.dart';
+import 'package:liuguang/services/backend_transport.dart';
+import 'package:liuguang/services/request_gate.dart';
 
 void main() {
   test('identical concurrent flights share one send', () async {

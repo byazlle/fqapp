@@ -5,9 +5,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fqapp/models/related_series.dart';
-import 'package:fqapp/models/series_detail.dart';
-import 'package:fqapp/widgets/player/related_series_sheet.dart';
+import 'package:liuguang/models/related_series.dart';
+import 'package:liuguang/models/series_detail.dart';
+import 'package:liuguang/widgets/player/related_series_sheet.dart';
 
 void main() {
   test(

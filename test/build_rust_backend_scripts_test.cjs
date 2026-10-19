@@ -67,8 +67,8 @@ test('the build scripts target Android ARM64 with the project NDK and 16 KiB pag
     assert.ok(source.includes('aarch64-linux-android'), name);
     assert.ok(source.includes('28.2.13676358'), `${name} must pin the project NDK`);
     assert.ok(
-      source.includes('libfqapi_core.so'),
-      `${name} must produce libfqapi_core.so`,
+      source.includes('libliuguang_core.so'),
+      `${name} must produce libliuguang_core.so`,
     );
     assert.ok(
       source.includes('jniLibs') && source.includes('arm64-v8a'),
@@ -88,21 +88,22 @@ test('the build scripts target Android ARM64 with the project NDK and 16 KiB pag
 });
 
 test('the product build no longer depends on Go or the private backend', () => {
+  // v0.9.123 起 android/ 已移除，出包工作流改为 Windows 单目标。
   const workflow = fs.readFileSync(
-    path.join(appDir, '.github', 'workflows', 'android-apk.yml'),
+    path.join(appDir, '.github', 'workflows', 'build-windows.yml'),
     'utf8',
   );
   assert.ok(
     !/setup-go|golang|build_backend/.test(workflow),
-    'the APK workflow must not install Go or build the Go backend',
+    'the Windows workflow must not install Go or build the Go backend',
   );
   assert.ok(
-    workflow.includes('build_rust_backend.sh'),
-    'the APK workflow must build the Rust core',
+    workflow.includes('build_windows.ps1'),
+    'the Windows workflow must build through scripts/build_windows.ps1',
   );
   assert.ok(
-    workflow.includes('flutter_rust_bridge_codegen generate'),
-    'the APK workflow must regenerate and verify the bridge bindings',
+    workflow.includes('cargo test'),
+    'the Windows workflow must run the Rust test suite',
   );
 
   assert.ok(
@@ -121,7 +122,7 @@ test('the APK verifier expects the Rust core library', () => {
     path.join(appDir, 'scripts', 'verify_android_apk.py'),
     'utf8',
   );
-  assert.ok(verifier.includes('lib/arm64-v8a/libfqapi_core.so'));
+  assert.ok(verifier.includes('lib/arm64-v8a/libliuguang_core.so'));
 });
 
 test('the Rust build script survives cargo writing progress to stderr', () => {

@@ -4,8 +4,8 @@
 mod common;
 
 use common::{build_server, pool_json, MockReply, MockUpstream, TempDir};
-use fqapi_core::dispatch::{dispatch, Request};
-use fqapi_core::endpoints::Server;
+use liuguang_core::dispatch::{dispatch, Request};
+use liuguang_core::endpoints::Server;
 use serde_json::{json, Value};
 
 const ALLOWED_URL: &str = "https://example.invalid/h264.mp4";
