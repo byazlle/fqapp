@@ -3405,32 +3405,36 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
 
   /// 横屏桌面端：画面上下缘的隐形点击区，鼠标点画面上半部切上一集、
   /// 下半部切下一集（官方竖滑翻页的鼠标等价交互）。命中区只覆盖边缘条，
-  /// 不挡中央的播放/暂停点按，也不挡底部横屏控制条。
+  /// 横屏短剧：画面上下边缘的薄点击带（鼠标点画面上/下边缘切上/下一集）。
+  /// 只覆盖顶栏之下、底部控制条之上的两条窄带，中间大片留白交给中央
+  /// 播放/暂停、双击隐藏栏、锁等原生手势——绝不覆盖顶栏（返回/更多）、
+  /// 底部控制条与中央区域，否则透明 GestureDetector 会吞掉这些点击
+  ///（回归：更多面板打不开、中央双击隐藏栏失效）。
   Widget _episodeTapZones(Size window, EdgeInsets insets) {
-    final barHeight = insets.bottom + 130;
-    final topZone = Positioned(
-      top: insets.top,
+    const strip = 80.0;
+    final prevZone = Positioned(
+      top: insets.top + 48, // 顶栏（返回/更多，高 44）下沿之下
       left: 0,
       right: 0,
-      height: 72,
+      height: strip,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _prevEpisodeOrToast,
         child: const ColoredBox(color: Color(0x00000000)),
       ),
     );
-    final bottomZone = Positioned(
+    final nextZone = Positioned(
       left: 0,
       right: 0,
-      bottom: insets.bottom + 8,
-      height: math.max(48, barHeight - insets.bottom - 8),
+      bottom: insets.bottom + 130, // 横屏控制条（高 insets.bottom+130）之上
+      height: strip,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _nextEpisodeOrToast,
         child: const ColoredBox(color: Color(0x00000000)),
       ),
     );
-    return Stack(children: [topZone, bottomZone]);
+    return Stack(children: [prevZone, nextZone]);
   }
 }
 

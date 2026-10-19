@@ -95,7 +95,8 @@ void main() {
       expect(find.byKey(const ValueKey('landscape-play')), findsOneWidget);
       expect(find.byKey(const ValueKey('landscape-episodes')), findsOneWidget);
       expect(find.byTooltip('退出全屏'), findsNothing);
-      expect(find.byTooltip('上一集'), findsNothing);
+      // 横屏控制条新增「上一集」按钮（用户需求：短剧上下切换）。
+      expect(find.byTooltip('上一集'), findsOneWidget);
       expect(find.byKey(const ValueKey('video-controls')), findsNothing);
       // 横屏底条的桌面专属 ±10 秒钮（快捷键 ↑/↓ 的可点击控件）。
       expect(find.byKey(const ValueKey('landscape-forward-10')), findsOneWidget);
@@ -201,7 +202,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('player-fullscreen-pill')));
     await tester.pump();
     expect(find.byKey(const ValueKey('video-controls')), findsNothing);
-    expect(find.byTooltip('上一集'), findsNothing);
+    // 横屏控制条新增「上一集」按钮（用户需求：短剧上下切换）。
+    expect(find.byTooltip('上一集'), findsOneWidget);
     expect(find.byTooltip('退出全屏'), findsNothing);
     // 桌面专属：快捷键 ±10 秒的可点击控件补在横屏底条上（非官方形态，
     // 但运输条本体仍不出现）。

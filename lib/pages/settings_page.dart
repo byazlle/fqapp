@@ -3,6 +3,7 @@ import 'dart:io' as io;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -676,7 +677,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final current = await _activeCacheDir();
     if (!context.mounted) return;
     final controller = TextEditingController(text: current);
-    final ok = await showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('更改缓存位置'),
@@ -684,7 +685,12 @@ class _SettingsPageState extends State<SettingsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('输入新的缓存/数据目录（绝对路径），重启后生效：'),
+            const Text(
+              '输入新的缓存/数据目录（绝对路径）。确认后应用会：\n'
+              '1. 安全迁移现有书架、历史、离线等数据到新目录；\n'
+              '2. 自动重启以在新目录加载数据。\n\n'
+              '注意：迁移到非默认目录后，卸载程序不会自动清除该目录。',
+            ),
             const SizedBox(height: 10),
             TextField(
               controller: controller,
@@ -702,44 +708,106 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('迁移并应用'),
+            child: const Text('迁移并重启'),
           ),
         ],
       ),
     );
-    if (ok != true || !context.mounted) return;
+    if (confirmed != true || !context.mounted) return;
     final target = controller.text.trim();
     if (target.isEmpty || target == current) return;
+
+    // 安全迁移：先关闭所有 Hive box（落盘，避免复制撕裂写入），再复制到临时
+    // 目录、校验，校验通过才原子移动到目标并写入 override，最后重启。任何
+    // 一步失败都不写 override、不删源，重启后数据完好无损。
     try {
+      await Hive.close();
+
       final source = io.Directory(current);
-      final dest = io.Directory(target);
-      if (await source.exists()) {
-        await for (final entity in source.list(recursive: true)) {
-          if (entity is io.File) {
-            final relative = entity.path.substring(current.length);
-            final newPath = '$target$relative';
-            final newFile = io.File(newPath);
-            await newFile.parent.create(recursive: true);
-            await entity.copy(newFile.path);
-          }
-        }
-      } else {
-        await dest.create(recursive: true);
+      final tempDir = io.Directory('$target.migrating');
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
       }
+      if (await source.exists()) {
+        await _copyDir(source, tempDir);
+      } else {
+        await tempDir.create(recursive: true);
+      }
+
+      final srcStats = await _dirStats(source);
+      final tmpStats = await _dirStats(tempDir);
+      final verified = srcStats.files == 0 ||
+          (srcStats.files == tmpStats.files &&
+              srcStats.bytes == tmpStats.bytes);
+      if (!verified) {
+        // 校验失败：不写 override、不删源，重启回原目录（数据完好）。
+        if (!context.mounted) {
+          io.exit(0);
+        }
+        await _migrationResultDialog(
+          context,
+          title: '迁移未完成',
+          message: '数据校验失败，已取消迁移。请重启应用以恢复原数据。',
+        );
+        io.exit(0);
+      }
+
+      // 校验通过：temp -> target（跨卷时退化为复制），确有数据时再删源目录。
+      final targetDir = io.Directory(target);
+      if (await targetDir.exists()) {
+        await targetDir.delete(recursive: true);
+      }
+      await _moveOrCopy(tempDir, targetDir);
+      if (srcStats.files > 0 && await source.exists()) {
+        await source.delete(recursive: true);
+      }
+
       final sp = await SharedPreferences.getInstance();
       await sp.setString(_cacheDirOverrideKey, target);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已设置新缓存位置，重启应用后生效')),
-        );
+      if (!context.mounted) {
+        io.exit(0);
       }
+      await _migrationResultDialog(
+        context,
+        title: '迁移完成',
+        message: '数据已迁移到新目录，请重启应用以生效。',
+      );
+      io.exit(0);
     } catch (_) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('迁移失败，请检查路径是否可写')),
-        );
+      if (!context.mounted) {
+        io.exit(0);
       }
+      await _migrationResultDialog(
+        context,
+        title: '迁移未完成',
+        message: '迁移过程出错，已取消。请重启应用以恢复原数据。',
+      );
+      io.exit(0);
     }
+  }
+
+  /// 迁移结束弹窗：提示用户重启，点确定即退出进程（数据目录已切换，重启后
+  /// 由 main 按 override 重新加载）。barrierDismissible=false 防止误触。
+  Future<void> _migrationResultDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) async {
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => io.exit(0),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── 服务 ──────────────────────────────────────────────────────────────
@@ -845,5 +913,55 @@ class _ServiceStatusRowState extends State<_ServiceStatusRow> {
         onPressed: _refresh,
       ),
     );
+  }
+}
+
+// ── 缓存迁移辅助（与 _relocateCacheDialog 配套）────────────────────────
+// 均为文件操作，与页面状态无关，抽成顶层函数便于单独测试与复用。
+
+/// 递归复制目录（保留相对路径结构）。
+Future<void> _copyDir(io.Directory source, io.Directory dest) async {
+  await dest.create(recursive: true);
+  await for (final entity in source.list(recursive: true)) {
+    if (entity is io.File) {
+      final relative = entity.path.substring(source.path.length);
+      final newFile = io.File('${dest.path}$relative');
+      await newFile.parent.create(recursive: true);
+      await entity.copy(newFile.path);
+    } else if (entity is io.Directory) {
+      final relative = entity.path.substring(source.path.length);
+      await io.Directory('${dest.path}$relative').create(recursive: true);
+    }
+  }
+}
+
+/// 统计目录内文件数与总字节数（用于迁移前后校验）。
+Future<({int files, int bytes})> _dirStats(io.Directory dir) async {
+  var files = 0;
+  var bytes = 0;
+  if (!await dir.exists()) return (files: 0, bytes: 0);
+  await for (final entity in dir.list(recursive: true)) {
+    if (entity is io.File) {
+      try {
+        final stat = await entity.stat();
+        if (stat.type == io.FileSystemEntityType.file) {
+          files++;
+          bytes += stat.size;
+        }
+      } catch (_) {
+        // 复制途中文件消失：不计、不阻断。
+      }
+    }
+  }
+  return (files: files, bytes: bytes);
+}
+
+/// 尽量原子移动；跨卷 rename 失败时退化为复制后删除源。
+Future<void> _moveOrCopy(io.Directory from, io.Directory to) async {
+  try {
+    await from.rename(to.path);
+  } on io.FileSystemException {
+    await _copyDir(from, to);
+    await from.delete(recursive: true);
   }
 }

@@ -94,6 +94,18 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      # ── 质量门禁：发布前先跑静态分析与测试，任一失败即阻断构建/发布。
+      - name: Static analysis
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Run Rust tests
+        working-directory: rust
+        shell: pwsh
+        run: cargo test
+
       - name: Build (codegen + Rust core dll + Flutter Windows)
         shell: pwsh
         run: .\scripts\build_windows.ps1 -Profile ${{ github.event.inputs.profile || 'release' }}
