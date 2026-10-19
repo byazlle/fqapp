@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 
 import 'package:fanqieduanwan/main.dart';
-import 'package:fanqieduanwan/widgets/brand/brand_nav_bar.dart';
 import 'package:fanqieduanwan/models/channel_tab.dart';
 import 'package:fanqieduanwan/models/media_item.dart';
 import 'package:fanqieduanwan/models/playlet_comment.dart';
@@ -673,7 +672,7 @@ void main() {
 
     // Scoped to the bar: the home page's own category strip also has a 短剧 entry.
     Finder navLabel(String label) => find.descendant(
-      of: find.byType(BrandNavBar),
+      of: find.byType(NavigationBar),
       matching: find.text(label),
     );
 
@@ -1115,6 +1114,60 @@ void main() {
     expect(await columnsAt(const Size(360, 800)), 2);
     // 1400 宽按每卡约 208 算出 6 列：一屏能看到一整排，而不是两张巨幅海报。
     expect(await columnsAt(const Size(1400, 900)), greaterThan(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('大屏一屏装得下也继续取下一页，不靠触底', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+
+    // 每页只给 2 条，且一直说「还有更多」：1400 宽能放 6 列，首屏根本铺不满，
+    // 于是滚不动、触底通知永远不来——这正是要挡住的回归。
+    // 只记 offset>0 的请求：offset=0 是首屏与切频道各一次的正常加载。
+    final continuations = <int>[];
+    HomeNotifier paged() => HomeNotifier(
+      initialTabIndex: dramaTabIndex,
+      homepageLoader: ({
+        int tabType = 2,
+        int offset = 0,
+        String? sessionId,
+      }) async {
+        if (offset > 0) continuations.add(offset);
+        return HomepagePage(
+          items: [
+            for (var i = 0; i < 2; i++) _item('$tabType-$offset-$i'),
+          ],
+          nextOffset: offset + 2,
+          sessionId: null,
+        );
+      },
+      searchLoader: (query, {int page = 1}) async => const [],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dramaProvider.overrideWith(() => paged())],
+        child: MaterialApp(
+          home: _Seams().page(
+            channelLoader: () async => const ChannelTable(
+              tabs: [
+                ChannelTab(type: kChannelVideoFeed, title: '推荐'),
+                ChannelTab(type: kChannelVideoEpisode, title: '看剧'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await _flush(tester);
+    await tester.tap(find.text('看剧'));
+    await _flush(tester);
+
+    // 一次滚动都没有，却已经补过页（触底路径此时根本不会触发）。
+    expect(continuations, isNotEmpty);
+    // 但连续补页有上限：上游一直回空页时不能无限打。
+    expect(continuations.length, lessThanOrEqualTo(6));
     expect(tester.takeException(), isNull);
   });
 

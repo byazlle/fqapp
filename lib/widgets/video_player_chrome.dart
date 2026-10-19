@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_lucide/flutter_lucide.dart';
 import 'package:lottie/lottie.dart';
 
 import '../models/audio_extra.dart';
@@ -2093,6 +2094,15 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                 _topBar(insets, landscape: landscape),
                 if (!landscape && !catalogStyle) _rightBar(insets),
               ],
+              // 上下集悬浮切换窗：所有走这层 chrome 的播放页（短剧 / 漫剧 /
+              // 电影电视剧）统一在右侧给出一组上一集 / 下一集按钮。官方只有
+              // 竖滑手势与横屏底条，桌面鼠标没有等价入口，用户反馈「推荐页能
+              // 切、播放页切不了」，这里补齐。
+              if (widget.episodes.length > 1 &&
+                  showChrome &&
+                  !_locked &&
+                  !_seeking)
+                _episodePager(window, insets),
               // 横屏桌面：画面上下缘隐形点击区（鼠标点画面上/下半部切上/下一集）。
               // 仅覆盖边缘条，不挡中央播放/暂停与底部横屏控制条。
               if (landscape &&
@@ -3403,6 +3413,30 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     ).showSnackBar(const SnackBar(content: Text('当前已是第一集')));
   }
 
+  /// 右侧悬浮的上下集切换窗。
+  ///
+  /// 与短剧推荐页的翻页按钮同款造型（半透明黑底 + 白描边），竖屏居中偏上、
+  /// 横屏避开底部控制条，任何画面上都看得清。按钮走 [_prevEpisodeOrToast] /
+  /// [_nextEpisodeOrToast]，与竖滑、横屏点击带同一套「到头了给 toast」的
+  /// 语义，不另起一套。
+  Widget _episodePager(Size window, EdgeInsets insets) {
+    // 竖屏：评论入口在 insets.bottom+172 那一带，切集窗放在垂直中线偏上，
+    // 两者不打架。横屏：底条高约 insets.bottom+130，同样往上让。
+    final bottomReserve = insets.bottom + 190;
+    final top = (window.height - bottomReserve) / 2 - 56;
+    return Positioned(
+      right: insets.right + 12,
+      top: top < insets.top + 56 ? insets.top + 56 : top,
+      child: _EpisodePager(
+        index: widget.currentIndex,
+        total: widget.episodes.length,
+        enabled: widget.enabled,
+        onPrev: _prevEpisodeOrToast,
+        onNext: _nextEpisodeOrToast,
+      ),
+    );
+  }
+
   /// 横屏桌面端：画面上下缘的隐形点击区，鼠标点画面上半部切上一集、
   /// 下半部切下一集（官方竖滑翻页的鼠标等价交互）。命中区只覆盖边缘条，
   /// 横屏短剧：画面上下边缘的薄点击带（鼠标点画面上/下边缘切上/下一集）。
@@ -3476,6 +3510,103 @@ class _LegacyRatePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_LegacyRatePainter oldDelegate) => false;
+}
+
+/// 播放页右侧的「上一集 / 下一集」悬浮按钮组。
+///
+/// 造型与短剧推荐页的翻页按钮（drama_page 的 `_FeedPager`）保持一致：
+/// 半透明黑底 + 白描边压在画面上，中间一条分隔线，上下各一个箭头。
+/// 中间那行「3/105」是集数指示，让用户知道还能不能往下切。
+class _EpisodePager extends StatelessWidget {
+  const _EpisodePager({
+    required this.index,
+    required this.total,
+    required this.enabled,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  final int index;
+  final int total;
+  final bool enabled;
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPrev = index > 0;
+    final hasNext = index < total - 1;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _button(
+            key: const Key('player_episode_prev'),
+            // 文案与运输条 / 横屏底条的「上一集」刻意区分开：那两处的按钮
+            // 在测试里是按 tooltip 唯一定位的，重复文案会让定位变歧义，
+            // 用户看气泡时也能分清是悬浮窗这一组。
+            tooltip: '切换到上一集',
+            icon: LucideIcons.chevron_up,
+            active: hasPrev,
+            onTap: onPrev,
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Text(
+              '${index + 1}/$total',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: Colors.white.withValues(alpha: 0.9),
+              ),
+            ),
+          ),
+          _button(
+            key: const Key('player_episode_next'),
+            tooltip: '切换到下一集',
+            icon: LucideIcons.chevron_down,
+            active: hasNext,
+            onTap: onNext,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _button({
+    required Key key,
+    required String tooltip,
+    required IconData icon,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        key: key,
+        // 到头了也照常回调：里面会给「当前已是第一集 / 最后一集」的 toast，
+        // 比按钮直接变灰更能说明为什么切不动。
+        onTap: enabled ? onTap : null,
+        radius: 20,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Icon(
+            icon,
+            size: 20,
+            color: active
+                ? Colors.white
+                : Colors.white.withValues(alpha: enabled ? 0.45 : 0.3),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 enum _PortraitSlot { information, fullscreen, comments }

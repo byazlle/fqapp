@@ -1161,6 +1161,32 @@ void main() {
       await second.dispose();
     }
   });
+  testWidgets('播放页有上下集悬浮切换窗，切到头给 toast', (tester) async {
+    final player = FakeNativePlayer();
+    final selected = <int>[];
+    await tester.pumpWidget(_app(player, selected: selected));
+    await tester.pumpAndSettle();
+
+    // 悬浮切换窗：上一集 / 集数指示 / 下一集。短剧推荐页是同款造型，
+    // 播放页之前只有竖滑手势，鼠标没有入口。
+    expect(find.byKey(const Key('player_episode_prev')), findsOneWidget);
+    expect(find.byKey(const Key('player_episode_next')), findsOneWidget);
+    expect(find.text('1/2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('player_episode_next')));
+    await tester.pumpAndSettle();
+    expect(selected, [1]);
+
+    // 已经是第一集：仍然给「当前已是第一集」的 toast，而不是静默失效。
+    await tester.tap(find.byKey(const Key('player_episode_prev')));
+    await tester.pumpAndSettle();
+    expect(find.text('当前已是第一集'), findsOneWidget);
+    expect(selected, [1]);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await player.dispose();
+  });
+
 }
 
 class _RateAcknowledgementPlayer extends FakeNativePlayer {
@@ -1173,6 +1199,8 @@ class _RateAcknowledgementPlayer extends FakeNativePlayer {
     await acknowledgement?.future;
   }
 }
+
+
 
 Widget _app(
   FakeNativePlayer player, {

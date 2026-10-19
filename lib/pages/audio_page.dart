@@ -21,6 +21,7 @@ import '../services/shelf_store.dart';
 import '../services/transient_retry.dart';
 import '../services/system_tts.dart';
 import '../widgets/audio/audio_sections.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/audio/voice_settings_sheet.dart';
 import '../widgets/audio/system_tts_controls.dart';
 import '../widgets/chapter_cache_sheet.dart';
@@ -344,8 +345,9 @@ class _AudioPageState extends State<AudioPage> {
   @override
   Widget build(BuildContext context) {
     if (_session == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('听书')),
+      return FusedScrollMeter(
+        child: Scaffold(
+        appBar: const FusedAppBar(title: Text('听书')),
         body: Center(
           child: _attachFailed
               ? TextButton(
@@ -357,26 +359,27 @@ class _AudioPageState extends State<AudioPage> {
                 )
               : const Text('正在打开听书…'),
         ),
+        ),
       );
     }
     if (c._closed) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('听书')),
+      return FusedScrollMeter(
+        child: Scaffold(
+        appBar: const FusedAppBar(title: Text('听书')),
         body: const Center(child: Text('本次播放已关闭')),
+        ),
       );
     }
     final palette = HomePalette.of(context);
     if (c._chapters.isEmpty) {
-      return Scaffold(
+      return FusedScrollMeter(
+        child: Scaffold(
         key: ValueKey('audio_session_${c._bookId}'),
         backgroundColor: palette.canvas,
-        appBar: AppBar(
-          backgroundColor: palette.canvas,
-          surfaceTintColor: Colors.transparent,
-          title: const Text('听书'),
-        ),
+        appBar: FusedAppBar(canvas: palette.canvas, title: const Text('听书')),
         body: Center(
           child: Text('暂无可播放章节', style: TextStyle(color: palette.muted)),
+        ),
         ),
       );
     }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/library_backup.dart';
 import '../services/library_backup_service.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 
 class LibraryBackupPage extends StatefulWidget {
@@ -100,13 +101,13 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
     final exportedAt = preview?.createdAt.toLocal().toString().split('.').first;
     return PopScope(
       canPop: enabled,
+      child: FusedScrollMeter(
       child: Scaffold(
         backgroundColor: palette.canvas,
-        appBar: AppBar(
+        appBar: FusedAppBar(
           title: const Text('备份与恢复'),
           centerTitle: true,
-          backgroundColor: palette.canvas,
-          surfaceTintColor: Colors.transparent,
+          canvas: palette.canvas,
         ),
         body: SafeArea(
           child: Align(
@@ -201,6 +202,7 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

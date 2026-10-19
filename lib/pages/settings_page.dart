@@ -19,6 +19,7 @@ import '../services/home_feed_cache.dart';
 import '../services/library_store.dart';
 import '../services/poster_cache.dart';
 import '../services/rank_cache.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import 'about_page.dart';
 import 'cached_books_page.dart';
@@ -173,14 +174,13 @@ class _SettingsPageState extends State<SettingsPage> {
     final wide = MediaQuery.sizeOf(context).width >= _wideBreakpoint;
 
     if (wide) {
-      return Scaffold(
+      return FusedScrollMeter(
+        child: Scaffold(
         backgroundColor: palette.canvas,
-        appBar: AppBar(
+        appBar: FusedAppBar(
           title: const Text('设置'),
           centerTitle: true,
-          backgroundColor: palette.canvas,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
+          canvas: palette.canvas,
         ),
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -195,17 +195,17 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ],
         ),
+        ),
       );
     }
 
-    return Scaffold(
+    return FusedScrollMeter(
+      child: Scaffold(
       backgroundColor: palette.canvas,
-      appBar: AppBar(
+      appBar: FusedAppBar(
         title: const Text('设置'),
         centerTitle: true,
-        backgroundColor: palette.canvas,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
+        canvas: palette.canvas,
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -296,8 +296,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ],
-    ),
-  );
+      ),
+      ),
+    );
   }
 
   /// 宽屏左列：分类导航。选中项用主色浅底圆角标出，点击只切右列内容，

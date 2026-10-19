@@ -1,6 +1,6 @@
 // 宽屏（桌面窗口/平板）布局回归：
-// - 壳层导航：所有窗口尺寸共用一条顶部悬浮吸顶导航，配色不随页面变；
-// - 内容整体下移一个导航高度，导航压在内容之上。
+// - 壳层导航：宽屏回到左侧悬浮导航栏（NavigationRail）、窄屏保持底部药丸
+//   （NavigationBar）；配色只跟主题走，**不跟当前 tab 走**。
 // - 首页内容列宽随窗口分级（放开列宽让网格扩列，而不是拉伸手机布局）。
 // - 设置页 ≥900 改双列（分类列表 + 设置内容），窄屏保持钻取导航。
 import 'package:flutter/material.dart';
@@ -14,7 +14,6 @@ import 'package:fanqieduanwan/pages/home_page.dart';
 import 'package:fanqieduanwan/pages/home_provider.dart';
 import 'package:fanqieduanwan/pages/settings_page.dart';
 import 'package:fanqieduanwan/services/api_client.dart';
-import 'package:fanqieduanwan/widgets/brand/brand_nav_bar.dart';
 import 'package:fanqieduanwan/widgets/lazy_indexed_stack.dart';
 
 /// 空回包的 notifier：不触网、不起定时器，pumpAndSettle 不会挂起。
@@ -52,22 +51,7 @@ Future<void> _mountAt(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  /// 导航条目里那块选中胶囊的颜色。透明 = 未选中。
-  Color? pillColor(WidgetTester tester, String label) {
-    final pill = tester
-        .widgetList<AnimatedContainer>(
-          find.descendant(
-            of: find.byKey(Key('nav_item_$label')),
-            matching: find.byType(AnimatedContainer),
-          ),
-        )
-        .first;
-    return (pill.decoration as BoxDecoration?)?.color;
-  }
-
-  testWidgets('every window size uses the same floating top nav', (
-    tester,
-  ) async {
+  testWidgets('wide windows bring back the floating left rail', (tester) async {
     await _mountAt(
       tester,
       _scope(
@@ -77,52 +61,49 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 侧栏与底部药丸都已退役，只剩顶部悬浮导航。
-    expect(find.byType(BrandNavBar), findsOneWidget);
-    expect(find.byType(NavigationRail), findsNothing);
+    // 宽屏：左侧悬浮导航栏；底部药丸不出现。
+    expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(LazyIndexedStack), findsOneWidget);
 
-    final nav = tester.widget<BrandNavBar>(find.byType(BrandNavBar));
-    expect(nav.destinations.length, 4);
-    expect(nav.showBrand, isTrue);
-    for (final label in ['首页', '短剧', '书架', '我的']) {
-      expect(
-        find.descendant(
-          of: find.byType(BrandNavBar),
-          matching: find.text(label),
-        ),
-        findsOneWidget,
-      );
-    }
-
-    // 吸顶：导航固定在窗口顶部，且压在内容之上。
-    final navRect = tester.getRect(find.byType(BrandNavBar));
-    expect(navRect.top, lessThan(12));
-    // 首页内容从导航下沿开始（壳层把导航高度注入了 MediaQuery.padding.top）。
+    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+    expect(rail.destinations.length, 4);
+    // ≥1200 展开为「图标 + 文字」的扩展形态。
+    expect(rail.extended, isTrue);
+    // 顶部品牌区：应用名在侧栏里。
     expect(
-      tester.getRect(find.byKey(const Key('home_feed'))).top,
-      greaterThanOrEqualTo(navRect.bottom),
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('首页'),
+      ),
+      findsOneWidget,
     );
 
-    await tester.tap(find.byKey(const Key('nav_item_短剧')));
+    // 侧栏在窗口左侧，内容在其右侧。
+    final railRect = tester.getRect(find.byType(NavigationRail));
+    expect(railRect.left, lessThan(120));
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.text('短剧'),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(
       tester.widget<LazyIndexedStack>(find.byType(LazyIndexedStack)).index,
       1,
     );
     expect(find.byType(DramaPage), findsOneWidget);
+    // 切页后侧栏还在原位。
+    expect(tester.getRect(find.byType(NavigationRail)).left, railRect.left);
 
-    // 切到黑底视频流后导航位置不变（不随页面滚动/换色而位移）。
-    expect(tester.getRect(find.byType(BrandNavBar)).top, navRect.top);
     await tester.pump(const Duration(seconds: 25));
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('nav keeps one black/white palette on every tab', (
-    tester,
-  ) async {
+  testWidgets('nav keeps one palette on every tab', (tester) async {
     await _mountAt(
       tester,
       _scope(
@@ -132,34 +113,35 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    const selectedInk = Color(0xFF14161B);
-    // 首页选中：胶囊是纯黑。
-    expect(pillColor(tester, '首页'), selectedInk);
-    expect(pillColor(tester, '短剧'), Colors.transparent);
+    NavigationRail railOf() =>
+        tester.widget<NavigationRail>(find.byType(NavigationRail));
+    final before = railOf();
+    final indicator = before.indicatorColor;
+    final selectedIcon = before.selectedIconTheme?.color;
+    final unselectedIcon = before.unselectedIconTheme?.color;
 
-    await tester.tap(find.byKey(const Key('nav_item_短剧')));
-    await tester.pumpAndSettle();
-
-    // 切到黑底页面后，选中态依旧是同一块黑胶囊，未选中仍是深色字
-    // ——这正是「点短剧颜色就变了」要挡住的回归。
-    expect(pillColor(tester, '短剧'), selectedInk);
-    expect(pillColor(tester, '首页'), Colors.transparent);
-    final homeLabel = tester.widget<Text>(
+    await tester.tap(
       find.descendant(
-        of: find.byKey(const Key('nav_item_首页')),
-        matching: find.text('首页'),
+        of: find.byType(NavigationRail),
+        matching: find.text('短剧'),
       ),
     );
-    expect(homeLabel.style?.color, isNot(Colors.white));
+    await tester.pumpAndSettle();
+
+    // 「点短剧颜色就变了」的回归：配色只跟主题走，选中项换了但整条导航的
+    // 取色一字未动（v1.2.0 之前这里写的是 `isDark || isDramaTab`）。
+    final after = railOf();
+    expect(after.selectedIndex, 1);
+    expect(after.indicatorColor, indicator);
+    expect(after.selectedIconTheme?.color, selectedIcon);
+    expect(after.unselectedIconTheme?.color, unselectedIcon);
 
     await tester.pump(const Duration(seconds: 25));
     await tester.pump();
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('narrow windows keep the same top nav without the brand block', (
-    tester,
-  ) async {
+  testWidgets('narrow windows keep the bottom pill', (tester) async {
     await _mountAt(
       tester,
       _scope(
@@ -169,18 +151,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(BrandNavBar), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
-    expect(tester.widget<BrandNavBar>(find.byType(BrandNavBar)).showBrand,
-        isFalse);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
     // 四标签顺序与既有契约一致。
-    final home = tester.getCenter(find.byKey(const Key('nav_item_首页'))).dx;
-    final drama = tester.getCenter(find.byKey(const Key('nav_item_短剧'))).dx;
-    final library = tester.getCenter(find.byKey(const Key('nav_item_书架'))).dx;
-    final mine = tester.getCenter(find.byKey(const Key('nav_item_我的'))).dx;
-    expect(home, lessThan(drama));
-    expect(drama, lessThan(library));
-    expect(library, lessThan(mine));
+    final bar = find.byType(NavigationBar);
+    final home = tester.getCenter(
+      find.descendant(of: bar, matching: find.text('首页')),
+    );
+    final drama = tester.getCenter(
+      find.descendant(of: bar, matching: find.text('短剧')),
+    );
+    final library = tester.getCenter(
+      find.descendant(of: bar, matching: find.text('书架')),
+    );
+    final mine = tester.getCenter(
+      find.descendant(of: bar, matching: find.text('我的')),
+    );
+    expect(home.dx, lessThan(drama.dx));
+    expect(drama.dx, lessThan(library.dx));
+    expect(library.dx, lessThan(mine.dx));
     expect(tester.takeException(), isNull);
   });
 

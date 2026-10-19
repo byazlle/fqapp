@@ -10,6 +10,7 @@ import '../services/api_client.dart';
 import '../services/poster_cache.dart';
 import '../services/rank_cache.dart';
 import '../services/user_facing_error.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import 'detail_page.dart';
 
@@ -235,12 +236,11 @@ class _RankPageState extends State<RankPage> {
   @override
   Widget build(BuildContext context) {
     final palette = HomePalette.of(context);
-    return Scaffold(
+    return FusedScrollMeter(
+      child: Scaffold(
       backgroundColor: palette.canvas,
-      appBar: AppBar(
-        backgroundColor: palette.canvas,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
+      appBar: FusedAppBar(
+        canvas: palette.canvas,
         title: Text(
           '排行榜',
           style: TextStyle(
@@ -263,6 +263,7 @@ class _RankPageState extends State<RankPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

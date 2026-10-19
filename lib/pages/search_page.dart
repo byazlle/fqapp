@@ -11,6 +11,7 @@ import '../services/api_client.dart';
 import '../services/backend_transport.dart';
 import '../services/search_history_store.dart';
 import '../services/user_facing_error.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import '../widgets/media_card.dart';
 import '../widgets/search/search_discovery.dart';
@@ -476,13 +477,12 @@ class _SearchPageState extends State<SearchPage> {
 
     final palette = HomePalette.of(context);
 
-    return Scaffold(
+    return FusedScrollMeter(
+      child: Scaffold(
       backgroundColor: palette.canvas,
-      appBar: AppBar(
+      appBar: FusedAppBar(
         titleSpacing: 0,
-        backgroundColor: palette.canvas,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+        canvas: palette.canvas,
         title: Container(
           height: 42,
           margin: const EdgeInsets.only(right: 16),
@@ -634,6 +634,7 @@ class _SearchPageState extends State<SearchPage> {
                 : _resultsView(context, feed),
           ),
         ],
+      ),
       ),
     );
   }

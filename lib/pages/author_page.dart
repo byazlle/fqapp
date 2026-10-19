@@ -9,6 +9,7 @@ import '../models/media_item.dart';
 import '../services/api_client.dart';
 import '../services/poster_cache.dart';
 import '../services/user_facing_error.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import '../widgets/media_card.dart';
 import 'detail_page.dart';
@@ -83,12 +84,11 @@ class _AuthorPageState extends State<AuthorPage> {
         : widget.fallbackName.isNotEmpty
         ? widget.fallbackName
         : '作者';
-    return Scaffold(
+    return FusedScrollMeter(
+      child: Scaffold(
       backgroundColor: palette.canvas,
-      appBar: AppBar(
-        backgroundColor: palette.canvas,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
+      appBar: FusedAppBar(
+        canvas: palette.canvas,
         title: Text(
           title,
           maxLines: 1,
@@ -111,6 +111,7 @@ class _AuthorPageState extends State<AuthorPage> {
             child: _body(palette),
           ),
         ),
+      ),
       ),
     );
   }

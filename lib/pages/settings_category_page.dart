@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 
 /// PiliPlus-style settings category entry (shown on the settings home page).
@@ -109,14 +110,13 @@ class _SettingsCategoryPageState extends State<SettingsCategoryPage> {
   @override
   Widget build(BuildContext context) {
     final palette = HomePalette.of(context);
-    return Scaffold(
+    return FusedScrollMeter(
+      child: Scaffold(
       backgroundColor: palette.canvas,
-      appBar: AppBar(
+      appBar: FusedAppBar(
         title: Text(widget.title),
         centerTitle: true,
-        backgroundColor: palette.canvas,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
+        canvas: palette.canvas,
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -149,6 +149,7 @@ class _SettingsCategoryPageState extends State<SettingsCategoryPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

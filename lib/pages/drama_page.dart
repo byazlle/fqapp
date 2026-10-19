@@ -267,6 +267,21 @@ class _DramaPageState extends ConsumerState<DramaPage>
   }
 
   final PageController _pages = PageController();
+
+  /// 瀑布格（看剧 / 漫剧）的滚动控制器：触底翻页之外还要靠它判断
+  /// 「内容不够高、根本滚不动」——见 [_scheduleGridAutoFill]。
+  final ScrollController _gridScroll = ScrollController();
+
+  /// 连续自动补页的次数。窗口越大、一屏能装的卡片越多，首屏可能需要
+  /// 连续好几页才够滚；但上游若一直回空页，不能无限空转，所以设上限。
+  int _gridAutoFillStreak = 0;
+
+  /// 自动补页计账属于哪个网格：切频道/切分类等于换了数据源，重新计。
+  String? _gridAutoFillKey;
+
+  /// 是否已经在等下一帧做自动补页检查，避免同帧排入多个回调。
+  bool _gridAutoFillScheduled = false;
+
   int _channel = 0;
   String? _openingId;
 
@@ -438,6 +453,7 @@ class _DramaPageState extends ConsumerState<DramaPage>
     _guideTick?.cancel();
     _guideFadeOut?.cancel();
     _pages.dispose();
+    _gridScroll.dispose();
     super.dispose();
   }
 
@@ -1387,10 +1403,16 @@ class _DramaPageState extends ConsumerState<DramaPage>
         // 在窄卡上会把片名挤成省略号，在宽卡上又留一片空白。
         final textHeight = titleMaxLines == 2 ? 56.0 : 46.0;
         final ratio = cardWidth / (cardWidth * 1.30 + textHeight);
+        // 大屏回归：列数随窗口变宽后，首屏几十张卡就能铺满一屏，此时
+        // GridView 根本滚不动，触底通知永远不会来，loadMore 也就永远不触发
+        // ——表现是「内容只有第一页，怎么滑都加载不出新的」。所以每一帧
+        // 布局完成后都检查一次：还能滚就交给触底逻辑，滚不动就主动补页。
+        _scheduleGridAutoFill(gridKey);
         return NotificationListener<ScrollNotification>(
           onNotification: _onGridScroll,
           child: GridView.builder(
             key: Key(gridKey),
+            controller: _gridScroll,
             padding: EdgeInsets.fromLTRB(
               12,
               MediaQuery.paddingOf(context).top +
@@ -1426,6 +1448,12 @@ class _DramaPageState extends ConsumerState<DramaPage>
   /// 竖滑换页/内联同步换成触底翻页。
   bool _onGridScroll(ScrollNotification notification) {
     if (notification.depth != 0) return false;
+    if (notification is ScrollUpdateNotification &&
+        (notification.scrollDelta ?? 0) != 0) {
+      // 用户真的滚动了：自动补页的连续计数归零，下次再遇到「一屏装得下」
+      // 还能继续补（例如切了分类、或者窗口被拉大）。
+      _gridAutoFillStreak = 0;
+    }
     if (notification is OverscrollNotification && notification.overscroll < 0) {
       setState(() {
         _pullDistance = (_pullDistance - notification.overscroll).clamp(
@@ -1458,8 +1486,48 @@ class _DramaPageState extends ConsumerState<DramaPage>
       if (notification.metrics.extentAfter < 600) {
         ref.read(dramaProvider.notifier).loadMore();
       }
+      // 滚动停下来时也可能正好「内容不够一屏」（例如刚切完频道），
+      // 顺手再补一次。
+      _scheduleGridAutoFill(_gridAutoFillKey);
     }
     return false;
+  }
+
+  /// 排一次「内容装不满就自动补页」的检查。
+  ///
+  /// 只在本帧结束后跑：布局尺寸要等这一帧画完才拿得到，而且 loadMore 会
+  /// 改 provider 状态，不能在 build 过程中直接触发。
+  void _scheduleGridAutoFill(String? gridKey) {
+    if (gridKey != null && gridKey != _gridAutoFillKey) {
+      _gridAutoFillKey = gridKey;
+      _gridAutoFillStreak = 0;
+    }
+    if (_gridAutoFillScheduled) return;
+    _gridAutoFillScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _gridAutoFillScheduled = false;
+      if (!mounted) return;
+      _maybeLoadMoreToFillViewport();
+    });
+  }
+
+  /// 触底之外的一条补页路径：内容还没高过视口（滚不动）时主动取下一页。
+  ///
+  /// 桌面大屏是这条路径的主场——一屏能放几十张卡，第一页常常刚好填满，
+  /// 用户既看不到更多内容也没有任何可滚的余地。
+  void _maybeLoadMoreToFillViewport() {
+    if (!_gridScroll.hasClients) return;
+    final notifier = ref.read(dramaProvider.notifier);
+    final state = ref.read(dramaProvider);
+    // 正在取或上游已经没有更多：交给 provider 自己的门，别抢。
+    if (state.isLoading || state.isLoadMore || !state.hasMore) return;
+    final metrics = _gridScroll.position;
+    // 还有 600px 以上可滚：说明内容够多，触底逻辑会接管，不在这里补。
+    if (metrics.extentAfter > 600) return;
+    // 连续补了多页还是装不满（上游回空页 / 卡片极矮），停手，避免空转。
+    if (_gridAutoFillStreak >= 5) return;
+    _gridAutoFillStreak += 1;
+    notifier.loadMore();
   }
 
   Widget _feed(HomeState state, List<MediaItem> items) {

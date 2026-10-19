@@ -22,6 +22,7 @@ import '../services/player_history.dart';
 import '../services/reader_history.dart';
 import '../services/shelf_store.dart';
 import '../services/user_facing_error.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/detail/detail_chapter_row.dart';
 import '../widgets/detail/detail_description.dart';
 import '../widgets/detail/detail_directory_sheet.dart';
@@ -484,13 +485,11 @@ class _DetailPageState extends State<DetailPage> {
                 statusBarColor: Colors.transparent,
                 systemNavigationBarColor: palette.canvas,
               ),
+      child: FusedScrollMeter(
       child: Scaffold(
         backgroundColor: palette.canvas,
-        appBar: AppBar(
-          backgroundColor: palette.canvas,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
-          elevation: 0,
+        appBar: FusedAppBar(
+          canvas: palette.canvas,
           toolbarHeight: 60,
           leadingWidth: 68,
           leading: Padding(
@@ -623,6 +622,7 @@ class _DetailPageState extends State<DetailPage> {
                 download: _isBook ? _downloadProgress : null,
               )
             : null,
+      ),
       ),
     );
   }

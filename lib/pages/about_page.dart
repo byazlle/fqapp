@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/brand.dart';
 import '../widgets/brand/glass.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 
 /// About page styled after PiliPlus: centered logo/name header followed by
@@ -14,7 +15,7 @@ class AboutPage extends StatelessWidget {
   /// `version`. Without a package_info dependency the value is
   /// static, so test/about_version_test.dart parses the pubspec and fails the
   /// build check when the two drift apart after a version bump.
-  static const versionText = '1.2.1 (134)';
+  static const versionText = '1.3.0 (135)';
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +25,14 @@ class AboutPage extends StatelessWidget {
 
     return BrandBackdrop(
       eink: palette.eink,
+      // 顶栏与内容融为一体：静止时标题坐在品牌底上，滚动后才浮出同色玻璃。
+      child: FusedScrollMeter(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
+        appBar: FusedAppBar(
           title: const Text('关于'),
           centerTitle: true,
-          backgroundColor: Colors.transparent,
+          canvas: palette.canvas,
         ),
         body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -113,6 +116,7 @@ class AboutPage extends StatelessWidget {
           const SizedBox(height: 16),
           ],
         ),
+      ),
       ),
     );
   }

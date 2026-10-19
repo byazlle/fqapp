@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../services/brand.dart';
+import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import 'about_page.dart';
 import 'cached_books_page.dart';
@@ -20,27 +21,29 @@ class MinePage extends StatelessWidget {
     final scheme = theme.colorScheme;
     final palette = HomePalette.of(context);
 
-    return Scaffold(
-      backgroundColor: palette.ambientCanvas,
-      appBar: AppBar(
-        title: const Text('我的'),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        scrolledUnderElevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.settings),
-            tooltip: '设置',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const SettingsPage()),
+    // 顶栏与内容融为一体：静止时标题直接坐在内容底色上，滚动后才从内容
+    // 里浮出一层同色毛玻璃（见 FusedAppBar）。
+    return FusedScrollMeter(
+      child: Scaffold(
+        backgroundColor: palette.ambientCanvas,
+        appBar: FusedAppBar(
+          title: const Text('我的'),
+          centerTitle: false,
+          canvas: palette.ambientCanvas,
+          actions: [
+            IconButton(
+              icon: const Icon(LucideIcons.settings),
+              tooltip: '设置',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              ),
             ),
-          ),
-        ],
-      ),
-      body: StatsPage(
-        header: _buildProfileHeader(context, scheme, palette),
+          ],
+        ),
+        body: StatsPage(
+          header: _buildProfileHeader(context, scheme, palette),
+        ),
       ),
     );
   }
