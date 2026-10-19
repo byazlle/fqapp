@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/services/app_theme.dart';
-import 'package:liuguang/services/reader_preferences.dart';
-import 'package:liuguang/widgets/reader/reader_theme.dart';
+import 'package:fanqieduanwan/services/app_theme.dart';
+import 'package:fanqieduanwan/services/reader_preferences.dart';
+import 'package:fanqieduanwan/widgets/reader/reader_theme.dart';
 
 /// Locks the #15/#9 contract: e-ink surfaces are pure white #FFFFFF with
 /// pure black #000000 text, never a tonal / seed-derived grey.

@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
 
 void main() {
   test('Fanqie picture groups keep images, dimensions, captions and order', () {

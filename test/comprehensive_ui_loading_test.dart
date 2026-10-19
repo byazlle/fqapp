@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/detail_page.dart';
-import 'package:liuguang/pages/home_page.dart';
-import 'package:liuguang/pages/home_provider.dart';
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/chapter_text_formatter.dart';
-import 'package:liuguang/widgets/chapter_cache_sheet.dart';
-import 'package:liuguang/widgets/lazy_indexed_stack.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/detail_page.dart';
+import 'package:fanqieduanwan/pages/home_page.dart';
+import 'package:fanqieduanwan/pages/home_provider.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/widgets/chapter_cache_sheet.dart';
+import 'package:fanqieduanwan/widgets/lazy_indexed_stack.dart';
 
 import 'support/fakes.dart';
 

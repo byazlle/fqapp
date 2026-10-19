@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/audio_page.dart';
-import 'package:liuguang/pages/comic_reader_page.dart';
-import 'package:liuguang/pages/detail_page.dart';
-import 'package:liuguang/pages/player_page.dart';
-import 'package:liuguang/pages/reader_page.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
-import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/audio_page.dart';
+import 'package:fanqieduanwan/pages/comic_reader_page.dart';
+import 'package:fanqieduanwan/pages/detail_page.dart';
+import 'package:fanqieduanwan/pages/player_page.dart';
+import 'package:fanqieduanwan/pages/reader_page.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
 
 import 'support/fakes.dart';
 

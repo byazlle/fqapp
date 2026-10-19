@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/playlet_comment.dart';
-import 'package:liuguang/widgets/player/playlet_danmaku_layer.dart';
+import 'package:fanqieduanwan/models/playlet_comment.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_danmaku_layer.dart';
 
 /// 弹幕时间轴的用例。
 ///

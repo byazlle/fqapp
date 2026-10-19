@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/services/transient_retry.dart';
+import 'package:fanqieduanwan/services/transient_retry.dart';
 
 void main() {
   group('retryTransient', () {

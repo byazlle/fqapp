@@ -4,11 +4,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/chapter_media.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/comic_reader_page.dart';
-import 'package:liuguang/services/comic_page_layout.dart';
-import 'package:liuguang/services/library_store.dart';
+import 'package:fanqieduanwan/models/chapter_media.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/comic_reader_page.dart';
+import 'package:fanqieduanwan/services/comic_page_layout.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

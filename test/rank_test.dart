@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/rank.dart';
+import 'package:fanqieduanwan/models/rank.dart';
 
 /// The catalogue, recorded from a live novel homepage payload. Note the field
 /// names: `rank_algo_list` (not `rank_list`), and the list id lives on the card's

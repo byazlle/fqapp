@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/pages/series_pager_physics.dart';
+import 'package:fanqieduanwan/pages/series_pager_physics.dart';
 
 /// 官方翻页吸附的恒速滑行（`LinearSmoothScroller` 100ms/英寸）：
 /// 密度相消后恒为 1600 逻辑像素/秒，到位即停。

@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
 
 void main() {
   late Directory directory;

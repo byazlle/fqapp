@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/chapter_summary.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/detail_page.dart';
-import 'package:liuguang/pages/reader_page.dart';
-import 'package:liuguang/widgets/detail/detail_chapter_row.dart';
-import 'package:liuguang/widgets/home/home_design.dart';
+import 'package:fanqieduanwan/models/chapter_summary.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/detail_page.dart';
+import 'package:fanqieduanwan/pages/reader_page.dart';
+import 'package:fanqieduanwan/widgets/detail/detail_chapter_row.dart';
+import 'package:fanqieduanwan/widgets/home/home_design.dart';
 
 import 'support/fakes.dart';
 

@@ -23,6 +23,7 @@ import 'services/app_theme.dart';
 import 'services/brand.dart';
 import 'services/audio_preferences.dart';
 import 'services/backend_service.dart';
+import 'widgets/brand/brand_nav_bar.dart';
 import 'widgets/brand/glass.dart';
 import 'services/digg_store.dart';
 import 'services/drama_download_store.dart';
@@ -39,7 +40,6 @@ import 'services/poster_cache.dart';
 import 'services/shelf_store.dart';
 import 'services/swipe_guide_store.dart';
 import 'widgets/lazy_indexed_stack.dart';
-import 'widgets/home/home_design.dart';
 
 void main() {
   // ensureInitialized 与 runApp 必须在同一个 zone：否则 BindingBase
@@ -87,19 +87,22 @@ void main() {
       // Rust 核心日志的读取入口：日志页「Rust」视图读 runtime_dir/rust.log。
       // 核心只在 Android 落盘（桌面/测试构建不装 logger），读不到时页面给空态。
       RustLogSource.reader = BackendService.instance.readRustLog;
-      runApp(const ProviderScope(child: LiuguangApp()));
+      runApp(const ProviderScope(child: FanqieDuanwanApp()));
     },
     (error, stack) =>
         AppLog.e('zone', '未捕获异步异常', error: error, stack: stack),
   );
 }
 
-/// 旧品牌 fqapp 的数据目录。更名「流光」后默认目录变成
-/// `%APPDATA%\byazlle\Liuguang`，这里做一次性搬迁，避免老用户的书架、
-/// 历史与离线缓存凭空消失。
+/// 旧品牌的数据目录：`fqapp`（最早的名字）、`com.example\fqapp`（早期包名）、
+/// `byazlle\FanqieDuanwan` 之前的 `byazlle\Liuguang`。更名「番茄端碗」后默认
+/// 目录变成 `%APPDATA%\byazlle\FanqieDuanwan`，这里做一次性搬迁，避免老用户
+/// 的书架、历史与离线缓存凭空消失。
 ///
-/// 只在「新目录不存在或为空」时搬迁：已经有数据的用户不会被覆盖；
-/// 用过自定义目录的人走 `cacheDirOverride`，不经过这里。
+/// 只在「新目录不存在或为空」时搬迁，且**每个旧目录只搬一次**：搬完在旧目录
+/// 里留一个标记文件。卸载会删掉这些目录，所以正常情况下重装是干净的；但若
+/// 用户手工删过安装目录、旧数据目录还在，没有标记就会把已经在应用内清空的书架
+/// 又搬回来，表现得像「卸载没清干净」。标记就是防这条回头路。
 Future<void> _migrateLegacyDataDir() async {
   if (!Platform.isWindows) return;
   final appData = Platform.environment['APPDATA'];
@@ -108,20 +111,44 @@ Future<void> _migrateLegacyDataDir() async {
     final target = await getApplicationSupportDirectory();
     if (target.existsSync() && target.listSync().isNotEmpty) return;
     for (final legacy in <String>[
+      '$appData\\byazlle\\Liuguang',
       '$appData\\fqapp',
       '$appData\\com.example\\fqapp',
     ]) {
       final dir = Directory(legacy);
       if (!dir.existsSync()) continue;
-      final entries = dir.listSync();
+      final entries = dir
+          .listSync()
+          .where((e) => !_isMigrationMarker(e.path))
+          .toList();
       if (entries.isEmpty) continue;
       _copyTree(dir, target);
+      _writeMigrationMarker(dir);
       AppLog.i('boot', '已从旧目录迁移用户数据：$legacy -> ${target.path}');
       return;
     }
   } catch (error, stack) {
     // 迁移失败不能拦住启动：拿不到旧数据就当新用户，原目录保持不动。
     AppLog.e('boot', '旧目录迁移失败', error: error, stack: stack);
+  }
+}
+
+/// 迁移标记文件名。内容只是给人看的说明，代码只判断存在与否。
+const String _migrationMarkerName = 'migrated-to-fanqieduanwan.txt';
+
+bool _isMigrationMarker(String path) =>
+    path.endsWith(_migrationMarkerName) || path.endsWith('migrated-to-liuguang.txt');
+
+void _writeMigrationMarker(Directory dir) {
+  try {
+    File('${dir.path}${Platform.pathSeparator}$_migrationMarkerName')
+        .writeAsStringSync(
+          '此目录的数据已于 ${DateTime.now().toIso8601String()} 迁移到 '
+          '%APPDATA%\\byazlle\\FanqieDuanwan。\n'
+          '本文件只用于避免重复迁移，可以直接删除；删除后下次启动会再次尝试迁移。\n',
+        );
+  } catch (_) {
+    // 写不了标记不影响迁移本身，只是下次可能再搬一次。
   }
 }
 
@@ -239,14 +266,14 @@ Future<void> _initializeLocalData() async {
   einkModeNotifier.value = sp.getBool(einkModeKey) ?? false;
 }
 
-class LiuguangApp extends StatefulWidget {
-  const LiuguangApp({super.key});
+class FanqieDuanwanApp extends StatefulWidget {
+  const FanqieDuanwanApp({super.key});
 
   @override
-  State<LiuguangApp> createState() => _LiuguangAppState();
+  State<FanqieDuanwanApp> createState() => _FanqieDuanwanAppState();
 }
 
-class _LiuguangAppState extends State<LiuguangApp> {
+class _FanqieDuanwanAppState extends State<FanqieDuanwanApp> {
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -375,10 +402,6 @@ class _RootShellState extends State<RootShell> {
   bool _backendReady = false;
   String? _backendError;
 
-  /// 宽窗侧栏是否被用户手动收起。收起后即使窗口 ≥1200 也只留图标列，
-  /// 把横向空间让给内容；选择持久化，重启后保持。
-  bool _railCollapsed = false;
-
   /// 四个一级目的地。底部药丸（窄屏/手机）与左侧导航栏（宽屏/桌面）
   /// 共用同一份定义，保证双端入口完全一致，不会各写一套而漂移。
   static const _destinations = <({IconData icon, String label})>[
@@ -388,17 +411,8 @@ class _RootShellState extends State<RootShell> {
     (icon: LucideIcons.circle_user_round, label: '我的'),
   ];
 
-  /// 宽屏断点：窗口达到该宽度时把底部药丸换成左侧悬浮导航栏。
-  /// 900 是桌面窗口/平板的最小可用宽度；低于它保持手机形态不动，
-  /// 手机端布局逐像素不变。
-  static const _wideShellBreakpoint = 900.0;
-
-  /// 更宽的窗口：侧栏展开为「图标 + 文字」的扩展形态，文字不再挤在
-  /// 图标下方那 11sp 的小标签里。
-  static const _extendedShellBreakpoint = 1200.0;
-
-  /// 侧栏收起状态的持久化键（仅 ≥1200 的宽窗可用）。
-  static const _railCollapsedKey = 'railCollapsed';
+  /// 顶部导航里显示应用名的宽度门槛：窄窗只留四个入口，把宽度让给内容。
+  static const _navBrandBreakpoint = 720.0;
 
   void _selectTab(int i) {
     if (i != _index) setState(() => _index = i);
@@ -408,28 +422,6 @@ class _RootShellState extends State<RootShell> {
   void initState() {
     super.initState();
     _startBackend();
-    _loadRailPref();
-  }
-
-  /// 读取用户上次的侧栏收起选择；读不到就保持展开，不影响启动。
-  Future<void> _loadRailPref() async {
-    try {
-      final sp = await SharedPreferences.getInstance();
-      final collapsed = sp.getBool(_railCollapsedKey) ?? false;
-      if (mounted && collapsed != _railCollapsed) {
-        setState(() => _railCollapsed = collapsed);
-      }
-    } catch (_) {}
-  }
-
-  void _toggleRail() {
-    setState(() => _railCollapsed = !_railCollapsed);
-    // 持久化是尽力而为：写失败只影响下次启动的默认形态，不回滚本次交互。
-    unawaited(
-      SharedPreferences.getInstance()
-          .then((sp) => sp.setBool(_railCollapsedKey, _railCollapsed))
-          .then<void>((_) {}),
-    );
   }
 
   Future<void> _startBackend() async {
@@ -503,92 +495,15 @@ class _RootShellState extends State<RootShell> {
         ),
       );
     }
-    final palette = HomePalette.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isDramaTab = _index == 1;
-    final glassDark = isDark || isDramaTab;
     // 墨水屏模式：本 build 由 Theme 变化触发重建（上面读了 Theme.of），
     // 这里直接读 notifier 当前值即可拿到最新开关，不另加监听。
     final eink = einkModeNotifier.value;
-    // 宽屏（桌面窗口 / 平板）：底部药丸换成左侧悬浮导航栏，四个 tab 不变；
-    // 窄屏（手机）保持底部药丸，布局逐像素不变。窗口拖动跨断点时
-    // MediaQuery 变化会自然重建，不需要额外监听。
-    final wideShell =
-        MediaQuery.sizeOf(context).width >= _wideShellBreakpoint;
-    final navBar = NavigationBarTheme(
-      data: NavigationBarThemeData(
-        height: 64,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        indicatorColor: eink
-            ? Colors.black
-            : HomePalette.accent.withValues(
-                alpha: glassDark ? 0.20 : 0.12,
-              ),
-        indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(
-            size: 22,
-            color: states.contains(WidgetState.selected)
-                ? (eink
-                      ? Colors.white
-                      : HomePalette.accent)
-                : (eink
-                      ? Colors.black
-                      : (glassDark
-                            ? Colors.white.withValues(alpha: 0.65)
-                            : palette.muted)),
-          ),
-        ),
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => TextStyle(
-            fontSize: 11,
-            fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w700
-                : FontWeight.w500,
-            color: states.contains(WidgetState.selected)
-                ? (eink
-                      ? Colors.black
-                      : (glassDark
-                            ? HomePalette.accent
-                            : palette.accentText))
-                : (eink
-                      ? Colors.black
-                      : (glassDark
-                            ? Colors.white.withValues(alpha: 0.65)
-                            : palette.muted)),
-          ),
-        ),
-      ),
-      child: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _selectTab,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        destinations: [
-          for (final d in _destinations)
-            NavigationDestination(
-              icon: Icon(d.icon),
-              selectedIcon: Icon(d.icon),
-              label: d.label,
-            ),
-        ],
-      ),
-    );
-
-    // 状态栏图标亮度挂在壳层、按选中 tab 切换：短剧页是黑底视频流（官方
-    // SeriesMallFragment 的透明顶栏直接压在 feed 上），深色图标在黑底上
-    // 整条状态栏都看不见，必须浅色；其余三页浅色底用深色。样式放壳层而不是
-    // 各页内部，是因为 IndexedStack 里未选中的页不参与绘制，页内
-    // AnnotatedRegion 切走后会残留上一个页的样式。
+    final width = MediaQuery.sizeOf(context).width;
+    // 导航永远是浅色玻璃：内容页是白底还是黑底视频流都不改它的配色，
+    // 这样切 tab 时导航不会「变色」。状态栏图标同理固定在浅色底上。
     final body = AnnotatedRegion<SystemUiOverlayStyle>(
-      value: _index == 1
-          ? SystemUiOverlayStyle.light
-          : (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark),
+      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       child: LazyIndexedStack(
         index: _index,
         children: [
@@ -600,232 +515,53 @@ class _RootShellState extends State<RootShell> {
         ],
       ),
     );
-
-    if (wideShell) {
-      // 液态底放在壳层最外层：四个 Tab 的 Scaffold 画布是透明的，
-      // 渐变与极光晕从这里透上来，玻璃面板才有东西可以“透”。
-      return BrandBackdrop(
-        eink: eink,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _wideRail(eink: eink, glassDark: glassDark, palette: palette),
-              Expanded(child: body),
-            ],
-          ),
-        ),
-      );
-    }
-
+    final mq = MediaQuery.of(context);
+    // 内容整体下移一个导航高度：注入到 MediaQuery.padding.top，各页的
+    // SafeArea / AppBar / 自定义顶栏（短剧页的 paddingOf(context).top）
+    // 都会自动让出这块空间，不用逐页改。
+    final padded = mq.copyWith(
+      padding: mq.padding.copyWith(
+        top: mq.padding.top + BrandNavBar.occupiedHeight,
+      ),
+      viewPadding: mq.viewPadding.copyWith(
+        top: mq.viewPadding.top + BrandNavBar.occupiedHeight,
+      ),
+    );
     return BrandBackdrop(
       eink: eink,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        extendBody: true,
-        body: body,
-        bottomNavigationBar: SafeArea(
-          top: false,
-          left: false,
-          right: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: RepaintBoundary(
-              child: _floatingSurface(
-                eink: eink,
-                glassDark: glassDark,
-                child: navBar,
-              ),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: MediaQuery(data: padded, child: body),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 壳层悬浮面（底部药丸与宽屏侧栏共用）：品牌玻璃面板。
-  /// 抽成一份是为了两端控件视觉同源，不各写一套装饰。
-  Widget _floatingSurface({
-    required Widget child,
-    required bool eink,
-    required bool glassDark,
-  }) {
-    return GlassPanel(
-      radius: BrandRadii.panel + 2,
-      blur: 20,
-      eink: eink,
-      tinted: true,
-      opacity: glassDark ? 0.62 : 0.78,
-      child: child,
-    );
-  }
-
-  /// 宽屏左侧悬浮导航栏：与底部药丸同一批 destination、同一套主题数据，
-  /// 只是竖排。≥1200 时展开为「图标 + 文字」的扩展形态。
-  Widget _wideRail({
-    required bool eink,
-    required bool glassDark,
-    required HomePalette palette,
-  }) {
-    // ≥1200 才具备「图标 + 文字」的扩展空间；用户手动收起后即使窗口够宽
-    // 也只留图标，把横向空间让给内容。
-    final naturalExtended =
-        MediaQuery.sizeOf(context).width >= _extendedShellBreakpoint;
-    final extended = naturalExtended && !_railCollapsed;
-    final rail = NavigationRail(
-      selectedIndex: _index,
-      onDestinationSelected: _selectTab,
-      extended: extended,
-      // 扩展态下框架断言 labelType 只能是 none：标签由扩展形态自带；
-      // 收起态同样只留图标。
-      labelType: !extended && !_railCollapsed
-          ? NavigationRailLabelType.all
-          : NavigationRailLabelType.none,
-      backgroundColor: Colors.transparent,
-      indicatorColor: eink
-          ? Colors.black
-          : HomePalette.accent.withValues(
-              alpha: glassDark ? 0.20 : 0.12,
-            ),
-      indicatorShape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      selectedIconTheme: IconThemeData(
-        size: 22,
-        color: eink ? Colors.white : HomePalette.accent,
-      ),
-      unselectedIconTheme: IconThemeData(
-        size: 22,
-        color: eink
-            ? Colors.black
-            : (glassDark
-                  ? Colors.white.withValues(alpha: 0.65)
-                  : palette.muted),
-      ),
-      selectedLabelTextStyle: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: eink
-            ? Colors.black
-            : (glassDark ? HomePalette.accent : palette.accentText),
-      ),
-      unselectedLabelTextStyle: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-        color: eink
-            ? Colors.black
-            : (glassDark
-                  ? Colors.white.withValues(alpha: 0.65)
-                  : palette.muted),
-      ),
-      destinations: [
-        for (final d in _destinations)
-          NavigationRailDestination(
-            icon: Icon(d.icon),
-            selectedIcon: Icon(d.icon),
-            label: Text(d.label),
-          ),
-      ],
-    );
-    return SafeArea(
-      top: false,
-      left: false,
-      right: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 0, 12),
-        child: RepaintBoundary(
-          child: _floatingSurface(
-            eink: eink,
-            glassDark: glassDark,
-            child: AnimatedSize(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              alignment: Alignment.centerLeft,
-              child: Column(
-                children: [
-                  _railHeader(
+            // 悬浮吸顶：导航在壳层最顶层且不在任何滚动视图里，
+            // 页面怎么滚它都停在顶部。
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+                  child: BrandNavBar(
                     eink: eink,
-                    palette: palette,
-                    extended: extended,
-                  ),
-                  Expanded(child: rail),
-                  // 收起/展开开关放到底部而非顶部：顶部品牌区保持简洁，且
-                  // 不与导航目的地混在一起。只有具备扩展空间的宽窗才显示。
-                  if (naturalExtended)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: IconButton(
-                        key: const Key('rail_collapse_toggle'),
-                        tooltip: _railCollapsed ? '展开侧栏' : '收起侧栏',
-                        onPressed: _toggleRail,
-                        iconSize: 18,
-                        color: eink
-                            ? Colors.black
-                            : (glassDark
-                                  ? Colors.white.withValues(alpha: 0.75)
-                                  : palette.muted),
-                        icon: Icon(
-                          _railCollapsed
-                              ? LucideIcons.panel_left_open
-                              : LucideIcons.panel_left_close,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 侧边栏顶部品牌区：Logo + 应用名。扩展态横排，折叠态居中显示 Logo。
-  Widget _railHeader({
-    required bool eink,
-    required HomePalette palette,
-    required bool extended,
-  }) {
-    final accent = eink ? Colors.black : Brand.primary;
-    final logo = BrandMark(size: 32, radius: 9, eink: eink);
-    return SizedBox(
-      height: 56,
-      child: extended
-          ? Padding(
-              padding: const EdgeInsets.only(left: 18, right: 16),
-              child: Row(
-                children: [
-                  logo,
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        Brand.name,
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                          color: accent,
-                        ),
-                      ),
-                      Text(
-                        Brand.latin.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2.2,
-                          color: palette.muted,
-                        ),
-                      ),
+                    showBrand: width >= _navBrandBreakpoint,
+                    selectedIndex: _index,
+                    onSelect: _selectTab,
+                    destinations: [
+                      for (final d in _destinations)
+                        BrandNavDestination(icon: d.icon, label: d.label),
                     ],
                   ),
-                ],
+                ),
               ),
-            )
-          : Center(child: logo),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

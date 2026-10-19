@@ -1,22 +1,22 @@
 //! 流光 独立服务器版（桌面一键端）。
 //!
 //! 把内置 Web UI、配置、过滤器与 C 解密库（由 build.rs 编译进同一二进制）
-//! 打包为单文件。运行时在 exe 旁建立 `liuguang_runtime/`，释放资源，启动
+//! 打包为单文件。运行时在 exe 旁建立 `fanqieduanwan_runtime/`，释放资源，启动
 //! loopback 服务（随机端口），自动打开浏览器。短剧/漫剧走 `/media/play`
 //! 解密流，漫画/小说走原 Rust 核心链路。
 //!
 //! 交叉编译：
-//!   cargo build --release --bin liuguang-server --target x86_64-pc-windows-gnu
+//!   cargo build --release --bin fanqieduanwan-server --target x86_64-pc-windows-gnu
 
 use std::sync::Arc;
 
-use liuguang_core::config::Config;
-use liuguang_core::device::DevicePool;
-use liuguang_core::endpoints::{Ctx, Server};
-use liuguang_core::filter::FilterManager;
-use liuguang_core::server::serve;
-use liuguang_core::sign::Manager;
-use liuguang_core::upstream::UpstreamClient;
+use fanqieduanwan_core::config::Config;
+use fanqieduanwan_core::device::DevicePool;
+use fanqieduanwan_core::endpoints::{Ctx, Server};
+use fanqieduanwan_core::filter::FilterManager;
+use fanqieduanwan_core::server::serve;
+use fanqieduanwan_core::sign::Manager;
+use fanqieduanwan_core::upstream::UpstreamClient;
 
 /// (相对 runtime 目录的路径, 内嵌字节)。
 const FILES: &[(&str, &[u8])] = &[
@@ -122,7 +122,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logger();
     let exe = std::env::current_exe()?;
     let base = exe.parent().unwrap().to_path_buf();
-    let runtime = base.join("liuguang_runtime");
+    let runtime = base.join("fanqieduanwan_runtime");
     std::fs::create_dir_all(&runtime)?;
     release_assets(&runtime)?;
 

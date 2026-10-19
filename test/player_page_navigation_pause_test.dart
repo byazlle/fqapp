@@ -7,12 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/models/series_detail.dart';
-import 'package:liuguang/pages/detail_page.dart';
-import 'package:liuguang/pages/player_page.dart';
-import 'package:liuguang/pages/series_detail_page.dart';
-import 'package:liuguang/services/player_style_config.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/models/series_detail.dart';
+import 'package:fanqieduanwan/pages/detail_page.dart';
+import 'package:fanqieduanwan/pages/player_page.dart';
+import 'package:fanqieduanwan/pages/series_detail_page.dart';
+import 'package:fanqieduanwan/services/player_style_config.dart';
 
 import 'support/controlled_player.dart';
 

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/chapter_media.dart';
+import 'package:fanqieduanwan/models/chapter_media.dart';
 
 const _base = 'http://localhost:8080';
 const _firstUrl = 'https://cdn.example/first.m4a';

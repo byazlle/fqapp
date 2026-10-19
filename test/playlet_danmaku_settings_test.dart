@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/widgets/player/playlet_danmaku_settings.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_danmaku_settings.dart';
 
 /// 弹幕设置面板（官方 `ay1/v.java` + `impl/danmaku/a.java`）：
 /// 五项设置走官方 `danmaku_config` 的默认值与换算公式。

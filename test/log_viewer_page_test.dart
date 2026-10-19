@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/pages/log_viewer_page.dart';
-import 'package:liuguang/pages/settings_page.dart';
-import 'package:liuguang/services/app_log.dart';
-import 'package:liuguang/services/book_txt_export.dart';
-import 'package:liuguang/services/app_theme.dart';
-import 'package:liuguang/widgets/logs/log_entry_card.dart';
+import 'package:fanqieduanwan/pages/log_viewer_page.dart';
+import 'package:fanqieduanwan/pages/settings_page.dart';
+import 'package:fanqieduanwan/services/app_log.dart';
+import 'package:fanqieduanwan/services/book_txt_export.dart';
+import 'package:fanqieduanwan/services/app_theme.dart';
+import 'package:fanqieduanwan/widgets/logs/log_entry_card.dart';
 
 /// 日志页定向回归：筛选、导出范围、历史跟随和窄屏布局。
 ///
@@ -272,7 +272,7 @@ void main() {
     await tester.tap(find.text('导出应用 + 核心'));
     await tester.pumpAndSettle();
 
-    expect(sink.fileName, startsWith('liuguang-all-logs-'));
+    expect(sink.fileName, startsWith('fanqieduanwan-all-logs-'));
     expect(sink.text, contains('应用日志：1 条'));
     expect(sink.text, contains('核心日志：1 条'));
     expect(sink.text, contains('===== 应用日志 ====='));

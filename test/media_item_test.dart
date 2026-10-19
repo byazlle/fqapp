@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
 
 void main() {
   test('book search selects tab 3 and keeps the nested rating and cursor', () {

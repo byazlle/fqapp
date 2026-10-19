@@ -12,8 +12,8 @@ mod common;
 use std::sync::Arc;
 
 use common::{build_server, pool_json, start_loopback, Loopback, MockReply, MockUpstream, TempDir};
-use liuguang_core::dispatch::{dispatch, Request};
-use liuguang_core::endpoints::Server;
+use fanqieduanwan_core::dispatch::{dispatch, Request};
+use fanqieduanwan_core::endpoints::Server;
 
 /// Go-generated payloads and expectations (cmd/mangafix in the pinned oracle):
 /// the small PNG, the 4 KiB one the endpoint's 100-byte gate accepts, and the
@@ -36,7 +36,7 @@ fn encrypt_upstream(plain: &[u8], secret_key_hex: &str) -> String {
     let key = hex::decode(secret_key_hex).expect("key hex");
     let iv = [0x11u8; 16];
     let body =
-        liuguang_core::crypto::aes_cbc_encrypt(&liuguang_core::crypto::pkcs7_pad(plain, 16), &key, &iv);
+        fanqieduanwan_core::crypto::aes_cbc_encrypt(&fanqieduanwan_core::crypto::pkcs7_pad(plain, 16), &key, &iv);
     let mut raw = Vec::with_capacity(16 + body.len());
     raw.extend_from_slice(&iv);
     raw.extend_from_slice(&body);

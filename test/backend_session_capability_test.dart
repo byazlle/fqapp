@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:liuguang/models/backend_resource_url.dart';
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/backend_transport.dart';
+import 'package:fanqieduanwan/models/backend_resource_url.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/backend_transport.dart';
 
 /// Stands in for the FFI transport so resource-URL composition can be checked
 /// without a live core.

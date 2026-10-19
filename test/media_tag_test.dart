@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/widgets/home/home_media_card.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/widgets/home/home_media_card.dart';
 
 /// Card shapes mirror a live 漫剧 homepage payload: `tag_info` rides on the card
 /// object beside title/cover and carries its own label plus both gradients.

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/author_profile.dart';
-import 'package:liuguang/models/book_comment.dart';
-import 'package:liuguang/models/comment_reply.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/models/rank.dart';
-import 'package:liuguang/models/search_discovery.dart';
-import 'package:liuguang/pages/author_page.dart';
-import 'package:liuguang/pages/rank_page.dart';
-import 'package:liuguang/pages/search_page.dart';
-import 'package:liuguang/services/search_history_store.dart';
-import 'package:liuguang/widgets/detail/detail_reviews.dart';
-import 'package:liuguang/widgets/search/search_discovery.dart';
+import 'package:fanqieduanwan/models/author_profile.dart';
+import 'package:fanqieduanwan/models/book_comment.dart';
+import 'package:fanqieduanwan/models/comment_reply.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/models/rank.dart';
+import 'package:fanqieduanwan/models/search_discovery.dart';
+import 'package:fanqieduanwan/pages/author_page.dart';
+import 'package:fanqieduanwan/pages/rank_page.dart';
+import 'package:fanqieduanwan/pages/search_page.dart';
+import 'package:fanqieduanwan/services/search_history_store.dart';
+import 'package:fanqieduanwan/widgets/detail/detail_reviews.dart';
+import 'package:fanqieduanwan/widgets/search/search_discovery.dart';
 
 /// In-memory history so the search page never touches the platform store.
 class _MemoryHistory implements SearchHistoryRepository {

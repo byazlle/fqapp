@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/services/library_store.dart';
-import 'package:liuguang/services/media_history_store.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
+import 'package:fanqieduanwan/services/media_history_store.dart';
 
 /// F08：最近页的编辑/选择/删除。
 ///

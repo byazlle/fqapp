@@ -7,11 +7,11 @@
 mod common;
 
 use common::{build_server, pool_json, start_loopback, Loopback, TempDir};
-use liuguang_core::dispatch::{dispatch, Request, ResponseBody};
+use fanqieduanwan_core::dispatch::{dispatch, Request, ResponseBody};
 
 const MARKER: &str = "OFFLINE_TEST_MARKER_OUTSIDE_SRC";
 
-async fn fixture() -> (TempDir, std::sync::Arc<liuguang_core::endpoints::Server>) {
+async fn fixture() -> (TempDir, std::sync::Arc<fanqieduanwan_core::endpoints::Server>) {
     let dir = TempDir::new("static");
     let server = build_server(
         &dir,
@@ -43,7 +43,7 @@ fn get(path: &str, headers: &[(&str, &str)]) -> Request {
 }
 
 async fn body_string(
-    server: &liuguang_core::endpoints::Server,
+    server: &fanqieduanwan_core::endpoints::Server,
     req: &Request,
 ) -> (u16, String, Vec<(String, String)>) {
     let resp = dispatch(server, req).await;
@@ -343,7 +343,7 @@ fn symlink_file(target: &std::path::Path, link: &std::path::Path) -> std::io::Re
 
 /// Fixture with the boundary cases: an index symlinked out of the root, a
 /// symlink that stays inside it, an empty media file, and a plain subdirectory.
-async fn boundary_fixture() -> (TempDir, std::sync::Arc<liuguang_core::endpoints::Server>) {
+async fn boundary_fixture() -> (TempDir, std::sync::Arc<fanqieduanwan_core::endpoints::Server>) {
     let dir = TempDir::new("boundary");
     let server = build_server(
         &dir,

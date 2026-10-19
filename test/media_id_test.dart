@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/media_id.dart';
+import 'package:fanqieduanwan/models/media_id.dart';
 
 void main() {
   const id = '7677801492920667198';

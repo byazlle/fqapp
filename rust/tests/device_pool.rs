@@ -4,7 +4,7 @@
 mod common;
 
 use common::{pool_json, MockReply, MockUpstream, TempDir};
-use liuguang_core::device::DevicePool;
+use fanqieduanwan_core::device::DevicePool;
 
 /// From rust/testdata/device_vectors.json: a registerkey response payload that
 /// decrypts to `SECRETKEY_16byte` under the reference implementation.

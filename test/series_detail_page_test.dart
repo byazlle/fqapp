@@ -3,16 +3,16 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:hive/hive.dart';
-import 'package:liuguang/services/shelf_store.dart';
+import 'package:fanqieduanwan/services/shelf_store.dart';
 import 'support/fakes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/models/playlet_comment.dart';
-import 'package:liuguang/models/series_detail.dart';
-import 'package:liuguang/pages/series_detail_page.dart';
-import 'package:liuguang/widgets/player/story_player_panel.dart' show SeriesStatus;
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/models/playlet_comment.dart';
+import 'package:fanqieduanwan/models/series_detail.dart';
+import 'package:fanqieduanwan/pages/series_detail_page.dart';
+import 'package:fanqieduanwan/widgets/player/story_player_panel.dart' show SeriesStatus;
 
 Chapter _chapter(int index, {bool disabled = false}) => Chapter(
   itemId: 'ep-$index',

@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/home_provider.dart';
-import 'package:liuguang/services/api_client.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/home_provider.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
 
 void main() {
   test(

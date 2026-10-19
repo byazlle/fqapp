@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/services/reader_device.dart';
+import 'package:fanqieduanwan/services/reader_device.dart';
 
 void main() {
   setUp(ReaderFonts.debugReset);

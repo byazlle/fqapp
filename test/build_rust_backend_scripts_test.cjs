@@ -67,8 +67,8 @@ test('the build scripts target Android ARM64 with the project NDK and 16 KiB pag
     assert.ok(source.includes('aarch64-linux-android'), name);
     assert.ok(source.includes('28.2.13676358'), `${name} must pin the project NDK`);
     assert.ok(
-      source.includes('libliuguang_core.so'),
-      `${name} must produce libliuguang_core.so`,
+      source.includes('libfanqieduanwan_core.so'),
+      `${name} must produce libfanqieduanwan_core.so`,
     );
     assert.ok(
       source.includes('jniLibs') && source.includes('arm64-v8a'),
@@ -122,7 +122,7 @@ test('the APK verifier expects the Rust core library', () => {
     path.join(appDir, 'scripts', 'verify_android_apk.py'),
     'utf8',
   );
-  assert.ok(verifier.includes('lib/arm64-v8a/libliuguang_core.so'));
+  assert.ok(verifier.includes('lib/arm64-v8a/libfanqieduanwan_core.so'));
 });
 
 test('the Rust build script survives cargo writing progress to stderr', () => {

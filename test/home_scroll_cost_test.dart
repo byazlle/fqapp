@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/home_page.dart';
-import 'package:liuguang/pages/home_provider.dart';
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/widgets/home/ambient_backdrop.dart';
-import 'package:liuguang/widgets/home/home_design.dart';
-import 'package:liuguang/widgets/home/home_media_card.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/home_page.dart';
+import 'package:fanqieduanwan/pages/home_provider.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/widgets/home/ambient_backdrop.dart';
+import 'package:fanqieduanwan/widgets/home/home_design.dart';
+import 'package:fanqieduanwan/widgets/home/home_media_card.dart';
 
 /// Regression cover for the scroll cost of the home feed.
 ///

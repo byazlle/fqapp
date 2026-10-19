@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/services/drama_download_store.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/services/drama_download_store.dart';
 
 void main() {
   late Directory temp;

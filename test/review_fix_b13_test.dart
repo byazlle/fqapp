@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/audio_extra.dart';
-import 'package:liuguang/models/book_comment.dart';
+import 'package:fanqieduanwan/models/audio_extra.dart';
+import 'package:fanqieduanwan/models/book_comment.dart';
 
 /// Regression tests for B13 (audio/comment model parsing).
 ///

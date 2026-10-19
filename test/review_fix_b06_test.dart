@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/models/search_discovery.dart';
-import 'package:liuguang/pages/search_page.dart';
-import 'package:liuguang/services/search_history_store.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/models/search_discovery.dart';
+import 'package:fanqieduanwan/pages/search_page.dart';
+import 'package:fanqieduanwan/services/search_history_store.dart';
 
 void main() {
   testWidgets('the clear icon drops the draft and the suggestion panel', (

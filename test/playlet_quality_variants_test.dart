@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/services/episode_source_cache.dart';
-import 'package:liuguang/widgets/player/playlet_more_panel.dart';
+import 'package:fanqieduanwan/services/episode_source_cache.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_more_panel.dart';
 
 void main() {
   group('EpisodeSource variants parsing', () {

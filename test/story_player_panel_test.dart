@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/widgets/video_player_chrome.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/widgets/video_player_chrome.dart';
 
 import 'support/fakes.dart';
 

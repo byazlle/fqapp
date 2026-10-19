@@ -3,11 +3,11 @@ import 'dart:ui' show SemanticsAction;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/widgets/home/home_design.dart';
-import 'package:liuguang/widgets/home/home_media_card.dart';
-import 'package:liuguang/widgets/home/home_spotlight.dart';
-import 'package:liuguang/widgets/home/home_tab_bar.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/widgets/home/home_design.dart';
+import 'package:fanqieduanwan/widgets/home/home_media_card.dart';
+import 'package:fanqieduanwan/widgets/home/home_spotlight.dart';
+import 'package:fanqieduanwan/widgets/home/home_tab_bar.dart';
 
 void main() {
   testWidgets('swiping and next open the visible recommendation', (

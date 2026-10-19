@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/author_profile.dart';
+import 'package:fanqieduanwan/models/author_profile.dart';
 
 /// Shapes recorded from a live `/api/v1/authors/{id}` response.
 Map<String, dynamic> _payload({

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:liuguang/services/api_client.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
 
 typedef _OptionalLoader = ({
   String name,

@@ -1,4 +1,4 @@
-# AGENTS.md — 流光（Liuguang）协作指南
+# AGENTS.md — 番茄端碗（FanqieDuanwan）协作指南
 
 本文件是代理在本仓库的执行入口，记录项目边界、常用命令和交付要求。使用中文沟通，先完成用户要求的工作，再报告结果与未验项。
 
@@ -10,7 +10,7 @@
 
 ## 1. 项目与技术基线
 
-- 流光（Liuguang）是内容聚合 Windows 桌面客户端，提供小说阅读、听书、短剧、漫剧和漫画。Flutter UI 通过 flutter_rust_bridge 调用进程内 Rust 核心 `liuguang_core`；`127.0.0.1:8080` loopback 服务承载 Web UI 与漫画图。不部署独立后端进程，内容解密与缓存全部在本机完成。
+- 番茄端碗（FanqieDuanwan）是内容聚合 Windows 桌面客户端，提供小说阅读、听书、短剧、漫剧和漫画。Flutter UI 通过 flutter_rust_bridge 调用进程内 Rust 核心 `fanqieduanwan_core`；`127.0.0.1:8080` loopback 服务承载 Web UI 与漫画图。不部署独立后端进程，内容解密与缓存全部在本机完成。
 - 不提供登录或上游账号写操作；已裁撤的追剧、点赞、分享等入口不作为待办恢复。已有本机书架与详情页收藏按现有产品范围保留；没有真实能力时不放占位控件。
 - 基线：Flutter **3.44.6 stable**、Dart **^3.12.2**、Rust stable；FRB 的 Rust crate、Dart 包和 codegen **统一固定 2.13.0**。
 - Windows：Flutter Windows desktop（x64 / ARM64），MSVC 2022 生成工具 + CMake，安装包用 Inno Setup 6；Rust 静态库由 `scripts/build_rust_backend.ps1` 产出，C 流式解密目标在 `native/` 内由 CMake 编译。本机无 MSVC 时改用云端 workflow 出包，不硬凑本地构建。
@@ -71,8 +71,8 @@
 1. **版本**：用户可见功能变更递增 `pubspec.yaml` 的 `version: <versionName>+<buildNumber>`，同步核对 About 页版本展示与 `CHANGELOG.md`；`windows/installer.iss` 的 `MyAppVersion` 由构建脚本写入，不手改。仅文档或无行为变化的整理不升版。
 2. **Rust 库新鲜度**：检查 `git log --oneline <上一归档提交或标签>..HEAD -- rust/`，同时检查未提交及新增的 Rust 文件。Rust 已改变或无法证明来源时，执行 `scripts/build_rust_backend.ps1` 重建；仅 Dart 改动且库已证实匹配时可复用。
 3. **构建**：执行 `scripts/build_windows.ps1`，其内部完成 Cargo release 构建、`flutter build windows --release --no-pub` 与 Inno Setup 打包。本机没有 MSVC 时不强行本地出包，改由 `.github/workflows/build-windows.yml` 云端产出。
-4. **安装包校验**：核对 `OutputBaseFilename=liuguang-setup-x64`、`SetupIconFile` 与 `WizardImageFile` / `WizardSmallImageFile` 存在且尺寸正确、卸载项显示名与图标正确、`[UninstallDelete]` 覆盖的历史数据目录未误伤用户当前数据。
-5. **人工验收**：安装后核对快捷方式名称「流光」、窗口标题、关于页名称与版本、数据目录 `%APPDATA%\byazlle\Liuguang`。以截图或运行日志佐证；不代替用户覆盖卸载或清除数据。
+4. **安装包校验**：核对 `OutputBaseFilename=fanqieduanwan-setup-x64`、`SetupIconFile` 与 `WizardImageFile` / `WizardSmallImageFile` 存在且尺寸正确、卸载项显示名与图标正确、`[UninstallDelete]` 覆盖的历史数据目录未误伤用户当前数据。
+5. **人工验收**：安装后核对快捷方式名称「番茄端碗」、窗口标题、关于页名称与版本、数据目录 `%APPDATA%\byazlle\FanqieDuanwan`。以截图或运行日志佐证；不代替用户覆盖卸载或清除数据。
 6. **归档**：验收后立即将安装包、`SHA256SUMS` 和实测记录保存到 `release-archives/<tag>/`，注明对应提交及未验项。目录名不代表已创建 Git tag 或已发布 Release；不得覆盖已有归档。
 
 构建故障先查本地 CRIT 判据；完整流程见 `docs/运维/构建与发布.md`。

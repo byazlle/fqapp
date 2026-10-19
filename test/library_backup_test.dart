@@ -6,12 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/library_backup.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/services/library_backup_service.dart';
-import 'package:liuguang/services/library_store.dart';
-import 'package:liuguang/services/media_history_store.dart';
-import 'package:liuguang/services/shelf_store.dart';
+import 'package:fanqieduanwan/models/library_backup.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/services/library_backup_service.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
+import 'package:fanqieduanwan/services/media_history_store.dart';
+import 'package:fanqieduanwan/services/shelf_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

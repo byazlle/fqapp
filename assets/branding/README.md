@@ -1,7 +1,7 @@
 # 品牌资源
 
-品牌名 **流光 / Liuguang**，视觉语言为「极光玻璃（aurora glass）」：
-深紫 → 青的液态渐变作底，白色光束横贯其中，对应「流光」的字面意象。
+品牌名 **番茄端碗 / FanqieDuanwan**，视觉语言为「极光玻璃（aurora glass）」：
+深紫 → 青的液态渐变作底，白色光束横贯其中，对应「番茄端碗」的字面意象。
 
 `app_icon_source.png`（2048×2048）是设计原图。它不在 Flutter 的 assets
 清单里，不会被打进安装包。
@@ -32,6 +32,6 @@ python scripts/generate_brand_assets.py
   保存，不要手工替换成 PNG 或 32 位 BMP。
 - **窗口标题**在 `windows/runner/main.cpp` 里用通用字符名（`L"\u6D41\u5149"`）
   书写，避免源码编码影响 MSVC 解析；想改标题请沿用这个写法。
-- **资源版本信息**（`windows/runner/Runner.rc`）用 ASCII 的 `Liuguang`：
+- **资源版本信息**（`windows/runner/Runner.rc`）用 ASCII 的 `FanqieDuanwan`：
   它决定 `%APPDATA%\<CompanyName>\<ProductName>` 数据目录，改成中文会让
   路径随系统区域变化。

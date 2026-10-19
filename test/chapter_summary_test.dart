@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/chapter_summary.dart';
+import 'package:fanqieduanwan/models/chapter_summary.dart';
 
 /// Recorded from a live `/api/v1/books/{id}/chapters/summary?item_ids=` response.
 ///

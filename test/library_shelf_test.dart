@@ -5,15 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/detail_page.dart';
-import 'package:liuguang/pages/library_page.dart';
-import 'package:liuguang/pages/reader_page.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
-import 'package:liuguang/services/connectivity_status.dart';
-import 'package:liuguang/services/library_store.dart';
-import 'package:liuguang/services/shelf_store.dart';
-import 'package:liuguang/widgets/lazy_indexed_stack.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/detail_page.dart';
+import 'package:fanqieduanwan/pages/library_page.dart';
+import 'package:fanqieduanwan/pages/reader_page.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/services/connectivity_status.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
+import 'package:fanqieduanwan/services/shelf_store.dart';
+import 'package:fanqieduanwan/widgets/lazy_indexed_stack.dart';
 
 import 'support/fakes.dart';
 

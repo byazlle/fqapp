@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/widgets/lazy_indexed_stack.dart';
+import 'package:fanqieduanwan/widgets/lazy_indexed_stack.dart';
 
 void main() {
   testWidgets(

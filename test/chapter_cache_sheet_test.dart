@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
-import 'package:liuguang/widgets/chapter_cache_sheet.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/widgets/chapter_cache_sheet.dart';
 
 import 'support/fakes.dart';
 

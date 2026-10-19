@@ -5,11 +5,11 @@
     1. (可选, 非致命) 生成 flutter_rust_bridge 绑定。仓库已提交绑定
        (lib/src/rust/frb_generated.dart + rust/src/frb_generated.rs),
        若 codegen 可用则刷新, 失败则回退到已提交绑定, 不阻断构建。
-    2. 编译 Rust 核心为 Windows cdylib -> liuguang_core.dll  (不依赖 Android NDK)
+    2. 编译 Rust 核心为 Windows cdylib -> fanqieduanwan_core.dll  (不依赖 Android NDK)
     3. 生成 Flutter Windows 运行器 (若缺失) 并构建 release/debug
-    4. 将 liuguang_core.dll 放到 FRB 期望的位置:
-         <Release>/liuguang_core.dll                        (兜底)
-         <Release>/rust/target/release/liuguang_core.dll    (匹配 frb ioDirectory)
+    4. 将 fanqieduanwan_core.dll 放到 FRB 期望的位置:
+         <Release>/fanqieduanwan_core.dll                        (兜底)
+         <Release>/rust/target/release/fanqieduanwan_core.dll    (匹配 frb ioDirectory)
 
   与 scripts/build_rust_backend.ps1 的区别:
     原脚本在 -HostLib 分支之前就硬校验 Android NDK，纯桌面构建被迫装 NDK。
@@ -76,7 +76,7 @@ catch {
 # --------------------------------------------------------------------------
 # 2) Rust core cdylib (Windows MSVC, no NDK)
 # --------------------------------------------------------------------------
-Write-Host '==> building liuguang_core cdylib (x86_64-pc-windows-msvc) ...'
+Write-Host '==> building fanqieduanwan_core cdylib (x86_64-pc-windows-msvc) ...'
 rustup target add x86_64-pc-windows-msvc
 Push-Location -LiteralPath (Join-Path $AppDir 'rust')
 try {
@@ -89,9 +89,9 @@ try {
 }
 finally { Pop-Location }
 
-$DllSrc = Join-Path $AppDir "rust/target/$CargoProfile/liuguang_core.dll"
+$DllSrc = Join-Path $AppDir "rust/target/$CargoProfile/fanqieduanwan_core.dll"
 if (-not (Test-Path -LiteralPath $DllSrc)) {
-    throw "liuguang_core.dll not found at $DllSrc"
+    throw "fanqieduanwan_core.dll not found at $DllSrc"
 }
 
 # --------------------------------------------------------------------------
@@ -113,7 +113,7 @@ Invoke-NativeCommand -Exe 'flutter' `
 
 # --------------------------------------------------------------------------
 # 4) place the native core where FRB expects it
-#    frb_generated.dart: ExternalLibraryLoaderConfig(stem:'liuguang_core',
+#    frb_generated.dart: ExternalLibraryLoaderConfig(stem:'fanqieduanwan_core',
 #      ioDirectory:'rust/target/release/')  -> 相对 exe 目录解析
 # --------------------------------------------------------------------------
 $DllDst = Join-Path $AppDir "build/windows/x64/runner/$FlutterOut"
@@ -126,6 +126,6 @@ Copy-Item -Force -LiteralPath $DllSrc -Destination $DllDst
 $DllDstIo = Join-Path $DllDst 'rust/target/release'
 New-Item -ItemType Directory -Path $DllDstIo -Force | Out-Null
 Copy-Item -Force -LiteralPath $DllSrc -Destination $DllDstIo
-Write-Host "==> copied liuguang_core.dll -> $DllDst and $DllDstIo"
+Write-Host "==> copied fanqieduanwan_core.dll -> $DllDst and $DllDstIo"
 
 Write-Host 'BUILD DONE'

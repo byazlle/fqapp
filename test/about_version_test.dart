@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/pages/about_page.dart';
+import 'package:fanqieduanwan/pages/about_page.dart';
 
 /// The about page shows a static version string (no package_info dependency),
 /// so this guard keeps it from silently drifting away from pubspec.yaml after

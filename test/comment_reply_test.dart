@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/comment_reply.dart';
+import 'package:fanqieduanwan/models/comment_reply.dart';
 
 /// Recorded from a live `/api/v1/comments/{id}/replies` response. The body sits
 /// under `Common` with a capital C.

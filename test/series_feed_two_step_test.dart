@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:liuguang/services/api_client.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
 
 /// 官方短剧 feed 是两段接口：`bookapi/bookmall/tab` 只给出这个 tab 的 cell
 /// （`cell_id_str`）和 session，卡片本体由 `bookapi/bookmall/cell/change` 返回

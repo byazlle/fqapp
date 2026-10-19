@@ -1,4 +1,4 @@
-# 流光（Liuguang）开发者文档（Windows 版）
+# 番茄端碗（FanqieDuanwan）开发者文档（Windows 版）
 
 面向构建、修改和调试本项目的开发者。用户使用说明见 [README.md](README.md)。
 
@@ -46,8 +46,8 @@
                         │ flutter_rust_bridge (FFI)
                         ▼
               ┌───────────────────────────┐
-              │    Rust 核心 liuguang_core    │
-              │    liuguang_core.dll (Windows)│
+              │    Rust 核心 fanqieduanwan_core    │
+              │    fanqieduanwan_core.dll (Windows)│
               │ 签名 · 解密 · 设备池 · 分发器│
               └──────┬─────────────┬──────┘
                      │             │
@@ -59,7 +59,7 @@
 
 ### 数据流
 
-1. **启动**：`main.dart` → `BackendService.start()` 将配置、过滤器、Web 页面及其 CSS/字体、插件部署到应用私有目录 → 通过 flutter_rust_bridge 在进程内初始化 Rust 核心（`liuguang_core.dll`）→ 轮询 `/health` 直到 200。核心没有独立进程，也不再有 Kotlin/JNI 桥或桌面可执行文件。
+1. **启动**：`main.dart` → `BackendService.start()` 将配置、过滤器、Web 页面及其 CSS/字体、插件部署到应用私有目录 → 通过 flutter_rust_bridge 在进程内初始化 Rust 核心（`fanqieduanwan_core.dll`）→ 轮询 `/health` 直到 200。核心没有独立进程，也不再有 Kotlin/JNI 桥或桌面可执行文件。
 2. **请求**：UI 页面 → `ApiClient` → `BackendTransport`（默认 `RustBackendTransport`，经 flutter_rust_bridge 直调 Rust 分发器；Web/测试用 loopback HTTP）→ 同一 Rust 分发器完成签名（Argus551）、设备池管理、请求上游、解密内容 → 返回归一化 JSON。
 3. **存储**：历史和阅读时长走 `LibraryStore`（Hive）。
 4. **桌面播放**：视频/听书播放走 media_kit（libmpv）。桌面没有 Android 的 ExoPlayer 原生宿主，由 Rust 核心 loopback 的 `/media/play` 端点按 Range 回源、边下边解密，再交给 libmpv 渲染。
@@ -69,7 +69,7 @@
 ## 项目结构
 
 ```
-liuguang/  (仓库 slug 仍为 byazlle/fqapp)
+fanqieduanwan/  (仓库 slug 仍为 byazlle/fqapp)
 ├── lib/                             # Flutter UI、模型和本地状态
 │   ├── main.dart                    # AppBootstrap + RootShell（宽屏自适应导航）
 │   ├── models/                      # 数据模型与响应解析
@@ -79,7 +79,7 @@ liuguang/  (仓库 slug 仍为 byazlle/fqapp)
 │   ├── widgets/                     # 按界面分组的组件与通用组件
 │   │   └── brand/glass.dart         # 玻璃拟态基元：背景、玻璃面板、品牌标记
 │   └── src/rust/                    # FRB 生成绑定
-├── rust/                            # liuguang_core 源码、协议夹具和 Rust 测试
+├── rust/                            # fanqieduanwan_core 源码、协议夹具和 Rust 测试
 ├── native/                          # CENC 流式 C 解密库、FFI 与 CMake
 ├── assets/                          # 配置示例、Web UI、插件、图片和动画
 │   └── branding/                    # 品牌母版图与图标生成说明
@@ -92,11 +92,11 @@ liuguang/  (仓库 slug 仍为 byazlle/fqapp)
 └── pubspec.yaml                     # Flutter 版本、依赖与资源声明
 ```
 
-> **仓库不含原生二进制**：`liuguang_core.dll` 和 `libshortplay_crypto`（C 解密库）均被 Git 忽略。
+> **仓库不含原生二进制**：`fanqieduanwan_core.dll` 和 `libshortplay_crypto`（C 解密库）均被 Git 忽略。
 > 前者由 `rust/` 中的 Rust 源码经 `scripts/build_rust_backend.*` 重建为 Windows cdylib；
 > C 解密库在编译 Rust 核心时一并编入核心，桌面不再有独立的 `.so`/`.dll` 解密库文件。
 >
-> 体积参考：Rust 核心 Windows release 产物 `liuguang_core.dll` 的实测大小见 CI 产物报告（约 5–6 MiB）。
+> 体积参考：Rust 核心 Windows release 产物 `fanqieduanwan_core.dll` 的实测大小见 CI 产物报告（约 5–6 MiB）。
 
 ---
 
@@ -108,10 +108,10 @@ liuguang/  (仓库 slug 仍为 byazlle/fqapp)
 |---|---|---|
 | Flutter | 3.44.6 (stable) | 构建 App |
 | Dart SDK | 3.12+ | 随 Flutter |
-| Rust | stable (cargo/rustc) | 编译原生核心 `liuguang_core`（Windows cdylib） |
+| Rust | stable (cargo/rustc) | 编译原生核心 `fanqieduanwan_core`（Windows cdylib） |
 | flutter_rust_bridge | 2.13.0 | 生成 Flutter/Rust 绑定 |
 | Visual Studio (MSVC) | 含「使用 C++ 的桌面开发」 | 编译 Rust 核心与 C 解密库（MSVC 工具链） |
-| Inno Setup 6 | 最新 | 打包 `liuguang-setup-x64.exe` 安装程序 |
+| Inno Setup 6 | 最新 | 打包 `fanqieduanwan-setup-x64.exe` 安装程序 |
 | VC++ 运行库 | 2015–2022 | libmpv 依赖，由安装程序一并部署 |
 
 > Windows 下推荐用 Visual Studio Installer 安装 MSVC v143 工具集与 Windows 10/11 SDK。
@@ -119,9 +119,9 @@ liuguang/  (仓库 slug 仍为 byazlle/fqapp)
 
 ### 1. 编译 Rust 原生核心
 
-`rust/` 是产品唯一的后端实现（crate `liuguang_core`）。构建脚本会先用
+`rust/` 是产品唯一的后端实现（crate `fanqieduanwan_core`）。构建脚本会先用
 `flutter_rust_bridge_codegen generate --config-file flutter_rust_bridge.yaml` 生成 Dart/Rust 绑定，
-再用 MSVC 工具链编译为 Windows cdylib `liuguang_core.dll`，供 Flutter 通过 FFI 在进程内加载。
+再用 MSVC 工具链编译为 Windows cdylib `fanqieduanwan_core.dll`，供 Flutter 通过 FFI 在进程内加载。
 
 Windows PowerShell：
 
@@ -136,7 +136,7 @@ Linux / macOS（仅交叉验证绑定或核心逻辑，不产出 Windows 安装�
 ```
 
 常用开关：`-SkipCodegen` 跳过绑定生成（绑定已是最新时），`-HostLib` 额外构建桌面 cdylib，
-`-Profile debug` 选择 debug 配置。`-HostLib` 在 Windows 上即编译 `liuguang_core.dll`。
+`-Profile debug` 选择 debug 配置。`-HostLib` 在 Windows 上即编译 `fanqieduanwan_core.dll`。
 
 `rust/testdata/` 的黄金向量由维护者的离线对照环境生成后随仓库分发；
 正常构建与 CI 不依赖任何私有检出，也不需要额外的外部工具链。
@@ -149,7 +149,7 @@ Linux / macOS（仅交叉验证绑定或核心逻辑，不产出 Windows 安装�
 ### 2. 构建加密播放库
 
 `native/` 提供自行实现的 CENC MP4 流式解密核心，作为 Rust 核心的一部分在 Windows 上编译进
-`liuguang_core.dll`，支持边读边解密与拖动，不再需要下载外部预编译 crypto 库。
+`fanqieduanwan_core.dll`，支持边读边解密与拖动，不再需要下载外部预编译 crypto 库。
 
 实现范围、支持的 MP4 格式、主机回归和设备验证边界见 [C 库说明](native/README.md)。
 
@@ -162,10 +162,10 @@ Linux / macOS（仅交叉验证绑定或核心逻辑，不产出 Windows 安装�
 ```
 
 产物为 `build/windows/x64/runner/Release/` 下的运行时，经 InnoSetup 打包为
-`liuguang-setup-x64.exe`（位于仓库根的 artifact 输出目录）。脚本会自动：
+`fanqieduanwan-setup-x64.exe`（位于仓库根的 artifact 输出目录）。脚本会自动：
 
 1. 生成 FRB 绑定；
-2. 用 MSVC 编译 `liuguang_core.dll` 与 C 解密库；
+2. 用 MSVC 编译 `fanqieduanwan_core.dll` 与 C 解密库；
 3. `flutter build windows --release`；
 4. 下载并随包附带 VC++ 2015–2022 运行库（已装则跳过）；
 5. 调用 Inno Setup 生成安装程序。
@@ -174,7 +174,7 @@ Linux / macOS（仅交叉验证绑定或核心逻辑，不产出 Windows 安装�
 
 打开仓库 **Actions → Build Windows (cloud)**，点击 **Run workflow** 即可从源码构建；
 `master` 上的应用、原生库及构建配置变更也会自动触发。运行成功后，在该次运行的 **Artifacts**
-中下载 `liuguang-windows-setup`（含 `liuguang-setup-x64.exe`）。
+中下载 `fanqieduanwan-windows-setup`（含 `fanqieduanwan-setup-x64.exe`）。
 
 [工作流](.github/workflows/build-windows.yml) 固定 Flutter `3.44.6`、Rust 工具链与
 flutter_rust_bridge `2.13.0`。Rust 核心与 C 解密库都会在 runner 上编译；原生加密库对齐检查
@@ -191,7 +191,7 @@ flutter_rust_bridge `2.13.0`。Rust 核心与 C 解密库都会在 runner 上编
 
 ### 4. 安装运行
 
-双击 `liuguang-setup-x64.exe` 按向导安装（会自动部署 VC++ 运行库依赖），从开始菜单或桌面快捷方式启动。
+双击 `fanqieduanwan-setup-x64.exe` 按向导安装（会自动部署 VC++ 运行库依赖），从开始菜单或桌面快捷方式启动。
 
 首次启动：App 将运行时资源部署到应用私有目录，通过 flutter_rust_bridge 初始化 Rust 原生核心，
 健康检查通过后进入主界面。已有缓存时也可在启动页面直接进入离线阅读。
@@ -205,7 +205,7 @@ flutter_rust_bridge `2.13.0`。Rust 核心与 C 解密库都会在 runner 上编
 1. 将 `config.json`、`filter.json`、`device_pool.example.json` 部署到应用私有目录 `files/backend/config/`。
 2. 首次启动时用示例初始化 `device_pool.json`；以后保留后端注册并保存的实际设备池。
 3. 从 Flutter 资源清单枚举并部署全部 `filters/`、`web/`、`plugins/` 文件，包含 CSS 和字体。内容变更时替换旧资源。
-4. 运行时资源不含任何可执行后端二进制；Rust 核心以 `liuguang_core.dll` 随 Windows 构建打包，在进程内加载。
+4. 运行时资源不含任何可执行后端二进制；Rust 核心以 `fanqieduanwan_core.dll` 随 Windows 构建打包，在进程内加载。
 
 ### 启动流程（`BackendService.start`）
 
@@ -225,7 +225,7 @@ await rust.init(
 
 Android 上 `untrusted_app` SELinux 域禁止执行 `app_data_file` 下的二进制，因此核心始终采用
 「共享库 + 进程内加载」形态。Windows 没有这一限制，但本项目为跨平台一致仍采用同一形态：
-`liuguang_core.dll` 由 Flutter 通过 flutter_rust_bridge 的 FFI 在进程内加载，不存在独立的后端可执行文件。
+`fanqieduanwan_core.dll` 由 Flutter 通过 flutter_rust_bridge 的 FFI 在进程内加载，不存在独立的后端可执行文件。
 
 安装 MSVC 工具链后运行 Rust 构建脚本即可生成核心库：
 
@@ -275,7 +275,7 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 其他显式状态码或 `success=false` 视为错误。
 
 **小说插图**：`ApiClient.chapterContent` 优先读取 v1 图文接口，失败时回退原纯文字正文。完整插图支持由 Rust 核心
-`rust/src/endpoints/base.rs` 的解密实现提供，改动后运行 `scripts/build_rust_backend.ps1` 重建 `liuguang_core.dll`；
+`rust/src/endpoints/base.rs` 的解密实现提供，改动后运行 `scripts/build_rust_backend.ps1` 重建 `fanqieduanwan_core.dll`；
 上游的 `c=1` 是加密标志，密文来自 JSON `data.content`。核心没有解密成功标记时，客户端回退文字。
 该行为由 `rust/testdata/` 的离线黄金向量夹具保证一致。
 
@@ -388,7 +388,7 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 ### 我的（`mine_page.dart`）
 - 服务状态（健康检查）
 - 后端地址展示
-- 设置 → 关于：版本、源代码与反馈入口（流光当前仍托管在原仓库 `byazlle/fqapp`）
+- 设置 → 关于：版本、源代码与反馈入口（番茄端碗当前仍托管在原仓库 `byazlle/fqapp`）
 
 ---
 
@@ -396,16 +396,16 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 
 ### 1. 原生库与验证
 
-- Rust 核心编译为 `liuguang_core.dll` 并在进程内加载。先运行 `scripts/build_rust_backend.ps1 -HostLib` 生成核心库；
+- Rust 核心编译为 `fanqieduanwan_core.dll` 并在进程内加载。先运行 `scripts/build_rust_backend.ps1 -HostLib` 生成核心库；
   黄金向量夹具随 `rust/testdata/` 分发，不参与构建。
-- 加密播放使用 `native/` 中的 C 源码，随 Rust 核心在 Windows 上编译进 `liuguang_core.dll`。
+- 加密播放使用 `native/` 中的 C 源码，随 Rust 核心在 Windows 上编译进 `fanqieduanwan_core.dll`。
 - 生成核心库后构建 Windows 安装包，再用目标机验证 `/health`、搜索、阅读和加密视频播放。
 
 ### 2. 调试技巧
 
 ```powershell
 # 查看后端日志（App 写入应用私有目录）
-# 路径形如 %APPDATA%\byazlle\Liuguang\logs\app.log ；可用设置 → 服务 → 日志 直接查看
+# 路径形如 %APPDATA%\byazlle\FanqieDuanwan\logs\app.log ；可用设置 → 服务 → 日志 直接查看
 # 端口转发测试（核心起来后）
 curl http://127.0.0.1:8080/health
 
@@ -427,7 +427,7 @@ flutter logs
 
 ## 开发计划
 
-- [x] **Rust 原生核心**：`liuguang_core` → `liuguang_core.dll` → flutter_rust_bridge 进程内调用（替代 Go/Kotlin JNI）
+- [x] **Rust 原生核心**：`fanqieduanwan_core` → `fanqieduanwan_core.dll` → flutter_rust_bridge 进程内调用（替代 Go/Kotlin JNI）
 - [x] 小说搜索、目录、正文、章节/滚动位置续读
 - [x] 短剧目录归一化、自动连播、播放进度续看
 - [x] 首页真实推荐接口（`/api/v1/recommend/homepage`）

@@ -1,5 +1,5 @@
 # =============================================================================
-# 流光 - Windows 桌面版云端自动构建 (GitHub Actions, 免费 Windows runner)
+# 番茄端碗 - Windows 桌面版云端自动构建 (GitHub Actions, 免费 Windows runner)
 # -----------------------------------------------------------------------------
 # 触发方式:
 #   1. 手动: Actions 页 -> "Build Windows (cloud)" -> Run workflow
@@ -7,7 +7,7 @@
 #   3. 推送 master 且改动涉及 rust/lib/pubspec/scripts 等 (见下方 paths)
 #
 # 产物:
-#   - 每次运行在 "Artifacts" 里提供 liuguang-setup-x64.exe (可直接下载安装)
+#   - 每次运行在 "Artifacts" 里提供 fanqieduanwan-setup-x64.exe (可直接下载安装)
 #   - 打 tag 时额外在 Releases 页发布同一安装包
 #
 # 说明:
@@ -140,8 +140,8 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
         with:
-          name: liuguang-windows-setup
-          path: '**/liuguang-setup-x64.exe'
+          name: fanqieduanwan-windows-setup
+          path: '**/fanqieduanwan-setup-x64.exe'
           if-no-files-found: error
 
       # 计算安装包 SHA256，写入 Release 说明并附带校验文件，便于用户核对下载
@@ -151,8 +151,8 @@ jobs:
         shell: pwsh
         run: |
           $ver = (Select-String -Path pubspec.yaml -Pattern '^version:\s*([\d.]+)').Matches.Groups[1].Value
-          $exe = Get-ChildItem -Recurse -Filter liuguang-setup-x64.exe | Select-Object -First 1
-          if (-not $exe) { throw '找不到 liuguang-setup-x64.exe' }
+          $exe = Get-ChildItem -Recurse -Filter fanqieduanwan-setup-x64.exe | Select-Object -First 1
+          if (-not $exe) { throw '找不到 fanqieduanwan-setup-x64.exe' }
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
           $size = '{0:N1} MB' -f ($exe.Length / 1MB)
           # 若仓库带 CHANGELOG.md，取出本 tag 对应的小节拼进 Release 说明。
@@ -173,7 +173,7 @@ jobs:
             }
           }
           $body = New-Object System.Collections.Generic.List[string]
-          $body.Add("## 流光 $ver")
+          $body.Add("## 番茄端碗 $ver")
           $body.Add("")
           if ($changelog) {
             $body.Add($changelog)
@@ -181,18 +181,18 @@ jobs:
           }
           $body.Add("### 安装包")
           $body.Add("")
-          $body.Add("- 文件：liuguang-setup-x64.exe（$size）")
+          $body.Add("- 文件：fanqieduanwan-setup-x64.exe（$size）")
           $body.Add("- SHA256：$hash")
           $body.Add("")
           $body.Add("下载后在 PowerShell 中校验：")
           $body.Add("")
           $body.Add('```powershell')
-          $body.Add('Get-FileHash .\liuguang-setup-x64.exe -Algorithm SHA256')
+          $body.Add('Get-FileHash .\fanqieduanwan-setup-x64.exe -Algorithm SHA256')
           $body.Add('```')
           $body.Add("")
           $body.Add("输出应与上方 SHA256 一致。")
           $body -join "`n" | Out-File -FilePath release-notes.md -Encoding utf8
-          "$hash  liuguang-setup-x64.exe" | Out-File -FilePath SHA256SUMS.txt -Encoding ascii
+          "$hash  fanqieduanwan-setup-x64.exe" | Out-File -FilePath SHA256SUMS.txt -Encoding ascii
           Write-Host "SHA256=$hash"
 
       - name: Create GitHub Release (on tag)
@@ -200,7 +200,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            **/liuguang-setup-x64.exe
+            **/fanqieduanwan-setup-x64.exe
             SHA256SUMS.txt
           body_path: release-notes.md
 
@@ -249,6 +249,6 @@ jobs:
       - name: Upload raw ARM64 build (if produced)
         uses: actions/upload-artifact@v4
         with:
-          name: liuguang-windows-arm64-raw
+          name: fanqieduanwan-windows-arm64-raw
           path: build/windows/**/runner/Release/**
           if-no-files-found: warn

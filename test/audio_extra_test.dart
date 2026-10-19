@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/audio_extra.dart';
+import 'package:fanqieduanwan/models/audio_extra.dart';
 
 void main() {
   group('AudioToneSet', () {

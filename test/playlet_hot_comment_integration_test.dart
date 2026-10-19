@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/widgets/video_player_chrome.dart';
-import 'package:liuguang/models/playlet_comment.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/widgets/video_player_chrome.dart';
+import 'package:fanqieduanwan/models/playlet_comment.dart';
 
 import 'support/fakes.dart';
 import 'package:flutter/material.dart';

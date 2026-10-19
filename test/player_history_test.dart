@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/services/player_history.dart';
+import 'package:fanqieduanwan/services/player_history.dart';
 
 import 'support/controlled_player.dart';
 

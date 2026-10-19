@@ -1,4 +1,4 @@
-// liuguang_core - the Rust native core for the Liuguang desktop client.
+// fanqieduanwan_core - the Rust native core for the FanqieDuanwan desktop client.
 //
 // NOTE: flutter_rust_bridge must be able to find its generated module
 // declaration in this file; it is declared explicitly below so code generation

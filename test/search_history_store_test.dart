@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/services/search_history_store.dart';
+import 'package:fanqieduanwan/services/search_history_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1172,6 +1172,24 @@ class _DramaPageState extends ConsumerState<DramaPage>
     }
   }
 
+  /// 翻一页：右侧按钮与鼠标滚轮共用。越界不动，避免把 PageView 拖到
+  /// 空白页上（`itemCount` 之外没有卡片）。
+  void _pageBy(int delta) {
+    if (!_pages.hasClients) return;
+    final items = _visibleItems(ref.read(dramaProvider));
+    if (items.length < 2) return;
+    final current = (_pages.page ?? _pages.initialPage.toDouble()).round();
+    final target = (current + delta).clamp(0, items.length - 1);
+    if (target == current) return;
+    unawaited(
+      _pages.animateToPage(
+        target,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dramaProvider);
@@ -1187,7 +1205,8 @@ class _DramaPageState extends ConsumerState<DramaPage>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: lightPage ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: Scaffold(
-        backgroundColor: lightPage ? Colors.white : Colors.black,
+        // 浅色页不再铺纯白：让壳层的品牌液态底透上来，与首页/书架同一套底色。
+        backgroundColor: lightPage ? Colors.transparent : Colors.black,
         body: Stack(
           children: [
             Positioned.fill(
@@ -1267,9 +1286,9 @@ class _DramaPageState extends ConsumerState<DramaPage>
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Color(0xFFFFF3E6),
-                            Color(0xFFFFFFFF),
-                            Color(0x00FFFFFF),
+                            Color(0xE6FDF7F2),
+                            Color(0x99FDF7F2),
+                            Color(0x00FDF7F2),
                           ],
                           stops: [0.0, 0.5, 1.0],
                         ),
@@ -1290,6 +1309,20 @@ class _DramaPageState extends ConsumerState<DramaPage>
                   onSearch: _openSearch,
                   // 官方浅色页（看剧/漫剧）的顶栏换浅肤：深色字 + 浅灰搜索框。
                   light: lightPage,
+                ),
+              ),
+            // 右侧悬浮翻页：桌面用户没有「上滑」这个动作，鼠标滚轮在
+            // 吸附物理下也常常只是抖一下就回弹，所以给两个明确的按钮。
+            if (isVideoFlow && items.length > 1)
+              Positioned(
+                right: 10,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: _FeedPager(
+                    onPrev: () => _pageBy(-1),
+                    onNext: () => _pageBy(1),
+                  ),
                 ),
               ),
             // 「上滑查看更多视频」：官方挂在全屏容器上、`gravity=bottom|center`
@@ -1337,37 +1370,52 @@ class _DramaPageState extends ConsumerState<DramaPage>
       return _GridMessage(key: Key('$gridKey.empty'), message: '暂无内容');
     }
     final bottomInset = _effectiveBottomInset(context);
-    return NotificationListener<ScrollNotification>(
-      onNotification: _onGridScroll,
-      child: GridView.builder(
-        key: Key(gridKey),
-        padding: EdgeInsets.fromLTRB(
-          12,
-          MediaQuery.paddingOf(context).top +
-              _searchRowHeight +
-              _stripHeight +
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 列数按「每张卡的目标宽度」推算，而不是钉死 2/3 列：把窗口拉大时
+        // 应该多放几张，而不是把两张海报放大到糊满整屏。上限 8 列，避免
+        // 超宽屏出现一排拇指大的封面。
+        final usable = (constraints.maxWidth - 24).clamp(120.0, 6000.0);
+        final target = columns == 3 ? 172.0 : 208.0;
+        final fitted = (usable / target).floor().clamp(columns, 8);
+        const gap = 10.0;
+        final cardWidth = (usable - gap * (fitted - 1)) / fitted;
+        // 海报按 3:4 出图，文字区固定高度，宽高比随之算出来——固定 0.56
+        // 在窄卡上会把片名挤成省略号，在宽卡上又留一片空白。
+        final textHeight = titleMaxLines == 2 ? 56.0 : 46.0;
+        final ratio = cardWidth / (cardWidth * 1.30 + textHeight);
+        return NotificationListener<ScrollNotification>(
+          onNotification: _onGridScroll,
+          child: GridView.builder(
+            key: Key(gridKey),
+            padding: EdgeInsets.fromLTRB(
               12,
-          12,
-          bottomInset + 20,
-        ),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 16,
-          // 海报约 5:7 + 片名 + 「分类·集数」；两列格片名可占两行。
-          childAspectRatio: columns == 2 ? 0.56 : 0.52,
-        ),
-        itemCount: items.length,
-        itemBuilder: (context, index) => _BrowseCard(
-          key: ValueKey('$gridKey.${items[index].id}'),
-          item: items[index],
-          titleMaxLines: titleMaxLines,
-          // 官方网格卡点击 = 直接进播放页（cv2/c.java:371-376 →
-          // openShortSeriesActivity → ShortSeriesActivity 沉浸播放器），
-          // 不经过详情页；详情是播放页里的入口。
-          onTap: () => unawaited(_openPlayer(items[index])),
-        ),
-      ),
+              MediaQuery.paddingOf(context).top +
+                  _searchRowHeight +
+                  _stripHeight +
+                  12,
+              12,
+              bottomInset + 20,
+            ),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: fitted,
+              crossAxisSpacing: gap,
+              mainAxisSpacing: 18,
+              childAspectRatio: ratio,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) => _BrowseCard(
+              key: ValueKey('$gridKey.${items[index].id}'),
+              item: items[index],
+              titleMaxLines: titleMaxLines,
+              // 官方网格卡点击 = 直接进播放页（cv2/c.java:371-376 →
+              // openShortSeriesActivity → ShortSeriesActivity 沉浸播放器），
+              // 不经过详情页；详情是播放页里的入口。
+              onTap: () => unawaited(_openPlayer(items[index])),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -4477,5 +4525,71 @@ class _LocalListState extends State<_LocalList> {
     if (total == null && !hasSeen) return null;
     if (total == null) return '$seen集';
     return '$seen集/$total集';
+  }
+}
+
+
+/// 短剧 feed 右侧的上一页/下一页悬浮按钮。
+///
+/// 压在视频上，所以用半透明黑底 + 白描边，任何画面都能看清；按下时轻微
+/// 缩小，给出「点到了」的反馈。
+class _FeedPager extends StatelessWidget {
+  const _FeedPager({required this.onPrev, required this.onNext});
+
+  final VoidCallback onPrev;
+  final VoidCallback onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _button(
+            key: const Key('drama_feed_prev'),
+            tooltip: '上一页',
+            icon: LucideIcons.chevron_up,
+            onTap: onPrev,
+          ),
+          Container(
+            width: 18,
+            height: 1,
+            color: Colors.white.withValues(alpha: 0.18),
+          ),
+          _button(
+            key: const Key('drama_feed_next'),
+            tooltip: '下一页',
+            icon: LucideIcons.chevron_down,
+            onTap: onNext,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _button({
+    required Key key,
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        key: key,
+        onTap: onTap,
+        radius: 20,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Icon(icon, size: 20, color: Colors.white),
+        ),
+      ),
+    );
   }
 }

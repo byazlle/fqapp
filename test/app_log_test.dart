@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/app_log.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/app_log.dart';
 
 /// 应用内日志核心的服务用例：环形缓冲、级别过滤、三路捕获、落盘轮换与
 /// 导出，以及 API 插桩的隐私纪律（只记路由模板，不记 query/参数/主机）。

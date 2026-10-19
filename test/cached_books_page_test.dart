@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/cached_books_page.dart';
-import 'package:liuguang/pages/reader_page.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/cached_books_page.dart';
+import 'package:fanqieduanwan/pages/reader_page.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
 
 import 'support/fakes.dart';
 

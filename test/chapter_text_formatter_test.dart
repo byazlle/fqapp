@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
 
 void main() {
   test(

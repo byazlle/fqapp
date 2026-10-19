@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/widgets/player/story_player_panel.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/widgets/player/story_player_panel.dart';
 
 /// F06 选集格子的状态、文案与角标用例。
 ///

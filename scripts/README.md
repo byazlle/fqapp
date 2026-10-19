@@ -2,7 +2,7 @@
 
 除单独注明工作目录外，下列命令从仓库根目录执行。脚本路径被 CI、Gradle 或测试引用；调整位置时同时更新调用方。
 
-> **当前发布目标**：流光只出 Windows 桌面安装包（`liuguang-setup-x64.exe`），日常构建入口是 `build_windows.ps1`——它跳过 Android NDK，只产出 `liuguang_core.dll`。表中 Android 相关条目（`verify_android_apk.py`、`check_native_alignment.cjs`、`check_so_freshness.cjs` 及 `build_rust_backend.*` 的交叉编译分支）属于历史目标，`android/` 已于 v0.9.123 移除；保留它们只为归档旧产物时仍可校验。
+> **当前发布目标**：流光只出 Windows 桌面安装包（`fanqieduanwan-setup-x64.exe`），日常构建入口是 `build_windows.ps1`——它跳过 Android NDK，只产出 `fanqieduanwan_core.dll`。表中 Android 相关条目（`verify_android_apk.py`、`check_native_alignment.cjs`、`check_so_freshness.cjs` 及 `build_rust_backend.*` 的交叉编译分支）属于历史目标，`android/` 已于 v0.9.123 移除；保留它们只为归档旧产物时仍可校验。
 
 ## 常用入口
 
@@ -12,7 +12,7 @@
 | [run_rust_host_tests.ps1](run_rust_host_tests.ps1) / [.sh](run_rust_host_tests.sh) | 构建宿主核心，运行真实 Dart → FRB → Rust 集成测试 | Rust、Flutter；使用本地 Mock 上游和临时运行目录 |
 | [verify_android_apk.py](verify_android_apk.py) | 检查 APK 签名、库、版本、资源及 16 KiB 对齐 | Python 3、Android Build-Tools；报告目录由参数指定 |
 | [check_native_alignment.cjs](check_native_alignment.cjs) | 检查一个或多个 ARM64 ELF 库的 LOAD 段对齐 | Node.js；只读取指定 `.so` |
-| [check_so_freshness.cjs](check_so_freshness.cjs) | 打版前检查 `libliuguang_core.so` 是否比 `rust/` 的最新改动新（判据 CRIT-011） | Node.js、git；只读取文件时间与 git 历史 |
+| [check_so_freshness.cjs](check_so_freshness.cjs) | 打版前检查 `libfanqieduanwan_core.so` 是否比 `rust/` 的最新改动新（判据 CRIT-011） | Node.js、git；只读取文件时间与 git 历史 |
 | [verify_audio_cenc.cjs](verify_audio_cenc.cjs) | 检查播放响应和加密 AAC 样本 | Node.js；会按响应中的地址有限下载 HTTPS 音频，属于在线诊断 |
 | [generate_brand_assets.py](generate_brand_assets.py) | 从品牌源图生成 Windows 图标、应用内 Logo、favicon 与安装向导配图 | Python 3、Pillow；修改已提交图片，普通构建直接使用现有图片 |
 
@@ -68,8 +68,8 @@ python scripts/generate_brand_assets.py
 ```powershell
 flutter build apk --release --target-platform android-arm64 --no-pub
 python scripts/verify_android_apk.py --help
-node scripts/check_native_alignment.cjs android/app/src/main/jniLibs/arm64-v8a/libliuguang_core.so
-node scripts/check_so_freshness.cjs android/app/src/main/jniLibs/arm64-v8a/libliuguang_core.so --since v1.0.88
+node scripts/check_native_alignment.cjs android/app/src/main/jniLibs/arm64-v8a/libfanqieduanwan_core.so
+node scripts/check_so_freshness.cjs android/app/src/main/jniLibs/arm64-v8a/libfanqieduanwan_core.so --since v1.0.88
 ```
 
 Windows 安装包由 Inno Setup 6 生成，版本号从 `pubspec.yaml` 注入 `windows/installer.iss`，图标与向导图取自 `windows/installer/` 与 `windows/runner/resources/app_icon.ico`。

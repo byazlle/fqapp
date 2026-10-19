@@ -231,7 +231,7 @@ pub async fn dispatch(server: &Server, req: &Request) -> Response {
         }
         Err(e) => {
             // Release builds have no console; this is the only trace a
-            // business failure leaves in logcat (tag liuguang_core).
+            // business failure leaves in logcat (tag fanqieduanwan_core).
             log::warn!("api {} failed: {}", m.api, e.message());
             error_response(&e)
         }

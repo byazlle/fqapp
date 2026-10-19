@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/rank.dart';
-import 'package:liuguang/pages/rank_page.dart';
-import 'package:liuguang/services/rank_cache.dart';
+import 'package:fanqieduanwan/models/rank.dart';
+import 'package:fanqieduanwan/pages/rank_page.dart';
+import 'package:fanqieduanwan/services/rank_cache.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 RankCatalog _catalog() => RankCatalog(

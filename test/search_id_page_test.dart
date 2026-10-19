@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/search_page.dart';
-import 'package:liuguang/services/search_history_store.dart';
-import 'package:liuguang/widgets/media_card.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/search_page.dart';
+import 'package:fanqieduanwan/services/search_history_store.dart';
+import 'package:fanqieduanwan/widgets/media_card.dart';
 
 const _id = '7677801492920667198';
 

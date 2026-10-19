@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/search_discovery.dart';
-import 'package:liuguang/models/series_detail.dart';
-import 'package:liuguang/widgets/detail/detail_description.dart';
-import 'package:liuguang/widgets/detail/detail_sections.dart';
-import 'package:liuguang/widgets/search/search_discovery.dart';
+import 'package:fanqieduanwan/models/search_discovery.dart';
+import 'package:fanqieduanwan/models/series_detail.dart';
+import 'package:fanqieduanwan/widgets/detail/detail_description.dart';
+import 'package:fanqieduanwan/widgets/detail/detail_sections.dart';
+import 'package:fanqieduanwan/widgets/search/search_discovery.dart';
 
 void main() {
   testWidgets('highlighted search suggestions honor the ambient text scaler', (

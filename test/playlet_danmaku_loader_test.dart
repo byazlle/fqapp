@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/playlet_comment.dart';
-import 'package:liuguang/widgets/player/playlet_danmaku_layer.dart';
-import 'package:liuguang/widgets/player/playlet_danmaku_loader.dart';
+import 'package:fanqieduanwan/models/playlet_comment.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_danmaku_layer.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_danmaku_loader.dart';
 
 /// 调度器行为回归：预取链、seek 补数、竞态作废、重试预算与生命周期。
 /// 官方依据见 docs/validation/short-drama-danmaku-prefetch-20260927.md。

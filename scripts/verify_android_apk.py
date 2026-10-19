@@ -29,7 +29,7 @@ import zlib
 
 
 REQUIRED_LIBRARIES = {
-    "lib/arm64-v8a/libliuguang_core.so",
+    "lib/arm64-v8a/libfanqieduanwan_core.so",
     "lib/arm64-v8a/libshortplay_crypto.so",
     "lib/arm64-v8a/libflutter.so",
     "lib/arm64-v8a/libapp.so",

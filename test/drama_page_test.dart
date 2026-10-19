@@ -8,23 +8,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive/hive.dart';
 
-import 'package:liuguang/main.dart';
-import 'package:liuguang/models/channel_tab.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/models/playlet_comment.dart';
-import 'package:liuguang/models/series_detail.dart';
-import 'package:liuguang/pages/drama_page.dart';
-import 'package:liuguang/pages/player_page.dart';
-import 'package:liuguang/pages/series_detail_page.dart';
-import 'package:liuguang/pages/home_provider.dart';
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/library_store.dart';
-import 'package:liuguang/services/player_style_config.dart';
-import 'package:liuguang/services/shelf_store.dart';
-import 'package:liuguang/services/swipe_guide_store.dart';
+import 'package:fanqieduanwan/main.dart';
+import 'package:fanqieduanwan/widgets/brand/brand_nav_bar.dart';
+import 'package:fanqieduanwan/models/channel_tab.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/models/playlet_comment.dart';
+import 'package:fanqieduanwan/models/series_detail.dart';
+import 'package:fanqieduanwan/pages/drama_page.dart';
+import 'package:fanqieduanwan/pages/player_page.dart';
+import 'package:fanqieduanwan/pages/series_detail_page.dart';
+import 'package:fanqieduanwan/pages/home_provider.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
+import 'package:fanqieduanwan/services/player_style_config.dart';
+import 'package:fanqieduanwan/services/shelf_store.dart';
+import 'package:fanqieduanwan/services/swipe_guide_store.dart';
 
-import 'package:liuguang/services/digg_store.dart';
-import 'package:liuguang/widgets/video_player_chrome.dart';
+import 'package:fanqieduanwan/services/digg_store.dart';
+import 'package:fanqieduanwan/widgets/video_player_chrome.dart';
 import 'support/controlled_player.dart';
 
 MediaItem _item(
@@ -672,7 +673,7 @@ void main() {
 
     // Scoped to the bar: the home page's own category strip also has a 短剧 entry.
     Finder navLabel(String label) => find.descendant(
-      of: find.byType(NavigationBar),
+      of: find.byType(BrandNavBar),
       matching: find.text(label),
     );
 
@@ -1075,6 +1076,45 @@ void main() {
     expect(find.byKey(const Key('drama_episode_grid')), findsOneWidget);
     expect(find.byKey(const Key('drama_feed')), findsNothing);
     expect(find.text('8-0 作品'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('看剧网格按窗口宽度自动加列，不再固定两列', (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
+
+    Future<int> columnsAt(Size size) async {
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        _scope(
+          perTab: 1,
+          child: MaterialApp(
+            home: _Seams().page(
+              channelLoader: () async => const ChannelTable(
+                tabs: [
+                  ChannelTab(type: kChannelVideoFeed, title: '推荐'),
+                  ChannelTab(type: kChannelVideoEpisode, title: '看剧'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await _flush(tester);
+      await tester.tap(find.text('看剧'));
+      await _flush(tester);
+      final grid = tester.widget<GridView>(
+        find.byKey(const Key('drama_episode_grid')),
+      );
+      final delegate =
+          grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+      return delegate.crossAxisCount;
+    }
+
+    expect(await columnsAt(const Size(360, 800)), 2);
+    // 1400 宽按每卡约 208 算出 6 列：一屏能看到一整排，而不是两张巨幅海报。
+    expect(await columnsAt(const Size(1400, 900)), greaterThan(2));
     expect(tester.takeException(), isNull);
   });
 

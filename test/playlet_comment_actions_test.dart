@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/comment_reply.dart';
-import 'package:liuguang/models/playlet_comment.dart';
-import 'package:liuguang/widgets/player/playlet_comment_panel.dart';
-import 'package:liuguang/widgets/player/playlet_reply_panel.dart';
+import 'package:fanqieduanwan/models/comment_reply.dart';
+import 'package:fanqieduanwan/models/playlet_comment.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_comment_panel.dart';
+import 'package:fanqieduanwan/widgets/player/playlet_reply_panel.dart';
 
 void main() {
   const comment = PlayletComment(

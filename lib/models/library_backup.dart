@@ -13,7 +13,7 @@ class LibraryBackup {
   static const _maxEpisodes = 100000;
   /// 新导出的备份标识。更名前的旧标识仍被接受（见 [\_legacyFormats]），
   /// 否则升级后用户手里的旧备份会直接打不开。
-  static const _format = 'liuguang.library-backup';
+  static const _format = 'fanqieduanwan.library-backup';
   static const _legacyFormats = {'fqapp.library-backup'};
   static const _kinds = {'book', 'audio', 'manga', 'video', 'manju'};
   static final _idPattern = RegExp(r'^[a-zA-Z0-9_-]{1,128}$');

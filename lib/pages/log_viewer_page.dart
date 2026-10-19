@@ -288,7 +288,7 @@ class _LogViewerPageState extends State<LogViewerPage>
     final now = DateTime.now();
     try {
       final target = await widget.exportSink.saveText(
-        fileName: 'liuguang-${source.name}-logs-${now.microsecondsSinceEpoch}.txt',
+        fileName: 'fanqieduanwan-${source.name}-logs-${now.microsecondsSinceEpoch}.txt',
         text:
             '${Brand.name} ${source.label}日志\n'
             '导出时间：${now.toIso8601String()}\n'
@@ -346,7 +346,7 @@ class _LogViewerPageState extends State<LogViewerPage>
           '===== 核心日志 =====\n'
           '${rustEntries == null ? coreSummary : formatLogLines(rustEntries)}\n';
       final target = await widget.exportSink.saveText(
-        fileName: 'liuguang-all-logs-${now.microsecondsSinceEpoch}.txt',
+        fileName: 'fanqieduanwan-all-logs-${now.microsecondsSinceEpoch}.txt',
         text: text,
       );
       _message(

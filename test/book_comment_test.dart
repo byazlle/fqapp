@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/book_comment.dart';
+import 'package:fanqieduanwan/models/book_comment.dart';
 
 /// Mirrors a live `/api/v1/books/{id}/comments` response: entries carry `text`
 /// and a 0-10 integer `score`, while the page counters sit next to the list.

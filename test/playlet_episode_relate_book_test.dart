@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/services/player_style_config.dart';
-import 'package:liuguang/widgets/player/story_player_panel.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/services/player_style_config.dart';
+import 'package:fanqieduanwan/widgets/player/story_player_panel.dart';
 
 /// F06 剩余项：选集面板的**关联原著条**。
 ///

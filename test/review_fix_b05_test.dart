@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/rank.dart';
-import 'package:liuguang/pages/rank_page.dart';
+import 'package:fanqieduanwan/models/rank.dart';
+import 'package:fanqieduanwan/pages/rank_page.dart';
 
 const _catalog = RankCatalog(
   rankId: '7098235271900037133',

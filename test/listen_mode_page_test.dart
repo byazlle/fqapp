@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/listen_mode_page.dart';
-import 'package:liuguang/services/audio_preferences.dart';
-import 'package:liuguang/services/episode_source_cache.dart';
-import 'package:liuguang/services/player_preferences.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/listen_mode_page.dart';
+import 'package:fanqieduanwan/services/audio_preferences.dart';
+import 'package:fanqieduanwan/services/episode_source_cache.dart';
+import 'package:fanqieduanwan/services/player_preferences.dart';
 
 import 'support/fakes.dart';
 

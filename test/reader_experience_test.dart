@@ -5,13 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/reader_page.dart';
-import 'package:liuguang/services/chapter_text_formatter.dart';
-import 'package:liuguang/services/listening_session.dart';
-import 'package:liuguang/services/reader_preferences.dart';
-import 'package:liuguang/widgets/reader/reader_chapter_layout.dart';
-import 'package:liuguang/widgets/reader/reader_paged_view.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/reader_page.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/services/listening_session.dart';
+import 'package:fanqieduanwan/services/reader_preferences.dart';
+import 'package:fanqieduanwan/widgets/reader/reader_chapter_layout.dart';
+import 'package:fanqieduanwan/widgets/reader/reader_paged_view.dart';
 
 import 'support/fakes.dart';
 

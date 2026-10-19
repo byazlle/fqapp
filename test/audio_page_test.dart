@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/audio_extra.dart';
-import 'package:liuguang/models/chapter_media.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/audio_page.dart';
-import 'package:liuguang/services/audio_preferences.dart';
-import 'package:liuguang/services/native_player.dart';
+import 'package:fanqieduanwan/models/audio_extra.dart';
+import 'package:fanqieduanwan/models/chapter_media.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/audio_page.dart';
+import 'package:fanqieduanwan/services/audio_preferences.dart';
+import 'package:fanqieduanwan/services/native_player.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'support/controlled_player.dart';

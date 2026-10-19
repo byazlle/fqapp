@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/audio_extra.dart';
+import 'package:fanqieduanwan/models/audio_extra.dart';
 
 /// Live `/api/v1/books/7579131399576226841/tones` shape (一听入睡).
 ///

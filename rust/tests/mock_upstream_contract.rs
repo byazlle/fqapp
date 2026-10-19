@@ -6,16 +6,16 @@
 mod common;
 
 use common::{build_server, pool_json, query_map, MockReply, MockUpstream, TempDir};
-use liuguang_core::dispatch::{dispatch, Request};
-use liuguang_core::endpoints::dhcontent::set_dh_content_in_place;
-use liuguang_core::endpoints::{router, session, Params, INTERNAL_DEVICE_PIN_KEY};
-use liuguang_core::sign::Manager;
-use liuguang_core::upstream::{UpstreamClient, UpstreamRequest};
+use fanqieduanwan_core::dispatch::{dispatch, Request};
+use fanqieduanwan_core::endpoints::dhcontent::set_dh_content_in_place;
+use fanqieduanwan_core::endpoints::{router, session, Params, INTERNAL_DEVICE_PIN_KEY};
+use fanqieduanwan_core::sign::Manager;
+use fanqieduanwan_core::upstream::{UpstreamClient, UpstreamRequest};
 use num_bigint::BigUint;
 use serde_json::{json, Value};
 use std::sync::Arc;
 
-async fn server_with(dir: &TempDir, origin: &str) -> Arc<liuguang_core::endpoints::Server> {
+async fn server_with(dir: &TempDir, origin: &str) -> Arc<fanqieduanwan_core::endpoints::Server> {
     build_server(dir, Some(origin.to_string()), &[], &[], &pool_json(5)).await
 }
 
@@ -29,7 +29,7 @@ fn api_get(path: &str, query: &str) -> Request {
     }
 }
 
-async fn json_body(resp: liuguang_core::dispatch::Response) -> (u16, Value) {
+async fn json_body(resp: fanqieduanwan_core::dispatch::Response) -> (u16, Value) {
     let status = resp.status;
     let bytes = resp.into_bytes().await.expect("body");
     let value = serde_json::from_slice(&bytes).unwrap_or_else(|e| {
@@ -133,7 +133,7 @@ async fn auth_statuses_are_device_failures_and_500_is_not() {
         let upstream = MockUpstream::start(move |_| MockReply::status(status)).await;
         let dir = TempDir::new("auth");
         let origin = upstream.origin.clone();
-        let pool = liuguang_core::device::DevicePool::new(dir.join("pool.json"))
+        let pool = fanqieduanwan_core::device::DevicePool::new(dir.join("pool.json"))
             .await
             .expect("pool");
         let client =
@@ -166,7 +166,7 @@ async fn gzip_responses_are_inflated_with_and_without_the_header() {
     for with_header in [true, false] {
         let body_for_reply = payload.clone();
         let upstream = MockUpstream::start(move |_| {
-            let gz = liuguang_core::crypto::gzip(&body_for_reply);
+            let gz = fanqieduanwan_core::crypto::gzip(&body_for_reply);
             let mut reply = MockReply {
                 status: 200,
                 headers: Vec::new(),
@@ -182,7 +182,7 @@ async fn gzip_responses_are_inflated_with_and_without_the_header() {
         .await;
         let dir = TempDir::new("gzip");
         let origin = upstream.origin.clone();
-        let pool = liuguang_core::device::DevicePool::new(dir.join("pool.json"))
+        let pool = fanqieduanwan_core::device::DevicePool::new(dir.join("pool.json"))
             .await
             .expect("pool");
         let client =
@@ -345,7 +345,7 @@ fn dh_content_decrypts_a_go_generated_fixture() {
     let key = f["key_b64"].as_str().expect("key_b64");
     let cipher = f["cipher_b64"].as_str().expect("cipher_b64");
 
-    let state = liuguang_core::upstream::dh::DHState {
+    let state = fanqieduanwan_core::upstream::dh::DHState {
         a: BigUint::from(1u32),
     };
 
@@ -375,7 +375,7 @@ fn dh_content_failure_modes_fail_closed() {
     let fixture: Value = serde_json::from_str(DH_FIXTURE).expect("fixture");
     let f = &fixture["dh_content"];
     let key = f["key_b64"].as_str().unwrap();
-    let state = liuguang_core::upstream::dh::DHState {
+    let state = fanqieduanwan_core::upstream::dh::DHState {
         a: BigUint::from(1u32),
     };
 

@@ -630,7 +630,7 @@ class _SettingsPageState extends State<SettingsPage> {
   static const _cacheDirOverrideKey = 'cacheDirOverride';
 
   /// 当前生效的缓存/数据目录：若用户在设置中迁移过则取其覆盖值，
-  /// 否则为默认的应用支持目录（Windows 上即 %APPDATA%\byazlle\Liuguang）。
+  /// 否则为默认的应用支持目录（Windows 上即 %APPDATA%\byazlle\FanqieDuanwan）。
   Future<String> _activeCacheDir() async {
     final sp = await SharedPreferences.getInstance();
     final override = sp.getString(_cacheDirOverrideKey);
@@ -691,14 +691,14 @@ class _SettingsPageState extends State<SettingsPage> {
               '1. 安全迁移现有书架、历史、离线等数据到新目录；\n'
               '2. 自动重启以在新目录加载数据。\n\n'
               '注意：迁移到非默认目录后，卸载程序不会自动清除该目录；'
-              '目录内会生成 liuguang-data.txt 说明文件，便于日后识别与手动清理。',
+              '目录内会生成 fanqieduanwan-data.txt 说明文件，便于日后识别与手动清理。',
             ),
             const SizedBox(height: 10),
             TextField(
               controller: controller,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
-                hintText: '例如 D:\\LiuguangData',
+                hintText: '例如 D:\\FanqieDuanwanData',
               ),
             ),
           ],
@@ -770,7 +770,7 @@ class _SettingsPageState extends State<SettingsPage> {
       // 删除。文件本身不参与任何数据读写，只是给用户/排障一个明确标识。
       try {
         await io.File(
-          '$target${io.Platform.pathSeparator}liuguang-data.txt',
+          '$target${io.Platform.pathSeparator}fanqieduanwan-data.txt',
         ).writeAsString(
           '此目录由 ${Brand.name} 的「更改缓存位置」迁移而来，'
           '存放书架、历史、离线缓存与图片缓存。\n'

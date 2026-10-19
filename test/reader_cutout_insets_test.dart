@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/widgets/reader/reader_cutout_insets.dart';
+import 'package:fanqieduanwan/widgets/reader/reader_cutout_insets.dart';
 
 void main() {
   test('no cutout leaves existing insets untouched', () {

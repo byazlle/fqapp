@@ -7,7 +7,7 @@
 mod common;
 
 use common::TempDir;
-use liuguang_core::filter::FilterManager;
+use fanqieduanwan_core::filter::FilterManager;
 use serde_json::json;
 
 #[test]

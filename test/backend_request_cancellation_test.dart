@@ -4,8 +4,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/backend_transport.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/backend_transport.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 

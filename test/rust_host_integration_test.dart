@@ -4,12 +4,12 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/services/api_client.dart';
-import 'package:liuguang/services/backend_service.dart';
-import 'package:liuguang/services/backend_transport.dart';
-import 'package:liuguang/services/episode_source_cache.dart';
-import 'package:liuguang/src/rust/api.dart' as rust;
-import 'package:liuguang/src/rust/frb_generated.dart';
+import 'package:fanqieduanwan/services/api_client.dart';
+import 'package:fanqieduanwan/services/backend_service.dart';
+import 'package:fanqieduanwan/services/backend_transport.dart';
+import 'package:fanqieduanwan/services/episode_source_cache.dart';
+import 'package:fanqieduanwan/src/rust/api.dart' as rust;
+import 'package:fanqieduanwan/src/rust/frb_generated.dart';
 
 /// Real Dart -> flutter_rust_bridge -> Rust integration against the host build
 /// of the core, with a local mock upstream. No network, no device, no real
@@ -21,13 +21,13 @@ import 'package:liuguang/src/rust/frb_generated.dart';
 /// a device.
 
 String hostLibraryPath() {
-  final override = Platform.environment['LIUGUANG_RUST_HOST_LIB'];
+  final override = Platform.environment['FANQIE DUANWAN_RUST_HOST_LIB'];
   if (override != null && override.isNotEmpty) return override;
   final name = Platform.isWindows
       ? 'fqapi_core.dll'
       : Platform.isMacOS
-      ? 'libliuguang_core.dylib'
-      : 'libliuguang_core.so';
+      ? 'libfanqieduanwan_core.dylib'
+      : 'libfanqieduanwan_core.so';
   return 'rust/target/debug/$name';
 }
 

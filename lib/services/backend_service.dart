@@ -10,7 +10,7 @@ import 'backend_transport.dart';
 /// Manages the local backend core.
 ///
 /// The backend is the Rust native core (`rust/`, packaged as
-/// `libliuguang_core.so`). Flutter calls it over flutter_rust_bridge; the same
+/// `libfanqieduanwan_core.so`). Flutter calls it over flutter_rust_bridge; the same
 /// Rust core also serves the built-in Web UI and `/src/*` resources over a
 /// loopback HTTP adapter, which is why [baseUrl] still exists for resource
 /// resolution in `ApiClient.absoluteUrl`.

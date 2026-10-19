@@ -1,12 +1,12 @@
 [package]
-name = "liuguang_core"
+name = "fanqieduanwan_core"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "Rust native core for Liuguang (流光)"
+description = "Rust native core for FanqieDuanwan (流光)"
 
 [lib]
-name = "liuguang_core"
+name = "fanqieduanwan_core"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]

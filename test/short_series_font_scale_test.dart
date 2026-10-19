@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/services/short_series_font_scale.dart';
+import 'package:fanqieduanwan/services/short_series_font_scale.dart';
 
 /// 官方短剧字号档（jm3.t0/nm3.e/jk3）的服务用例：三档系数、档位文案、
 /// SP 持久化与越界钳制。

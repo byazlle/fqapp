@@ -5,12 +5,12 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/models/chapter_ideas.dart';
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/reader_page.dart';
-import 'package:liuguang/services/library_store.dart';
-import 'package:liuguang/services/chapter_cache_store.dart';
-import 'package:liuguang/services/chapter_text_formatter.dart';
+import 'package:fanqieduanwan/models/chapter_ideas.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/reader_page.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
+import 'package:fanqieduanwan/services/chapter_cache_store.dart';
+import 'package:fanqieduanwan/services/chapter_text_formatter.dart';
 
 import 'support/fakes.dart';
 

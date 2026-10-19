@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liuguang/models/book_comment.dart';
-import 'package:liuguang/widgets/detail/detail_reviews.dart';
-import 'package:liuguang/widgets/detail/detail_reviews_sheet.dart';
+import 'package:fanqieduanwan/models/book_comment.dart';
+import 'package:fanqieduanwan/widgets/detail/detail_reviews.dart';
+import 'package:fanqieduanwan/widgets/detail/detail_reviews_sheet.dart';
 
 void main() {
   testWidgets('DetailReviews limits preview comments to 3 and triggers onOpenAll', (

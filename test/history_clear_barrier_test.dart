@@ -4,11 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:liuguang/services/audio_history.dart';
-import 'package:liuguang/services/library_store.dart';
-import 'package:liuguang/services/media_history_store.dart';
-import 'package:liuguang/services/player_history.dart';
-import 'package:liuguang/services/reader_history.dart';
+import 'package:fanqieduanwan/services/audio_history.dart';
+import 'package:fanqieduanwan/services/library_store.dart';
+import 'package:fanqieduanwan/services/media_history_store.dart';
+import 'package:fanqieduanwan/services/player_history.dart';
+import 'package:fanqieduanwan/services/reader_history.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

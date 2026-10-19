@@ -4,11 +4,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/media_item.dart';
-import 'package:liuguang/pages/cached_dramas_page.dart';
-import 'package:liuguang/services/drama_download_store.dart';
-import 'package:liuguang/services/drama_downloader.dart';
-import 'package:liuguang/services/episode_source_cache.dart';
+import 'package:fanqieduanwan/models/media_item.dart';
+import 'package:fanqieduanwan/pages/cached_dramas_page.dart';
+import 'package:fanqieduanwan/services/drama_download_store.dart';
+import 'package:fanqieduanwan/services/drama_downloader.dart';
+import 'package:fanqieduanwan/services/episode_source_cache.dart';
 
 import 'support/fakes.dart';
 

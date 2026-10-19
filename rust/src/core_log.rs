@@ -25,7 +25,7 @@ const MAX_BYTES: u64 = 1 << 20;
 const MAX_BACKUPS: usize = 1;
 /// logcat 标签，与迁移前的 `android_logger` 配置保持一致。
 #[cfg(target_os = "android")]
-const LOGCAT_TAG: &str = "liuguang_core";
+const LOGCAT_TAG: &str = "fanqieduanwan_core";
 
 /// 追加写 + 大小轮换的日志文件。
 ///
@@ -194,7 +194,7 @@ mod tests {
     use super::*;
 
     fn temp_dir(tag: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("liuguang-core-log-{}-{tag}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("fanqieduanwan-core-log-{}-{tag}", std::process::id()));
         let _ = fs::remove_dir_all(&dir);
         dir
     }
@@ -244,7 +244,7 @@ mod tests {
         let record = Record::builder()
             .args(format_args!("boom"))
             .level(log::Level::Warn)
-            .target("liuguang_core::upstream")
+            .target("fanqieduanwan_core::upstream")
             .build();
         let line = CoreLogger::format_line(&record);
 
@@ -260,7 +260,7 @@ mod tests {
         let (tag, message) = tail.split_once(' ').expect("tag then message");
         assert_eq!(tag, "core:", "tag must be the colon-terminated literal");
         assert!(
-            message.starts_with("liuguang_core::upstream: "),
+            message.starts_with("fanqieduanwan_core::upstream: "),
             "target kept in message: {message}"
         );
         assert!(message.ends_with("boom"), "message kept: {message}");

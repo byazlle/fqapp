@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:liuguang/models/book_comment.dart';
-import 'package:liuguang/models/chapter_ideas.dart';
+import 'package:fanqieduanwan/models/book_comment.dart';
+import 'package:fanqieduanwan/models/chapter_ideas.dart';
 
 /// Shapes mirror live responses: `idea/list` returns a map keyed by paragraph
 /// index (counts and comment ids only), while the comment list returns

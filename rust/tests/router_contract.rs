@@ -3,8 +3,8 @@
 //! The expected endpoint names and injected params come from an independent
 //! fixture rather than a restatement of this crate's router implementation.
 
-use liuguang_core::endpoints::router::match_rest_path;
-use liuguang_core::endpoints::Params;
+use fanqieduanwan_core::endpoints::router::match_rest_path;
+use fanqieduanwan_core::endpoints::Params;
 
 fn pairs(values: &[(&str, &str)]) -> Params {
     Params::from_pairs(
