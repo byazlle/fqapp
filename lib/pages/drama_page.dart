@@ -1472,7 +1472,7 @@ class _DramaPageState extends ConsumerState<DramaPage>
           final onScreen = index == _screenIndex;
           // 官方在 holder 绑定时拉热评；这里只在剧首次上屏时请求一次。
           if (onScreen) unawaited(_loadFeedHotComments(item));
-          return _DramaFeedCard(
+          final card = _DramaFeedCard(
             item: item,
             bottomInset: _effectiveBottomInset(context),
             opening: _openingId == item.id,
@@ -1512,6 +1512,19 @@ class _DramaPageState extends ConsumerState<DramaPage>
                 unawaited(_openFeedComments(item, comment)),
             hotCommentActive:
                 onScreen && !_modalOpen && !_feedPanelOpen && !_paging,
+          );
+          // 非当前页的卡片轻微缩小并降低透明度，切页时由 AnimatedScale/
+          // AnimatedOpacity 平滑过渡到全尺寸，观感更像「聚焦当前一集」。
+          return AnimatedScale(
+            scale: onScreen ? 1.0 : 0.965,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            child: AnimatedOpacity(
+              opacity: onScreen ? 1.0 : 0.72,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: card,
+            ),
           );
         },
       ),
@@ -1889,8 +1902,9 @@ class _ChannelTab extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  label,
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
                   style: TextStyle(
                     fontSize: 18,
                     height: 1.1,
@@ -1901,18 +1915,30 @@ class _ChannelTab extends StatelessWidget {
                               ? const Color(0x99000000)
                               : const Color(0x99FFFFFF)),
                   ),
+                  child: Text(label),
                 ),
                 // 官方指示条：高 `app:arw` = 3dp、宽 `app:auw` = 16dp（`ap3.xml`），
-                // 在 `SlidingTabLayout.E()` 里按 tab 中心对齐。
+                // 在 `SlidingTabLayout.E()` 里按 tab 中心对齐。选中宽度/颜色用
+                // AnimatedContainer 过渡，切换频道时不再硬跳。
                 const SizedBox(height: 3),
-                Container(
-                  width: 16,
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  width: selected ? 16 : 8,
                   height: 3,
                   decoration: BoxDecoration(
                     color: selected
                         ? (light ? const Color(0xFF1B1B1B) : Colors.white)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(2),
+                    boxShadow: selected && !light
+                        ? [
+                            BoxShadow(
+                              color: Colors.white.withValues(alpha: 0.5),
+                              blurRadius: 6,
+                            ),
+                          ]
+                        : null,
                   ),
                 ),
               ],

@@ -326,6 +326,10 @@ class _RootShellState extends State<RootShell> {
   bool _backendReady = false;
   String? _backendError;
 
+  /// 宽窗侧栏是否被用户手动收起。收起后即使窗口 ≥1200 也只留图标列，
+  /// 把横向空间让给内容；选择持久化，重启后保持。
+  bool _railCollapsed = false;
+
   /// 四个一级目的地。底部药丸（窄屏/手机）与左侧导航栏（宽屏/桌面）
   /// 共用同一份定义，保证双端入口完全一致，不会各写一套而漂移。
   static const _destinations = <({IconData icon, String label})>[
@@ -344,6 +348,9 @@ class _RootShellState extends State<RootShell> {
   /// 图标下方那 11sp 的小标签里。
   static const _extendedShellBreakpoint = 1200.0;
 
+  /// 侧栏收起状态的持久化键（仅 ≥1200 的宽窗可用）。
+  static const _railCollapsedKey = 'railCollapsed';
+
   void _selectTab(int i) {
     if (i != _index) setState(() => _index = i);
   }
@@ -352,6 +359,28 @@ class _RootShellState extends State<RootShell> {
   void initState() {
     super.initState();
     _startBackend();
+    _loadRailPref();
+  }
+
+  /// 读取用户上次的侧栏收起选择；读不到就保持展开，不影响启动。
+  Future<void> _loadRailPref() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final collapsed = sp.getBool(_railCollapsedKey) ?? false;
+      if (mounted && collapsed != _railCollapsed) {
+        setState(() => _railCollapsed = collapsed);
+      }
+    } catch (_) {}
+  }
+
+  void _toggleRail() {
+    setState(() => _railCollapsed = !_railCollapsed);
+    // 持久化是尽力而为：写失败只影响下次启动的默认形态，不回滚本次交互。
+    unawaited(
+      SharedPreferences.getInstance()
+          .then((sp) => sp.setBool(_railCollapsedKey, _railCollapsed))
+          .then<void>((_) {}),
+    );
   }
 
   Future<void> _startBackend() async {
@@ -630,16 +659,20 @@ class _RootShellState extends State<RootShell> {
     required bool glassDark,
     required HomePalette palette,
   }) {
-    final extended =
+    // ≥1200 才具备「图标 + 文字」的扩展空间；用户手动收起后即使窗口够宽
+    // 也只留图标，把横向空间让给内容。
+    final naturalExtended =
         MediaQuery.sizeOf(context).width >= _extendedShellBreakpoint;
+    final extended = naturalExtended && !_railCollapsed;
     final rail = NavigationRail(
       selectedIndex: _index,
       onDestinationSelected: _selectTab,
       extended: extended,
-      // 扩展态下框架断言 labelType 只能是 none：标签由扩展形态自带。
-      labelType: extended
-          ? NavigationRailLabelType.none
-          : NavigationRailLabelType.all,
+      // 扩展态下框架断言 labelType 只能是 none：标签由扩展形态自带；
+      // 收起态同样只留图标。
+      labelType: !extended && !_railCollapsed
+          ? NavigationRailLabelType.all
+          : NavigationRailLabelType.none,
       backgroundColor: Colors.transparent,
       indicatorColor: eink
           ? Colors.black
@@ -696,15 +729,42 @@ class _RootShellState extends State<RootShell> {
           child: _floatingSurface(
             eink: eink,
             glassDark: glassDark,
-            child: Column(
-              children: [
-                _railHeader(
-                  eink: eink,
-                  palette: palette,
-                  extended: extended,
-                ),
-                Expanded(child: rail),
-              ],
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerLeft,
+              child: Column(
+                children: [
+                  _railHeader(
+                    eink: eink,
+                    palette: palette,
+                    extended: extended,
+                  ),
+                  Expanded(child: rail),
+                  // 收起/展开开关放到底部而非顶部：顶部品牌区保持简洁，且
+                  // 不与导航目的地混在一起。只有具备扩展空间的宽窗才显示。
+                  if (naturalExtended)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: IconButton(
+                        key: const Key('rail_collapse_toggle'),
+                        tooltip: _railCollapsed ? '展开侧栏' : '收起侧栏',
+                        onPressed: _toggleRail,
+                        iconSize: 18,
+                        color: eink
+                            ? Colors.black
+                            : (glassDark
+                                  ? Colors.white.withValues(alpha: 0.75)
+                                  : palette.muted),
+                        icon: Icon(
+                          _railCollapsed
+                              ? LucideIcons.panel_left_open
+                              : LucideIcons.panel_left_close,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

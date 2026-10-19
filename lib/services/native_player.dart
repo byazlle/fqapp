@@ -65,10 +65,44 @@ class NativePlayer {
   /// generation below cancels a pending play if another player pauses it.
   static Future<void> Function(NativePlayer)? beforePlay;
 
+  /// 暂停实例上限。短视频 feed 会为每张卡创建原生播放器，滑动多了以后，
+  /// 已暂停但尚未 dispose 的旧实例会一直占着解码器与纹理。超过上限时按创建
+  /// 顺序回收最旧的暂停实例；正在播放/缓冲的实例永不回收。
+  static const maxIdleInstances = 6;
+
   static Future<void> pauseOthers([NativePlayer? active]) async {
     for (final player in _instances.values.toList(growable: false)) {
       if (!identical(player, active) && player._playWhenReady) {
         await player.pause();
+      }
+    }
+    // 回收不阻塞本次播放：dispose 走原生通道，最坏情况下有超时保护；让它
+    // 在后台完成，避免打开新一集时被旧实例的释放拖慢起播。
+    unawaited(_pruneIdle(active));
+  }
+
+  /// 回收超出 [maxIdleInstances] 的最旧暂停实例。
+  ///
+  /// `_instances` 是插入有序的 Map，越靠前创建越早。只回收「已暂停、未销毁、
+  /// 不是当前活跃实例」的播放器；播放中的实例即使很旧也保留，避免把用户马上
+  /// 要看的画面拆掉。被回收的包装对象把 `_disposed` 置位，后续方法调用自动
+  /// 变成 no-op，UI 侧不需要额外判空。
+  static Future<void> _pruneIdle([NativePlayer? active]) async {
+    final idle = <NativePlayer>[];
+    for (final player in _instances.values) {
+      if (identical(player, active)) continue;
+      if (player._disposed || player._playWhenReady) continue;
+      idle.add(player);
+    }
+    var excess = idle.length - maxIdleInstances;
+    if (excess <= 0) return;
+    for (final player in idle) {
+      if (excess <= 0) break;
+      excess--;
+      try {
+        await player.dispose();
+      } catch (_) {
+        // 释放失败不阻断后续回收；下一轮还会再试。
       }
     }
   }
