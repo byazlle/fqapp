@@ -1,7 +1,8 @@
 # 品牌资源
 
-品牌名 **番茄端碗 / FanqieDuanwan**，视觉语言为「极光玻璃（aurora glass）」：
-深紫 → 青的液态渐变作底，白色光束横贯其中，对应「番茄端碗」的字面意象。
+品牌名 **番茄端碗 / FanqieDuanwan**，视觉语言为「暖色玻璃（tomato glass）」：
+番茄红 `#E8342A` → 琥珀橙 `#FF9F1C` 的渐变作底，中间一只白碗盛着一颗番茄，
+直接对应「番茄的剧，端在碗里」。
 
 `app_icon_source.png`（2048×2048）是设计原图。它不在 Flutter 的 assets
 清单里，不会被打进安装包。
@@ -26,12 +27,13 @@ python scripts/generate_brand_assets.py
 
 ## 设计约束
 
-- **16/24/32 像素用简化版**：只保留一条粗光束，否则全尺寸构图在小图标上
-  会糊成一块紫色。脚本里的 `simple` 分支负责这件事。
+- **16/24/32 像素用简化版**：去掉番茄的叶片、梗与高光，只留下碗 + 圆形番茄
+  并加粗描边，否则细节在小图标上会糊成一团。
 - **BMP 必须是 24 位**：Inno Setup 不接受带 alpha 的向导图；脚本用 RGB
   保存，不要手工替换成 PNG 或 32 位 BMP。
-- **窗口标题**在 `windows/runner/main.cpp` 里用通用字符名（`L"\u6D41\u5149"`）
-  书写，避免源码编码影响 MSVC 解析；想改标题请沿用这个写法。
+- **窗口标题**在 `windows/runner/main.cpp` 里用通用字符名
+  （`L"\u756A\u8304\u7AEF\u7897"` = 番茄端碗）书写，避免源码编码影响
+  MSVC 解析；想改标题请沿用这个写法。
 - **资源版本信息**（`windows/runner/Runner.rc`）用 ASCII 的 `FanqieDuanwan`：
   它决定 `%APPDATA%\<CompanyName>\<ProductName>` 数据目录，改成中文会让
   路径随系统区域变化。

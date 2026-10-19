@@ -98,7 +98,7 @@ class LibraryBackup {
         format == _format ||
         (format is String && _legacyFormats.contains(format));
     if (!formatOk || raw['version'] != 1) {
-      throw const FormatException('不是受支持的流光备份，请使用兼容版本导出的文件');
+      throw const FormatException('不是受支持的番茄端碗备份，请使用兼容版本导出的文件');
     }
     final createdAt = _integer(raw['createdAt'], '备份时间', 8640000000000000);
     final shelf = <ShelfRecord>[];

@@ -50,7 +50,7 @@ ThemeMode themeModeFromName(String? name) {
   }
 }
 
-/// Unified design system and theme factory for 流光.
+/// Unified design system and theme factory for 番茄端碗.
 class AppTheme {
   static const Color accent = Brand.primary;
   static const Color accentStrong = Brand.primaryDeep;

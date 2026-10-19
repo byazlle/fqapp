@@ -29,7 +29,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   Win32Window::Size size(1280, 720);
   // U+756A U+8304 U+7AEF U+7897 = 番茄端碗；用通用字符名，避免源码编码
   // 影响 MSVC 字面量解析。
-  if (!window.Create(L"\u6D41\u5149", origin, size)) {
+  if (!window.Create(L"\u756A\u8304\u7AEF\u7897", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

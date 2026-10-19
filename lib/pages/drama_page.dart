@@ -12,6 +12,7 @@ import '../models/media_item.dart';
 import '../models/playlet_comment.dart';
 import '../models/series_detail.dart';
 import '../services/api_client.dart';
+import '../services/brand.dart';
 import '../services/backend_transport.dart';
 import '../services/desktop_media_player.dart';
 import '../services/drama_mute_preferences.dart';
@@ -1205,8 +1206,10 @@ class _DramaPageState extends ConsumerState<DramaPage>
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: lightPage ? SystemUiOverlayStyle.dark : SystemUiOverlayStyle.light,
       child: Scaffold(
-        // 浅色页不再铺纯白：让壳层的品牌液态底透上来，与首页/书架同一套底色。
-        backgroundColor: lightPage ? Colors.transparent : Colors.black,
+        // 浅色页不再铺纯白，改用品牌的暖白画布：既与首页/书架同一套色系，
+        // 又保证深色主题下标题与片名仍是深色字（透明底会让它们压在深色
+        // 液态底上，读不清）。
+        backgroundColor: lightPage ? Brand.lightCanvas : Colors.black,
         body: Stack(
           children: [
             Positioned.fill(

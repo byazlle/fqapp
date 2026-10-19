@@ -2,7 +2,7 @@
 
 除单独注明工作目录外，下列命令从仓库根目录执行。脚本路径被 CI、Gradle 或测试引用；调整位置时同时更新调用方。
 
-> **当前发布目标**：流光只出 Windows 桌面安装包（`fanqieduanwan-setup-x64.exe`），日常构建入口是 `build_windows.ps1`——它跳过 Android NDK，只产出 `fanqieduanwan_core.dll`。表中 Android 相关条目（`verify_android_apk.py`、`check_native_alignment.cjs`、`check_so_freshness.cjs` 及 `build_rust_backend.*` 的交叉编译分支）属于历史目标，`android/` 已于 v0.9.123 移除；保留它们只为归档旧产物时仍可校验。
+> **当前发布目标**：番茄端碗只出 Windows 桌面安装包（`fanqieduanwan-setup-x64.exe`），日常构建入口是 `build_windows.ps1`——它跳过 Android NDK，只产出 `fanqieduanwan_core.dll`。表中 Android 相关条目（`verify_android_apk.py`、`check_native_alignment.cjs`、`check_so_freshness.cjs` 及 `build_rust_backend.*` 的交叉编译分支）属于历史目标，`android/` 已于 v0.9.123 移除；保留它们只为归档旧产物时仍可校验。
 
 ## 常用入口
 

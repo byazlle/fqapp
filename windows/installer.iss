@@ -1,5 +1,5 @@
 ; =============================================================================
-; 流光 (FanqieDuanwan) Windows 桌面版安装包 (Inno Setup 6)
+; 番茄端碗 (FanqieDuanwan) Windows 桌面版安装包 (Inno Setup 6)
 ; 由 CI 打包。关键路径用 ISCC 命令行 /D 以绝对路径传入，避免相对路径歧义:
 ;   {#AppSourceDir} = <repo>\build\windows\x64\runner\Release   (flutter build 产物)
 ;   {#LangDir}      = <repo>\windows\languages                  (本地中文语言文件)

@@ -3,7 +3,7 @@ name = "fanqieduanwan_core"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "Rust native core for FanqieDuanwan (流光)"
+description = "Rust native core for FanqieDuanwan (番茄端碗)"
 
 [lib]
 name = "fanqieduanwan_core"
