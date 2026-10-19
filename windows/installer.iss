@@ -52,8 +52,11 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 
 [Run]
 #ifdef VcRedist
-; 先确保 VC++ 运行库就绪（已安装则跳过），再执行收尾的“运行 fqapp”。
-Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; Check: not VCRedistInstalled; StatusMsg: "正在安装 Visual C++ 运行库..."
+; 始终安装/修复 VC++ 2015-2022 运行库（media_kit 随包的 libmpv 为 MSVC 构建，
+; 依赖 VCRUNTIME140 / MSVCP140 及其 _1 变体）。仅按注册表键判断“已安装”会漏掉
+; 已损坏或只装了旧版（如 2015-2019，缺 _1 变体）的运行库，导致 libmpv 加载失败、
+; 视频无法播放而其余功能正常。改为始终静默安装/修复，幂等且安全。
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "正在安装 Visual C++ 运行库..."
 #endif
 Filename: "{app}\fqapp.exe"; Description: "运行 fqapp"; Flags: nowait postinstall skipifsilent
 

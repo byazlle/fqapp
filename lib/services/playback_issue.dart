@@ -29,7 +29,9 @@ enum PlaybackIssue {
   static PlaybackIssue fromError(Object error) {
     if (error is TimeoutException) return timeout;
     if (error is NativePlaybackException) {
-      if (error.errorCode == 9001) return playerMissing;
+      if (error.errorCode == 9001 || error.errorCode == 9002) {
+        return playerMissing;
+      }
       final status = error.httpStatusCode;
       // The native crypto reader also reports successful 200/206 responses.
       // Those describe the last transfer, not the cause of a decoder failure.
@@ -41,8 +43,8 @@ enum PlaybackIssue {
         2001 => network, // IO_NETWORK_CONNECTION_FAILED
         2002 => timeout, // IO_NETWORK_CONNECTION_TIMEOUT
         2004 || 2005 => unavailable, // HTTP status / missing file
-        2003 || >= 3001 && <= 3004 || >= 4001 && <= 4005 => decoding,
-        _ => unknown,
+        2003 || >= 3001 && <= 3004 || >=         4001 && <= 4005 => decoding,
+        _ => _classifyUnknown(error.message),
       };
     }
     if (error is ApiException) {
@@ -70,4 +72,23 @@ enum PlaybackIssue {
     401 || 403 || 404 || 410 || 416 => unavailable,
     _ => unknown,
   };
+
+  /// 未知错误码的兜底归类：从报错文案里嗅探 libmpv / 运行库 / 解码 关键字，
+  /// 给出更可操作的提示，而不是一律「播放失败」。
+  static PlaybackIssue _classifyUnknown(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('libmpv') ||
+        lower.contains('vcruntime') ||
+        lower.contains('msvcp') ||
+        lower.contains('failed to load')) {
+      return playerMissing;
+    }
+    if (lower.contains('gpu') ||
+        lower.contains('codec') ||
+        lower.contains('decoder') ||
+        lower.contains('vo ')) {
+      return decoding;
+    }
+    return unknown;
+  }
 }

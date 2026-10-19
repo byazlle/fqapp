@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart' show SizedBox, ValueKey, Widget;
 import 'package:media_kit/media_kit.dart' show Media, MediaKit, Player;
 import 'package:media_kit_video/media_kit_video.dart'
     show Video, VideoController;
+import 'package:http/http.dart' as http;
 
 import 'backend_service.dart';
 import 'native_player.dart';
@@ -199,8 +200,17 @@ class DesktopMediaPlayer extends NativePlayer {
       // 「ensureInitialized must be called」这种指错方向的报错。
       MediaKit.ensureInitialized();
       final mediaUrl = _mediaPlayUrl(cdnUrl, keyHex);
-      final player = Player();
-      final controller = VideoController(player);
+      // 预检：先确认 loopback 解密流可达并拿到真实 HTTP 状态，避免 libmpv
+      // 把「连接被拒 / 401 / 502」笼统报成「播放失败」。
+      await _preflight(mediaUrl);
+      late final Player player;
+      late final VideoController controller;
+      try {
+        player = Player();
+        controller = VideoController(player);
+      } catch (_) {
+        throw const NativePlaybackException('播放器组件创建失败', errorCode: 9002);
+      }
       _mkPlayer = player;
       _mkController = controller;
       _wire(player, controller);
@@ -444,5 +454,43 @@ class DesktopMediaPlayer extends NativePlayer {
     final query =
         'url=${Uri.encodeComponent(cdnUrl)}&key=${Uri.encodeComponent(keyHex)}';
     return '${base}media/play?$query';
+  }
+
+  /// 在把 URL 交给 libmpv 之前，用一次 Range 请求确认解密流可达，并捕获真实
+  /// HTTP 状态/网络异常，转成可定位的播放错误。只读首字节即放弃连接，避免
+  /// 大文件整体下载（server 通常会回 206 仅 1 字节）。
+  Future<void> _preflight(String mediaUrl) async {
+    final client = http.Client();
+    try {
+      final request = http.Request('GET', Uri.parse(mediaUrl));
+      request.headers['Range'] = 'bytes=0-0';
+      final streamed = await client
+          .send(request)
+          .timeout(const Duration(seconds: 12));
+      final status = streamed.statusCode;
+      final sub = streamed.stream.listen((_) {});
+      await sub.cancel();
+      if (status == 200 || status == 206) return;
+      throw NativePlaybackException(
+        '解密流返回 $status',
+        errorCode: 9100 + status,
+        httpStatusCode: status,
+      );
+    } on NativePlaybackException {
+      rethrow;
+    } on TimeoutException {
+      throw const NativePlaybackException('播放服务响应超时', errorCode: 9201);
+    } on http.ClientException catch (e) {
+      throw NativePlaybackException(
+        '无法连接播放服务（${e.message}）',
+        errorCode: 9200,
+      );
+    } on ArgumentError {
+      // Uri 解析失败：交由 libmpv 自己报更底层的错误，不在此拦截。
+    } catch (_) {
+      // 其它异常不阻断。
+    } finally {
+      client.close();
+    }
   }
 }
