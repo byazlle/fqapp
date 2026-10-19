@@ -88,7 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
           SettingsItem(
             icon: LucideIcons.database,
             title: '备份与恢复',
-            subtitle: '导出收藏和进度，迁移到另一台手机',
+            subtitle: '导出收藏和进度，迁移到另一台设备',
             onTap: (context, setState) => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LibraryBackupPage()),

@@ -1887,7 +1887,7 @@ class _ReaderPageState extends State<ReaderPage> with WidgetsBindingObserver {
                 ListTile(
                   leading: const Icon(Icons.record_voice_over),
                   title: const Text('系统朗读'),
-                  subtitle: const Text('使用手机已安装的 TTS 引擎'),
+                  subtitle: const Text('使用系统已安装的 TTS 引擎'),
                   onTap: () => Navigator.pop(context, true),
                 ),
               ],

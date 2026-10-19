@@ -55,7 +55,7 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
     setState(() {
       _message = saved
           ? '备份文件已保存：${_counts(backup)}。\n'
-                '将这个文件传到新手机，在本页选择导入即可。'
+                '将这个文件传到另一台设备，在本页选择导入即可。'
                 '${backup.excludedLocalRecords > 0 ? '\n已排除 ${backup.excludedLocalRecords} 条本地书籍相关记录。' : ''}'
           : '已取消导出';
     });
@@ -118,7 +118,7 @@ class _LibraryBackupPageState extends State<LibraryBackupPage> {
                 children: [
                   _section(palette, [
                     Text(
-                      '换手机，带上收藏和进度',
+                      '换设备，带上收藏和进度',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
