@@ -1,4 +1,4 @@
-//! 番茄端碗 独立服务器版（桌面一键端）。
+//! 番茄端碗 独立服务器版：双击即用、无需安装的单文件 Windows 服务端。
 //!
 //! 把内置 Web UI、配置、过滤器与 C 解密库（由 build.rs 编译进同一二进制）
 //! 打包为单文件。运行时在 exe 旁建立 `fanqieduanwan_runtime/`，释放资源，启动
@@ -163,7 +163,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "http://127.0.0.1:{}/_session/{}/",
         handle.port, handle.token
     );
-    println!("番茄 PC 服务器版已启动：http://127.0.0.1:{}/", handle.port);
+    println!("番茄端碗 服务器版已启动：http://127.0.0.1:{}/", handle.port);
     println!("入口地址：{url}");
     println!("关闭本窗口即停止服务。若浏览器未自动打开，请手动复制上面的地址。");
     open_browser(&url);

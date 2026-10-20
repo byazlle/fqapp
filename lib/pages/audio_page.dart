@@ -1140,7 +1140,7 @@ class _AudioPageState extends State<AudioPage> {
                                 ),
                               ),
                               title: Text(
-                                '后台听书与保活',
+                                '后台听书',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 15,
@@ -1148,7 +1148,7 @@ class _AudioPageState extends State<AudioPage> {
                                 ),
                               ),
                               subtitle: Text(
-                                '切到后台或锁屏时继续播放并常驻控制卡片',
+                                '切到其他窗口或最小化时继续播放',
                                 style: TextStyle(
                                   fontSize: 12.5,
                                   color: palette.muted,

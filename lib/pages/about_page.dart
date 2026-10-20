@@ -6,8 +6,8 @@ import '../widgets/brand/glass.dart';
 import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 
-/// About page styled after PiliPlus: centered logo/name header followed by
-/// grouped card rows (version, source code, feedback, ...).
+/// About page: centered logo/name header followed by grouped card rows
+/// (version, positioning, source code, feedback, ...).
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -15,7 +15,7 @@ class AboutPage extends StatelessWidget {
   /// `version`. Without a package_info dependency the value is
   /// static, so test/about_version_test.dart parses the pubspec and fails the
   /// build check when the two drift apart after a version bump.
-  static const versionText = '1.3.0 (135)';
+  static const versionText = '1.3.1 (136)';
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +85,19 @@ class AboutPage extends StatelessWidget {
               _AboutRow(
                 icon: Icons.info_outline,
                 title: '项目介绍',
-                subtitle: '进程内 Rust 核心运行，签名与解密在本机本地完成',
+                subtitle: '聚合小说、短剧、漫剧、漫画与听书的 Windows 桌面客户端',
+              ),
+              Divider(height: 1, indent: 68),
+              _AboutRow(
+                icon: Icons.public,
+                title: '内容来源',
+                subtitle: '在线内容来自第三方公开接口，本程序不内置、不分发任何资源',
+              ),
+              Divider(height: 1, indent: 68),
+              _AboutRow(
+                icon: Icons.memory,
+                title: '技术实现',
+                subtitle: 'Rust 核心在进程内运行，签名、解密与缓存都在本机完成',
               ),
               Divider(height: 1, indent: 68),
               _AboutRow(
@@ -211,8 +223,8 @@ Future<void> _launchExternalUrl(BuildContext context, String url) async {
 }
 
 /// 支持作者区块：单独一张卡，用爱发电品牌紫着色并配实心按钮，比普通信息行
-/// 更醒目（对齐 Aether 仓库赞助区的呈现方式）。点击只用系统浏览器打开链接，
-/// 不引入账号、支付、捐赠校验或统计上报；墨水屏模式下退化为黑白。
+/// 更醒目。点击只用系统浏览器打开链接，不引入账号、支付、捐赠校验或统计
+/// 上报；墨水屏模式下退化为黑白。
 class _SupportCard extends StatelessWidget {
   const _SupportCard();
 

@@ -9,9 +9,9 @@ class AudioPreferences {
 
   static const _backgroundPlaybackKey = 'audio_background_playback_enabled';
 
-  /// 是否允许后台播放与前台保活（默认 true）。
-  /// 开启：切到后台或锁屏时继续播放，由 Android 前台保活服务常驻通知栏与提供控制卡片；
-  /// 关闭：切到后台或锁屏时自动暂停播放并移除前台通知。
+  /// 是否允许后台播放（默认 true）。桌面端没有锁屏与通知栏，这里的「后台」
+  /// 指窗口失焦或被最小化；Android 端由前台保活服务常驻通知栏与提供控制卡片。
+  /// 开启：切到其他窗口或最小化时继续播放；关闭：切走即自动暂停并移除前台通知。
   final ValueNotifier<bool> backgroundPlayback = ValueNotifier<bool>(true);
 
   bool _loaded = false;

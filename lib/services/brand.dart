@@ -14,7 +14,8 @@ class Brand {
   /// 拉丁名：安装包、版本信息、图标署名用。
   static const String latin = 'FanqieDuanwan';
 
-  static const String tagline = '番茄的剧，端在碗里';
+  /// 标语：内容面是「小说 + 剧」，不只是剧，所以这里写「内容」而不是「剧」。
+  static const String tagline = '番茄的内容，端在碗里';
   static const String discipline = '小说 · 短剧 · 漫剧 · 漫画 · 听书';
 
   /// 主色：番茄红。界面强调、选中态、进度条都用它。

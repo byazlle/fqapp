@@ -373,7 +373,7 @@ class _AudioPlaybackController extends ChangeNotifier
     if (_closed) return;
     _appActive = state == AppLifecycleState.resumed;
     if (!_appActive) {
-      // 切换到后台或锁屏时立即持久化当前进度，防止后续被系统杀后台导致进度丢失。
+      // 窗口失焦或最小化时立即持久化当前进度，防止进程随后被结束导致进度丢失。
       unawaited(_persistProgress());
       // 若后台听书开关关闭，切后台自动暂停播放并移除前台通知。
       if (!AudioPreferences.instance.backgroundPlayback.value) {

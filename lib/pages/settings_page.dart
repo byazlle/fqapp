@@ -29,8 +29,8 @@ import 'log_viewer_page.dart';
 import 'settings_category_page.dart';
 import 'system_tts_settings_page.dart';
 
-/// Settings home: a list of category entries (PiliPlus multi-level
-/// navigation). Each category opens its own CommonSetting-style page.
+/// Settings home: a list of category entries. Each category opens its own
+/// page with one rounded card of setting rows.
 ///
 /// 宽屏（≥900，与壳层导航断点一致）改为双列：左侧分类列表、右侧当前
 /// 分类的设置内容，不再层层 push；窄屏保持钻取导航，手机形态不变。
@@ -68,7 +68,7 @@ class _SettingsPageState extends State<SettingsPage> {
       SettingsCategory(
         icon: LucideIcons.headphones,
         title: '听书',
-        subtitle: '后台播放、通知栏控制与系统朗读',
+        subtitle: '切到其他窗口时继续播放、系统朗读',
         items: [
           _backgroundAudioItem(),
           SettingsItem(
@@ -534,8 +534,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   SettingsItem _backgroundAudioItem() => SettingsItem(
     icon: LucideIcons.radio,
-    title: '后台听书与保活',
-    subtitle: '切到后台或锁屏时继续播放，并在通知栏常驻控制卡片',
+    title: '后台听书',
+    subtitle: '切到其他窗口或最小化时继续播放',
     trailingBuilder: (context) => ValueListenableBuilder<bool>(
       valueListenable: AudioPreferences.instance.backgroundPlayback,
       builder: (context, value, _) => Switch(

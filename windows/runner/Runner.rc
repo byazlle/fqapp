@@ -89,8 +89,14 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
+            // CompanyName 与 ProductName 必须保持 ASCII：path_provider_windows
+            // 的 getApplicationSupportDirectory() 读这两个字段拼出数据目录
+            // %APPDATA%\byazlle\FanqieDuanwan。改成中文会让老用户的书架、历史
+            // 与缓存「消失」（新目录是空的），卸载清单也删不掉旧路径。
+            // 本文件是 UTF-8 无 BOM，rc.exe 按系统 ANSI 码页解析，中文会乱码；
+            // 窗口标题因此在 main.cpp 里用 \u756A\u8304\u7AEF\u7897 转义书写。
             VALUE "CompanyName", "byazlle" "\0"
-            VALUE "FileDescription", "FanqieDuanwan" "\0"
+            VALUE "FileDescription", "FanqieDuanwan Desktop Client" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "fanqieduanwan" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 byazlle. All rights reserved." "\0"

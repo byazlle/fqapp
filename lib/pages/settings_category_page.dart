@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 
-/// PiliPlus-style settings category entry (shown on the settings home page).
+/// A settings category entry (shown on the settings home page).
 class SettingsCategory {
   final IconData icon;
   final String title;
@@ -90,8 +90,8 @@ Widget settingsItemRow(
   );
 }
 
-/// The per-category settings page (PiliPlus CommonSetting equivalent):
-/// a titled page rendering one rounded card of setting rows.
+/// The per-category settings page: a titled page rendering one rounded card
+/// of setting rows.
 class SettingsCategoryPage extends StatefulWidget {
   final String title;
   final List<SettingsItem> items;

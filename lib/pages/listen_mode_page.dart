@@ -17,9 +17,10 @@ import '../services/player_preferences.dart';
 /// 与官方的差异（取证与取舍 — 见
 /// .agents/notes/implemented/feature/2026-09-29-listen-mode-and-font-scale.md）：
 /// 官方是独立 Activity + 服务端听书数据链路；本页复用现有取流缓存，自建
-/// [NativePlayer] 实例只听不看。后台续听靠 `ListenKeepAliveService` 前台
-/// 服务保活（MIUI 会冻结无前台组件的后台进程）；在后台听书开关开启时
-/// 后台照常出声。退出时回传最终进度，宿主把它写回视频播放页。
+/// [NativePlayer] 实例只听不看。桌面端没有前台服务，后台续听即窗口失焦或
+/// 最小化后继续出声，由「后台听书」开关控制（Android 端靠
+/// `ListenKeepAliveService` 前台服务保活，MIUI 会冻结无前台组件的后台进程）。
+/// 退出时回传最终进度，宿主把它写回视频播放页。
 class ListenModePage extends StatefulWidget {
   const ListenModePage({
     super.key,
