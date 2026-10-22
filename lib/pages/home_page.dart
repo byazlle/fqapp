@@ -150,25 +150,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                             detail: state.error!,
                             onRetry: notifier.load,
                           )
-                        : RefreshIndicator(
-                            color: HomePalette.accent,
-                            backgroundColor: palette.surface,
-                            onRefresh: notifier.load,
-                            // The grid used to measure itself from inside a sliver
-                            // (SliverLayoutBuilder). A sliver's constraints carry
-                            // the scroll offset, so they differ on every scroll
-                            // frame -- which re-ran the builder, handed the sliver
-                            // a fresh SliverChildBuilderDelegate, and rebuilt every
-                            // visible card for the whole duration of the scroll.
-                            // Measuring once here keeps the grid out of the scroll
-                            // path completely.
-                            child: LayoutBuilder(
-                              builder: (context, constraints) => CustomScrollView(
-                                key: const Key('home_feed'),
-                                controller: _scroll,
-                                physics: const BouncingScrollPhysics(
-                                  parent: AlwaysScrollableScrollPhysics(),
-                                ),
+                        : LayoutBuilder(
+                            builder: (context, constraints) => CustomScrollView(
+                              key: const Key('home_feed'),
+                              controller: _scroll,
+                              // 桌面端不走移动端的下拉刷新与 iOS 回弹：
+                              // 刷新统一交给顶栏按钮 / F5，滚动到边界直接停住。
+                              // The grid used to measure itself from inside a
+                              // sliver; measuring once here keeps it out of the
+                              // scroll path completely.
+                              physics: const ClampingScrollPhysics(
+                                parent: AlwaysScrollableScrollPhysics(),
+                              ),
                                 slivers: [
                                   SliverToBoxAdapter(
                                     child: HomeHero(
@@ -194,7 +187,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 ],
                               ),
                             ),
-                          ),
                   ),
                 );
               },

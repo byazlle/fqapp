@@ -617,6 +617,40 @@ void main() {
     expect(find.byType(ReaderPage), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('wide window lays the detail page out in two columns', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1280, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DetailPage(
+          item: _book,
+          detailLoader: (id, {String tab = '小说'}) async => {},
+          directoryLoader: (id, {String tab = '小说'}) async => [_chapters],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 左栏封面 + 右栏目录预览同时在场，且封面位于目录左侧。
+    final cover = find.byKey(const Key('detail_cover_button'));
+    final directory = find.byKey(const Key('detail_preview_chapters'));
+    expect(cover, findsOneWidget);
+    expect(directory, findsOneWidget);
+    expect(
+      tester.getCenter(cover).dx,
+      lessThan(tester.getCenter(directory).dx),
+    );
+
+    // 窄窗回到单列：两块内容都还在，且不再左右分栏。
+    await tester.binding.setSurfaceSize(const Size(760, 900));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('detail_cover_button')), findsOneWidget);
+    expect(find.byKey(const Key('detail_preview_chapters')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 final _book = MediaItem(

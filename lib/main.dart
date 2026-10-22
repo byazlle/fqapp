@@ -13,6 +13,7 @@ import 'dart:async';
 import 'dart:io' show Platform, File, Directory;
 
 import 'pages/home_page.dart';
+import 'pages/home_provider.dart';
 import 'pages/audio_page.dart';
 import 'pages/cached_books_page.dart';
 import 'pages/drama_page.dart';
@@ -39,7 +40,9 @@ import 'services/playlet_share.dart';
 import 'services/poster_cache.dart';
 import 'services/shelf_store.dart';
 import 'services/swipe_guide_store.dart';
+import 'services/ui_scale.dart';
 import 'widgets/lazy_indexed_stack.dart';
+import 'widgets/ui_zoom.dart';
 
 void main() {
   // ensureInitialized 与 runApp 必须在同一个 zone：否则 BindingBase
@@ -264,6 +267,8 @@ Future<void> _initializeLocalData() async {
   );
   // 墨水屏模式与深色模式同为可选偏好：读不到退化为关闭，不拖住启动。
   einkModeNotifier.value = sp.getBool(einkModeKey) ?? false;
+  // 界面缩放同理：读不到按 100%，越界值钳回安全区间。
+  uiScaleNotifier.value = clampUiScale(sp.getDouble(uiScaleKey) ?? 1.0);
 }
 
 class FanqieDuanwanApp extends StatefulWidget {
@@ -288,10 +293,19 @@ class _FanqieDuanwanAppState extends State<FanqieDuanwanApp> {
             final effectiveMode = eink ? ThemeMode.light : mode;
             return MaterialApp(
               navigatorKey: _navigatorKey,
-              builder: (context, child) => AudioPlaybackScope(
-                navigatorKey: _navigatorKey,
-                child: child ?? const SizedBox.shrink(),
-              ),
+              builder: (context, child) {
+                final scoped = AudioPlaybackScope(
+                  navigatorKey: _navigatorKey,
+                  child: child ?? const SizedBox.shrink(),
+                );
+                // 界面缩放包在 Navigator 外层：所有路由（含弹层）一起缩放，
+                // 100% 时 UiZoom 直接返回原树，不产生额外开销。
+                return ValueListenableBuilder<double>(
+                  valueListenable: uiScaleNotifier,
+                  builder: (context, scale, _) =>
+                      UiZoom(scale: scale, child: scoped),
+                );
+              },
               title: Brand.name,
               debugShowCheckedModeBanner: false,
               theme: _theme(Brightness.light, eink: eink),
@@ -388,6 +402,18 @@ class _AppBootstrapState extends State<AppBootstrap> {
   }
 }
 
+/// 桌面快捷键：F5 / Ctrl+R 刷新首页，Ctrl+1..4 直达四个一级页面。
+/// 用 Intent 而不是直接挂键盘监听，是为了让 Flutter 的焦点链统一裁决，
+/// 文本输入框获得焦点时也不会被误吞。
+class _RefreshIntent extends Intent {
+  const _RefreshIntent();
+}
+
+class _TabIntent extends Intent {
+  const _TabIntent(this.index);
+  final int index;
+}
+
 class RootShell extends StatefulWidget {
   final Future<void> Function()? backendStarter;
 
@@ -397,8 +423,14 @@ class RootShell extends StatefulWidget {
   State<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class _RootShellState extends State<RootShell>
+    with SingleTickerProviderStateMixin {
   int _index = 0;
+
+  /// 一级页面切换的轻微淡入（不改变布局、不销毁页面状态）。只有 140ms，
+  /// 把硬切变得柔和，也不额外占用一帧合成。
+  late final AnimationController _tabFade;
+  late final Animation<double> _tabOpacity;
   bool _backendReady = false;
   String? _backendError;
   bool _railCollapsed = false;
@@ -421,14 +453,33 @@ class _RootShellState extends State<RootShell> {
   static const _railCollapsedKey = 'railCollapsed';
 
   void _selectTab(int i) {
-    if (i != _index) setState(() => _index = i);
+    if (i == _index) return;
+    setState(() => _index = i);
+    // 从 0.9 淡入到 1：幅度很小，只是把硬切变得柔和。
+    _tabFade
+      ..value = 0
+      ..forward();
   }
 
   @override
   void initState() {
     super.initState();
+    _tabFade = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 140),
+      value: 1,
+    );
+    _tabOpacity = Tween<double>(begin: 0.9, end: 1).animate(
+      CurvedAnimation(parent: _tabFade, curve: Curves.easeOut),
+    );
     _loadRailPref();
     _startBackend();
+  }
+
+  @override
+  void dispose() {
+    _tabFade.dispose();
+    super.dispose();
   }
 
   Future<void> _loadRailPref() async {
@@ -468,7 +519,54 @@ class _RootShellState extends State<RootShell> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      _withDesktopShortcuts(_buildShell(context));
+
+  /// 桌面快捷键与焦点根：包住整个壳层，保证焦点落在侧栏或内容区时，
+  /// F5 / Ctrl+R / Ctrl+1..4 都能被统一处理。
+  Widget _withDesktopShortcuts(Widget child) {
+    return Shortcuts(
+      shortcuts: const <ShortcutActivator, Intent>{
+        SingleActivator(LogicalKeyboardKey.f5): _RefreshIntent(),
+        SingleActivator(LogicalKeyboardKey.keyR, control: true):
+            _RefreshIntent(),
+        SingleActivator(LogicalKeyboardKey.digit1, control: true):
+            _TabIntent(0),
+        SingleActivator(LogicalKeyboardKey.digit2, control: true):
+            _TabIntent(1),
+        SingleActivator(LogicalKeyboardKey.digit3, control: true):
+            _TabIntent(2),
+        SingleActivator(LogicalKeyboardKey.digit4, control: true):
+            _TabIntent(3),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          _RefreshIntent: CallbackAction<_RefreshIntent>(
+            onInvoke: (_) {
+              _refreshCurrentTab();
+              return null;
+            },
+          ),
+          _TabIntent: CallbackAction<_TabIntent>(
+            onInvoke: (intent) {
+              _selectTab(intent.index);
+              return null;
+            },
+          ),
+        },
+        // autofocus 给焦点链一个稳定的根节点；子控件仍可正常抢焦点。
+        child: Focus(autofocus: true, child: child),
+      ),
+    );
+  }
+
+  void _refreshCurrentTab() {
+    if (_index != 0) return;
+    final container = ProviderScope.containerOf(context, listen: false);
+    unawaited(container.read(homeProvider.notifier).load());
+  }
+
+  Widget _buildShell(BuildContext context) {
     if (!_backendReady) {
       return Scaffold(
         body: SafeArea(
@@ -535,17 +633,20 @@ class _RootShellState extends State<RootShell> {
     final wideShell =
         MediaQuery.sizeOf(context).width >= _wideShellBreakpoint;
 
-    final body = AnnotatedRegion<SystemUiOverlayStyle>(
-      value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
-      child: LazyIndexedStack(
-        index: _index,
-        children: [
-          const HomePage(),
-          const DramaPage(),
-          // 空书架上的「去书城找书」切回首页 tab。
-          LibraryPage(onBrowse: () => setState(() => _index = 0)),
-          const MinePage(),
-        ],
+    final body = FadeTransition(
+      opacity: _tabOpacity,
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+        child: LazyIndexedStack(
+          index: _index,
+          children: [
+            const HomePage(),
+            const DramaPage(),
+            // 空书架上的「去书城找书」切回首页 tab。
+            LibraryPage(onBrowse: () => setState(() => _index = 0)),
+            const MinePage(),
+          ],
+        ),
       ),
     );
 

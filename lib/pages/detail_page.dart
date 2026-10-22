@@ -555,58 +555,78 @@ class _DetailPageState extends State<DetailPage> {
             ),
           ],
         ),
-        body: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 840),
-            child: RefreshIndicator(
-              onRefresh: _load,
-              color: HomePalette.accent,
-              backgroundColor: palette.surface,
-              child: CustomScrollView(
-                key: const Key('detail_scroll'),
-                controller: _scroll,
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // 宽窗两栏：左栏是封面/标题/作者/数据/标签，右栏是简介、目录与
+            // 评论。窄窗保持原来的单列，避免破坏既有阅读节奏。
+            final wide = constraints.maxWidth >= 1080;
+            final state = !_supported
+                ? _stateCard(
+                    icon: LucideIcons.file_question_mark,
+                    title: '暂不支持此内容类型',
+                    message: '可以返回继续发现其他故事。',
+                  )
+                : _loading
+                ? _loadingView(palette)
+                : _error != null
+                ? _stateCard(
+                    icon: LucideIcons.wifi_off,
+                    title: '暂时没能加载章节',
+                    message: _cachedBook == null
+                        ? '请检查网络连接，再试一次。'
+                        : '网络不可用。这本书已经下载到本地，可以直接离线阅读。',
+                    retry: true,
+                    onReadCached: _cachedBook == null ? null : _readCached,
+                  )
+                : null;
+            final content = state ?? (wide ? _wideBody(palette) : _content(palette));
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: wide ? 1180 : 840),
+                child: CustomScrollView(
+                  key: const Key('detail_scroll'),
+                  controller: _scroll,
+                  // 桌面端用夹紧物理：滚到边界即停，不做 iOS 橡皮筋回弹。
+                  physics: const ClampingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  slivers: wide
+                      ? [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
+                            sliver: SliverToBoxAdapter(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 320,
+                                    child: _wideAside(palette),
+                                  ),
+                                  const SizedBox(width: 44),
+                                  Expanded(child: content),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ]
+                      : [
+                          SliverToBoxAdapter(
+                            child: DetailHero(
+                              item: widget.item,
+                              scroll: _scroll,
+                              detail: _bookDetail,
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+                            sliver: SliverToBoxAdapter(child: content),
+                          ),
+                        ],
                 ),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: DetailHero(
-                      item: widget.item,
-                      scroll: _scroll,
-                      detail: _bookDetail,
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-                    sliver: SliverToBoxAdapter(
-                      child: !_supported
-                          ? _stateCard(
-                              icon: LucideIcons.file_question_mark,
-                              title: '暂不支持此内容类型',
-                              message: '可以返回继续发现其他故事。',
-                            )
-                          : _loading
-                          ? _loadingView(palette)
-                          : _error != null
-                          ? _stateCard(
-                              icon: LucideIcons.wifi_off,
-                              title: '暂时没能加载章节',
-                              message: _cachedBook == null
-                                  ? '请检查网络连接，再试一次。'
-                                  : '网络不可用。这本书已经下载到本地，可以直接离线阅读。',
-                              retry: true,
-                              onReadCached: _cachedBook == null
-                                  ? null
-                                  : _readCached,
-                            )
-                          : _content(palette),
-                    ),
-                  ),
-                ],
               ),
-            ),
-          ),
+            );
+          },
         ),
         bottomNavigationBar: _supported && _allChapters.isNotEmpty
             ? DetailReadBar(
@@ -632,24 +652,7 @@ class _DetailPageState extends State<DetailPage> {
   Widget _content(HomePalette palette) {
     final detail = _bookDetail;
     final author = detail?.author;
-    final score = detail?.scoreValue;
-    final stats = <DetailStat>[
-      if (detail != null && detail.rankTitle.isNotEmpty)
-        DetailStat(
-          value: detail.rankTitle,
-          label: detail.rank.isEmpty ? '榜单' : detail.rank.first.text,
-          icon: LucideIcons.trophy,
-          accent: true,
-        ),
-      if (detail != null && detail.readLabel.isNotEmpty)
-        DetailStat(value: detail.readLabel, label: '正在阅读'),
-      if (score != null)
-        DetailStat(
-          value: detail!.scoreLabel,
-          label: _comments.scoreLabel.isEmpty ? '读者评分' : _comments.scoreLabel,
-          stars: score / 2,
-        ),
-    ];
+    final stats = _detailStats(detail);
     final trailing = [
       if (detail?.statusLabel.isNotEmpty == true) detail!.statusLabel,
       '共 ${_allChapters.length} $_chapterUnit',
@@ -682,6 +685,102 @@ class _DetailPageState extends State<DetailPage> {
         // the `id:` search to reopen the same work.
         DetailIdRow(id: _contentId),
         const SizedBox(height: 6),
+        DetailDirectoryRow(trailing: trailing, onTap: _openDirectory),
+        _directoryPreview(palette),
+        if (_comments.comments.isNotEmpty || _comments.totalCount > 0) ...[
+          const SizedBox(height: 22),
+          Divider(height: 1, color: palette.line),
+          const SizedBox(height: 22),
+          DetailReviews(
+            page: _comments,
+            detail: detail,
+            bookId: _contentId,
+            replyLoader: _replyLoader(_contentId),
+            onLoadMore: _comments.hasMore ? _loadMoreComments : null,
+            onOpenAll: _openAllReviews,
+            loadingMore: _commentsLoadingMore,
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<DetailStat> _detailStats(BookDetail? detail) {
+    final score = detail?.scoreValue;
+    return [
+      if (detail != null && detail.rankTitle.isNotEmpty)
+        DetailStat(
+          value: detail.rankTitle,
+          label: detail.rank.isEmpty ? '榜单' : detail.rank.first.text,
+          icon: LucideIcons.trophy,
+          accent: true,
+        ),
+      if (detail != null && detail.readLabel.isNotEmpty)
+        DetailStat(value: detail.readLabel, label: '正在阅读'),
+      if (score != null)
+        DetailStat(
+          value: detail!.scoreLabel,
+          label: _comments.scoreLabel.isEmpty ? '读者评分' : _comments.scoreLabel,
+          stars: score / 2,
+        ),
+    ];
+  }
+
+  /// 宽屏左栏：封面、标题、作者、阅读数据、标签与作品 ID。右栏只放
+  /// 正文型内容，避免两栏都堆同等权重的大块。
+  Widget _wideAside(HomePalette palette) {
+    final detail = _bookDetail;
+    final author = detail?.author;
+    final stats = _detailStats(detail);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DetailHero(
+          item: widget.item,
+          scroll: _scroll,
+          detail: detail,
+          column: true,
+          coverWidth: 180,
+          showWash: false,
+        ),
+        if (author != null && author.name.isNotEmpty) ...[
+          DetailAuthorRow(
+            author: author,
+            onOpenAuthor: author.id.isEmpty
+                ? null
+                : () => _openAuthor(author.id, author.name),
+          ),
+          const SizedBox(height: 18),
+        ],
+        if (stats.isNotEmpty) ...[
+          DetailStatsRow(stats: stats),
+          const SizedBox(height: 18),
+        ],
+        if (detail != null && detail.tags.isNotEmpty) ...[
+          DetailTagChips(tags: detail.tags),
+          const SizedBox(height: 16),
+        ],
+        DetailIdRow(id: _contentId),
+      ],
+    );
+  }
+
+  /// 宽屏右栏：简介、演职员、目录入口/预览与评论。
+  Widget _wideBody(HomePalette palette) {
+    final detail = _bookDetail;
+    final trailing = [
+      if (detail?.statusLabel.isNotEmpty == true) detail!.statusLabel,
+      '共 ${_allChapters.length} $_chapterUnit',
+    ].join(' ');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_series.cast.isNotEmpty) ...[
+          DetailCastRow(cast: _series.cast),
+          const SizedBox(height: 20),
+        ],
+        DetailDescription(text: extractMediaDescription(_detail)),
+        const SizedBox(height: 18),
         DetailDirectoryRow(trailing: trailing, onTap: _openDirectory),
         _directoryPreview(palette),
         if (_comments.comments.isNotEmpty || _comments.totalCount > 0) ...[

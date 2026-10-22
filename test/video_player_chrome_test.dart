@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -1187,6 +1189,58 @@ void main() {
     await player.dispose();
   });
 
+  testWidgets('桌面键盘 PageDown / PageUp 切上下一集', (tester) async {
+    final player = FakeNativePlayer();
+    final selected = <int>[];
+    await tester.pumpWidget(_app(player, selected: selected));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageDown);
+    await tester.pumpAndSettle();
+    expect(selected, [1]);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    final second = FakeNativePlayer();
+    final selectedBack = <int>[];
+    await tester.pumpWidget(
+      _app(second, selected: selectedBack, currentIndex: 1),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+    await tester.pumpAndSettle();
+    expect(selectedBack, [0]);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await player.dispose();
+    await second.dispose();
+  });
+
+  testWidgets('桌面滚轮调音量，不再竖向翻页', (tester) async {
+    final player = FakeNativePlayer();
+    final selected = <int>[];
+    await tester.pumpWidget(_app(player, selected: selected));
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(
+      find.byKey(const ValueKey('video-surface')),
+    );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: center);
+    await mouse.moveTo(center);
+    await tester.pump();
+
+    // 默认静音策略下起播音量为 0；向上滚一格（dy<0）音量 0 → 0.05，
+    // 关键是它不再翻页（selected 保持为空）。
+    await tester.sendEventToBinding(
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, -40)),
+    );
+    await tester.pump();
+    expect(player.calls, contains('volume:0.05'));
+    expect(selected, isEmpty);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await player.dispose();
+  });
 }
 
 class _RateAcknowledgementPlayer extends FakeNativePlayer {

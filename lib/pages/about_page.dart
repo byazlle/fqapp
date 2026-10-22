@@ -15,7 +15,7 @@ class AboutPage extends StatelessWidget {
   /// `version`. Without a package_info dependency the value is
   /// static, so test/about_version_test.dart parses the pubspec and fails the
   /// build check when the two drift apart after a version bump.
-  static const versionText = '1.3.1 (136)';
+  static const versionText = '1.3.2 (137)';
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +89,12 @@ class AboutPage extends StatelessWidget {
               ),
               Divider(height: 1, indent: 68),
               _AboutRow(
+                icon: Icons.desktop_windows_outlined,
+                title: '桌面体验',
+                subtitle: '键盘与鼠标操作、滚轮调音量、宽屏两栏，界面可 90%–125% 缩放',
+              ),
+              Divider(height: 1, indent: 68),
+              _AboutRow(
                 icon: Icons.public,
                 title: '内容来源',
                 subtitle: '在线内容来自第三方公开接口，本程序不内置、不分发任何资源',
@@ -103,15 +109,15 @@ class AboutPage extends StatelessWidget {
               _AboutRow(
                 icon: Icons.code,
                 title: 'Source Code',
-                subtitle: 'github.com/byazlle/fqapp',
-                url: 'https://github.com/byazlle/fqapp',
+                subtitle: 'github.com/byazlle/winFQAPP',
+                url: 'https://github.com/byazlle/winFQAPP',
               ),
               Divider(height: 1, indent: 68),
               _AboutRow(
                 icon: Icons.feedback_outlined,
                 title: '问题反馈',
                 subtitle: '前往 GitHub Issues 提交',
-                url: 'https://github.com/byazlle/fqapp/issues',
+                url: 'https://github.com/byazlle/winFQAPP/issues',
               ),
             ],
           ),

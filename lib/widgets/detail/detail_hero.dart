@@ -17,11 +17,25 @@ class DetailHero extends StatelessWidget {
   final BookDetail? detail;
   final ScrollController scroll;
 
+  /// 宽屏两栏时，封面在上、标题信息在下的竖排形态；窄屏保持原来的
+  /// 「封面在左、信息在右」横排。
+  final bool column;
+
+  /// 竖排形态下放大的封面宽度（窄屏仍按原逻辑自适应）。
+  final double? coverWidth;
+
+  /// 是否绘制顶部的品牌色晕染与底部过渡。两栏布局里左栏是一块内容面板，
+  /// 不需要整页宽度的背景晕染。
+  final bool showWash;
+
   const DetailHero({
     super.key,
     required this.item,
     required this.scroll,
     this.detail,
+    this.column = false,
+    this.coverWidth,
+    this.showWash = true,
   });
 
   @override
@@ -31,9 +45,10 @@ class DetailHero extends StatelessWidget {
     final title = detail?.title.isNotEmpty == true ? detail!.title : item.title;
     // A 3x accessibility scale cannot fit a cover beside the text on a narrow
     // phone, so the masthead stacks instead of squeezing both into one row.
-    final stacked = MediaQuery.textScalerOf(context).scale(16) > 26;
+    final stacked =
+        column || MediaQuery.textScalerOf(context).scale(16) > 26;
 
-    final cover = _CoverTile(item: item, detail: detail);
+    final cover = _CoverTile(item: item, detail: detail, width: coverWidth);
     final info = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -67,49 +82,54 @@ class DetailHero extends StatelessWidget {
         children: [
           // Tinted masthead wash. Kept to its own layer so scrolling repaints
           // only this gradient.
-          Positioned.fill(
-            child: ExcludeSemantics(
-              child: RepaintBoundary(
-                child: AnimatedBuilder(
-                  animation: scroll,
-                  builder: (context, _) => CustomPaint(
-                    painter: _MastheadWash(
-                      palette: palette,
-                      shift: scroll.hasClients ? scroll.offset : 0,
+          if (showWash)
+            Positioned.fill(
+              child: ExcludeSemantics(
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: scroll,
+                    builder: (context, _) => CustomPaint(
+                      painter: _MastheadWash(
+                        palette: palette,
+                        shift: scroll.hasClients ? scroll.offset : 0,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
           // Smooth bottom blend gradient fading seamlessly to canvas
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 56,
-            child: ExcludeSemantics(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      palette.canvas.withValues(alpha: 0),
-                      palette.canvas,
-                    ],
+          if (showWash)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 56,
+              child: ExcludeSemantics(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        palette.canvas.withValues(alpha: 0),
+                        palette.canvas,
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 22),
+            // 竖排（宽屏左栏）时去掉左右内边距，由两栏容器统一控制留白。
+            padding: column
+                ? const EdgeInsets.fromLTRB(0, 0, 0, 12)
+                : const EdgeInsets.fromLTRB(20, 6, 20, 22),
             child: stacked
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(child: cover),
+                      if (column) cover else Center(child: cover),
                       const SizedBox(height: 18),
                       info,
                     ],
@@ -133,8 +153,9 @@ class DetailHero extends StatelessWidget {
 class _CoverTile extends StatelessWidget {
   final MediaItem item;
   final BookDetail? detail;
+  final double? width;
 
-  const _CoverTile({required this.item, this.detail});
+  const _CoverTile({required this.item, this.detail, this.width});
 
   @override
   Widget build(BuildContext context) {
@@ -142,9 +163,11 @@ class _CoverTile extends StatelessWidget {
     final scaler = MediaQuery.textScalerOf(context);
     // The cover keeps its 3:4 ratio; it only grows a little with text scale so
     // the text column is never starved of width.
-    final width = 104.0 + (scaler.scale(16) - 16).clamp(0.0, 10.0) * 1.2;
+    final resolvedWidth =
+        width ??
+        (104.0 + (scaler.scale(16) - 16).clamp(0.0, 10.0) * 1.2);
     return SizedBox(
-      width: width,
+      width: resolvedWidth,
       child: HomePressable(
         key: const Key('detail_cover_button'),
         semanticLabel: '查看《${item.title}》封面',

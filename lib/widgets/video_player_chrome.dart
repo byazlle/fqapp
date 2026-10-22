@@ -3,7 +3,8 @@ import 'dart:io' show Platform;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart' show kTouchSlop;
+import 'package:flutter/gestures.dart'
+    show GestureBinding, PointerScrollEvent, kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_lucide/flutter_lucide.dart';
@@ -281,6 +282,15 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
   /// 第 20 帧（`value == 1`），解锁时停在帧 0。
   late final AnimationController _lockController;
 
+  /// 切集遮罩：从半透明黑淡出，掩盖旧播放器销毁 / 新播放器首帧之间的
+  /// 空档。只画一层纯色，不重建视频纹理，开销可忽略。
+  late final AnimationController _episodeFade;
+
+  /// 桌面滚轮累积量。滚轮不再驱动竖向翻页（那是手机竖滑的等价物），
+  /// 改为按累积幅度调节音量，停顿后自动归零。
+  double _wheelAccum = 0;
+  DateTime _lastWheelAt = DateTime.fromMillisecondsSinceEpoch(0);
+
   bool _boosting = false;
   bool _paging = false;
   bool _appActive = true;
@@ -404,6 +414,11 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
             }
           }
         });
+    _episodeFade = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+      value: 0,
+    );
     unawaited(_loadRate());
     // 起播音量的镜像：宿主（player_page）在播放器创建时按「默认静音」
     // 策略套过音量，chrome 的 [_volume] 只需跟上，不在 initState 下发
@@ -492,6 +507,9 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       if (_fullScreen) unawaited(_applySystemUi());
     }
     if (oldWidget.currentIndex != widget.currentIndex) {
+      // 桌面切集不再靠竖向 PageView 滑动，而是一次干净的换页 + 200ms 遮罩
+      // 淡出：旧画面先被半透明黑盖住，新播放器首帧出来时正好揭开。
+      unawaited(_episodeFade.reverse(from: 1));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_pages.hasClients) return;
         if ((_pages.page ?? 0).round() != widget.currentIndex) {
@@ -521,6 +539,7 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     _keyRepeatTimer?.cancel();
     _volumeSliderFocus.dispose();
     _lockController.dispose();
+    _episodeFade.dispose();
     _pages.dispose();
     _panel.dispose();
     _panelExtent.dispose();
@@ -975,6 +994,31 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
     _setPlayerVolume(clamped);
   }
 
+  /// 桌面滚轮：不再驱动竖向翻页（那只是把手机上下滑搬到了鼠标上），
+  /// 改为按累积幅度调节音量——VLC / mpv 等桌面播放器的既有惯例。
+  /// 每累积约一格的滚动量走 5%，停顿 320ms 后累积量清零。
+  void _onDesktopWheel(double deltaY) {
+    if (!_desktopKeyboard ||
+        _overlayOpen ||
+        _panelOpen ||
+        _locked ||
+        _seeking) {
+      return;
+    }
+    final now = DateTime.now();
+    if (now.difference(_lastWheelAt) > const Duration(milliseconds: 320)) {
+      _wheelAccum = 0;
+    }
+    _lastWheelAt = now;
+    _wheelAccum += deltaY;
+    if (_wheelAccum.abs() < 24) return;
+    final up = _wheelAccum < 0;
+    _wheelAccum = 0;
+    _revealControls();
+    _applyVolume(_volume + (up ? 0.05 : -0.05));
+    _scheduleHide();
+  }
+
   void _toggleMute() {
     _applyVolume(_volume > 0 ? 0 : _lastVolume);
   }
@@ -1114,6 +1158,23 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
       if (key == LogicalKeyboardKey.keyS) {
         unawaited(_cycleRate());
         return KeyEventResult.handled;
+      }
+      // 桌面切集：PageUp / PageDown 与 [ / ] 对应上一集 / 下一集。
+      // 只认 KeyDown，长按产生的 KeyRepeatEvent 不会连续跳集。
+      if (!_overlayOpen && !_panelOpen && !_locked && !_seeking) {
+        if (key == LogicalKeyboardKey.pageUp ||
+            key == LogicalKeyboardKey.bracketLeft) {
+          if (widget.episodes.length > 1) {
+            _prevEpisodeOrToast();
+            return KeyEventResult.handled;
+          }
+        } else if (key == LogicalKeyboardKey.pageDown ||
+            key == LogicalKeyboardKey.bracketRight) {
+          if (widget.episodes.length > 1) {
+            _nextEpisodeOrToast();
+            return KeyEventResult.handled;
+          }
+        }
       }
       if (_seekStepKeys.containsKey(key) || _volumeStepKeys.containsKey(key)) {
         _startKeyRepeat(key);
@@ -1982,10 +2043,26 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                         : const NeverScrollableScrollPhysics(),
                     itemCount: math.max(1, widget.episodes.length),
                     onPageChanged: (index) => unawaited(_selectEpisode(index)),
-                    itemBuilder: (context, index) => Stack(
-                      key: ValueKey('episode-page-$index'),
-                      fit: StackFit.expand,
-                      children: [
+                    // 只在本页（当前集）截获鼠标滚轮：本 Listener 是滚动
+                    // 视图的后代，会先于 Scrollable 向 pointerSignalResolver
+                    // 注册，从而把滚轮从「竖向翻页」手里抢过来，交给音量
+                    // 步进。触摸屏的上下滑不受影响。
+                    itemBuilder: (context, index) => Listener(
+                      onPointerSignal: (event) {
+                        if (!_desktopKeyboard ||
+                            index != widget.currentIndex ||
+                            event is! PointerScrollEvent) {
+                          return;
+                        }
+                        GestureBinding.instance.pointerSignalResolver.register(
+                          event,
+                          (_) => _onDesktopWheel(event.scrollDelta.dy),
+                        );
+                      },
+                      child: Stack(
+                        key: ValueKey('episode-page-$index'),
+                        fit: StackFit.expand,
+                        children: [
                         const ColoredBox(color: Colors.black),
                         if (index == widget.currentIndex)
                           _positionVideo(
@@ -2007,7 +2084,24 @@ class _VideoPlayerChromeState extends State<VideoPlayerChrome>
                             ),
                           ),
                       ],
+                      ),
                     ),
+                  ),
+                ),
+              ),
+              // 切集遮罩：换集瞬间从半透明黑淡出，掩盖播放器销毁 / 首帧
+              // 之间的空档；静止时 value=0，只渲染空盒子，不产生额外绘制。
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _episodeFade,
+                    builder: (context, _) {
+                      final alpha = _episodeFade.value * 0.55;
+                      if (alpha <= 0) return const SizedBox.shrink();
+                      return ColoredBox(
+                        color: Colors.black.withValues(alpha: alpha),
+                      );
+                    },
                   ),
                 ),
               ),

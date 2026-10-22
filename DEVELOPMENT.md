@@ -69,7 +69,7 @@
 ## 项目结构
 
 ```
-fanqieduanwan/  (仓库 slug 仍为 byazlle/fqapp)
+fanqieduanwan/  (仓库 slug 为 byazlle/winFQAPP)
 ├── lib/                             # Flutter UI、模型和本地状态
 │   ├── main.dart                    # AppBootstrap + RootShell（宽屏自适应导航）
 │   ├── models/                      # 数据模型与响应解析
@@ -321,7 +321,7 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 - 提供推荐、小说、短剧、漫剧、漫画和听书分类；推荐页混排各类内容
 - 优先调用真实 `/api/v1/recommend/homepage`，推荐接口不可用时回退搜索结果
 - 宽屏（≥900）左侧悬浮导航栏，≥1200 展开为「图标 + 文字」；内容列宽随窗口分级（840/920/1080）
-- 3 列封面网格，下拉刷新
+- 3 列封面网格；桌面端用顶栏按钮 / `F5` / `Ctrl+R` 刷新，不使用移动端下拉刷新
 
 ### 搜索（`search_page.dart`）
 - 顶部搜索框（回车/图标触发）
@@ -346,6 +346,7 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 - 书籍简介三行折叠可展开，题材标签，`查看目录` 行与 3 章目录预览
 - 书评区：评分卡 + 评论列表；「回复 N」可展开回复
 - 底部：听书 / 下载 / 阅读（播放、续看）三键
+- 宽屏（内容区 ≥1080）自动切两栏：左栏封面、标题、作者、阅读数据、标签与作品 ID；右栏简介、演职员、目录与评论。`DetailHero` 的 `column` / `coverWidth` / `showWash` 控制左栏形态
 
 ### 阅读器（`reader_page.dart`）
 - 加载解密后的图文正文，保留段落、插图和图注的原始顺序
@@ -388,7 +389,7 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 ### 我的（`mine_page.dart`）
 - 服务状态（健康检查）
 - 后端地址展示
-- 设置 → 关于：版本、源代码与反馈入口（番茄端碗当前仍托管在原仓库 `byazlle/fqapp`）
+- 设置 → 关于：版本、源代码与反馈入口（番茄端碗当前托管在 `byazlle/winFQAPP`）
 
 ---
 
@@ -422,6 +423,7 @@ flutter logs
 - **libmpv / VC++ 运行库**：media_kit 随包分发 libmpv（MSVC 构建），依赖 VC++ 2015–2022 运行库。
   安装程序会自动部署；若目标机缺失，启动时会报 libmpv 加载失败，桌面视频/听书播放不可用但其余功能不受影响。
 - **宽屏布局**：导航与列宽按窗口宽度分级，拖动窗口跨断点由 `MediaQuery` 自然重建，无需额外监听。
+- **界面缩放**：`services/ui_scale.dart` 保存 90/100/110/125% 档位，`widgets/ui_zoom.dart` 在 `MaterialApp.builder` 里把逻辑视口按比例缩放后用 `FittedBox` 铺回窗口；`MediaQuery.size/padding/viewInsets` 同步换算，100% 时直接返回原树。
 
 ---
 
@@ -439,6 +441,8 @@ flutter logs
 - [x] 发现类入口：搜索联想词与热搜、作者主页、排行榜、书评回复、章节试读预览
 - [x] 整本 TXT 导出（离线缓存页每行「导出 TXT」→ 系统「下载」）
 - [x] 宽屏自适应：导航分级（900/1200）、首页列宽分级、设置双列、视频键盘快捷键
+- [x] 桌面交互重构：滚轮调音量、`PageUp/PageDown` 切集、切集淡出、`Ctrl+1..4` 切页、`F5/Ctrl+R` 刷新、详情页宽屏两栏
+- [x] 应用内界面缩放（90/100/110/125%）
 - [x] Windows 安装包（InnoSetup）与 CI 云端构建、打 tag 发布 Release
 - [ ] Windows 真机验收：启动、搜索、阅读、桌面播放、宽屏布局回归
 - [ ] 备份与恢复（跨设备迁移）实测

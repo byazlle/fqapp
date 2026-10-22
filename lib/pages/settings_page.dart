@@ -19,6 +19,7 @@ import '../services/home_feed_cache.dart';
 import '../services/library_store.dart';
 import '../services/poster_cache.dart';
 import '../services/rank_cache.dart';
+import '../services/ui_scale.dart';
 import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import 'about_page.dart';
@@ -56,8 +57,8 @@ class _SettingsPageState extends State<SettingsPage> {
       SettingsCategory(
         icon: LucideIcons.palette,
         title: '外观',
-        subtitle: '深色模式、墨水屏模式',
-        items: [_themeModeItem(), _einkModeItem()],
+        subtitle: '深色模式、墨水屏模式、界面缩放',
+        items: [_themeModeItem(), _einkModeItem(), _uiScaleItem()],
       ),
       SettingsCategory(
         icon: LucideIcons.book_open,
@@ -506,6 +507,73 @@ class _SettingsPageState extends State<SettingsPage> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('墨水屏模式已更新，但未能保存')));
+      }
+    }
+  }
+
+  /// 应用内界面缩放：整体（文字 + 布局）一起缩放，类似浏览器缩放。
+  /// 与系统 DPI 独立，适合高分屏想一屏看更多内容、或远距离想放大界面。
+  SettingsItem _uiScaleItem() => SettingsItem(
+    icon: LucideIcons.zoom_in,
+    title: '界面缩放',
+    subtitle: '整体放大或缩小界面，适合高分屏与大字号',
+    trailingBuilder: (context) => ValueListenableBuilder<double>(
+      valueListenable: uiScaleNotifier,
+      builder: (context, value, _) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            uiScaleLabel(value),
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+          const SizedBox(width: 4),
+          const Icon(LucideIcons.chevron_right, size: 18),
+        ],
+      ),
+    ),
+    onTap: (context, setState) => _showUiScaleDialog(context),
+  );
+
+  Future<void> _showUiScaleDialog(BuildContext context) async {
+    final selected = await showDialog<double>(
+      context: context,
+      builder: (c) => SimpleDialog(
+        title: const Text('界面缩放'),
+        children: [
+          RadioGroup<double>(
+            groupValue: uiScaleNotifier.value,
+            onChanged: (v) {
+              if (v != null) Navigator.pop(c, v);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final option in uiScaleOptions)
+                  RadioListTile<double>(
+                    value: option,
+                    title: Text(uiScaleLabel(option)),
+                    subtitle: option == 1.0
+                        ? const Text('默认，界面按 100% 显示')
+                        : null,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (selected == null || !context.mounted) return;
+    uiScaleNotifier.value = clampUiScale(selected);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      if (!await sp.setDouble(uiScaleKey, uiScaleNotifier.value)) {
+        throw StateError('UI scale preference was not saved');
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('界面缩放已更新，但未能保存')));
       }
     }
   }

@@ -20,12 +20,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/byazlle/fqapp/releases/latest">
-    <img alt="Release" src="https://img.shields.io/github/v/release/byazlle/fqapp?color=E8342A&label=Release&logo=github">
+  <a href="https://github.com/byazlle/winFQAPP/releases/latest">
+    <img alt="Release" src="https://img.shields.io/github/v/release/byazlle/winFQAPP?color=E8342A&label=Release&logo=github">
   </a>
   &nbsp;
-  <a href="https://github.com/byazlle/fqapp/releases">
-    <img alt="Downloads" src="https://img.shields.io/github/downloads/byazlle/fqapp/total?color=FF9F1C&label=Downloads&logo=github">
+  <a href="https://github.com/byazlle/winFQAPP/releases">
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/byazlle/winFQAPP/total?color=FF9F1C&label=Downloads&logo=github">
   </a>
   &nbsp;
   <img alt="Platform" src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20x64-0078D4?logo=windows&logoColor=white">
@@ -34,19 +34,19 @@
     <img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-blue">
   </a>
   &nbsp;
-  <a href="https://github.com/byazlle/fqapp/stargazers">
-    <img alt="Stars" src="https://img.shields.io/github/stars/byazlle/fqapp?style=social">
+  <a href="https://github.com/byazlle/winFQAPP/stargazers">
+    <img alt="Stars" src="https://img.shields.io/github/stars/byazlle/winFQAPP?style=social">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/byazlle/fqapp/releases/latest">
+  <a href="https://github.com/byazlle/winFQAPP/releases/latest">
     <img alt="下载安装包" height="44" src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD-Windows%20%E5%AE%89%E8%A3%85%E5%8C%85-0078D4?style=for-the-badge&logo=windows&logoColor=white">
   </a>
 </p>
 
-> **当前版本：`v1.3.1`（构建号 136）** —— 校正应用内与文档中的介绍文案，清掉 Android 时代遗留说法。
-> `0.9.x`、`1.0.0`、`1.1.0`、`1.2.0`、`1.2.1` 与 `1.3.0` 为历史版本，完整变更见 [CHANGELOG.md](CHANGELOG.md)。
+> **当前版本：`v1.3.2`（构建号 137）** —— 桌面交互重构：滚轮调音量、键盘切集、宽屏详情两栏与应用内界面缩放。
+> `0.9.x`、`1.0.0`、`1.1.0`、`1.2.0`、`1.2.1`、`1.3.0` 与 `1.3.1` 为历史版本，完整变更见 [CHANGELOG.md](CHANGELOG.md)。
 
 > **关于更名**：本项目先后使用过 `fqapp` 与 `流光 / Liuguang`，自 `v1.2.0` 起定名
 > **番茄端碗（FanqieDuanwan）**——取意「内容来自番茄小说与番茄视频，端到碗里给你看」。
@@ -63,11 +63,11 @@
 | 功能 | 说明 |
 |---|---|
 | 📖 小说阅读 | 图文正文与插图、左右分页或上下滚动、排版与字体导入、亮度调节、段评、离线缓存 |
-| 🎬 短剧 / 漫剧 | 自动连播、倍速、上下集与快进快退、全屏方向自适应、进度续看 |
+| 🎬 短剧 / 漫剧 | 自动连播、倍速、上下集与快进快退、全屏方向自适应、进度续看；键盘切集、滚轮调音量 |
 | 🖼 漫画 | 竖向连续阅读、章节目录、单图重试、点击放大、阅读位置恢复；宽屏支持 2/3/4 页并排 |
 | 🎧 听书 | 智能朗读与真人讲书、边听边读字幕、关联作品、定时关闭、倍速、自动下一章、进度续听 |
 | 🔍 搜索与发现 | 关键词 / 作品 ID 搜索、搜索联想词与热搜、排行榜、作者主页、书评 |
-| 📋 详情 | 封面、分类、完结状态、字数、评分、标签、简介、作者、目录预览、书评 |
+| 📋 详情 | 封面、分类、完结状态、字数、评分、标签、简介、作者、目录预览、书评；宽屏自动切为两栏 |
 | 🕘 历史与书架 | 阅读 / 播放进度自动记录，续读续看；可按条目删除或整体清空 |
 | ⬇️ 下载 | 整本缓存、批量缓存后续章节，下载内容不受自动清理影响 |
 | 💾 数据与缓存 | 章节缓存与图片缓存分开统计占用、可分别清理；数据目录可整体迁移到其他磁盘 |
@@ -84,7 +84,7 @@
 
 ### 获取安装包
 
-**推荐：[GitHub Releases](https://github.com/byazlle/fqapp/releases/latest)** —— 下载最新发布版的
+**推荐：[GitHub Releases](https://github.com/byazlle/winFQAPP/releases/latest)** —— 下载最新发布版的
 `fanqieduanwan-setup-x64.exe`；打 tag 发布的版本同时附带 `SHA256SUMS.txt`，可对照 Release 说明中的 SHA256 自行核对：
 
 ```powershell
@@ -93,7 +93,7 @@ Get-FileHash .\fanqieduanwan-setup-x64.exe -Algorithm SHA256
 
 其他方式：
 
-1. **GitHub Actions 云端构建**：打开仓库的 [Actions → Build Windows (cloud)](https://github.com/byazlle/fqapp/actions/workflows/build-windows.yml)，点击 **Run workflow** 运行一次构建；成功后在本次运行的 **Artifacts** 中下载 `fanqieduanwan-windows-setup`，解压得到 `fanqieduanwan-setup-x64.exe`（产物保留 14 天，长期留存请用 Releases）。
+1. **GitHub Actions 云端构建**：打开仓库的 [Actions → Build Windows (cloud)](https://github.com/byazlle/winFQAPP/actions/workflows/build-windows.yml)，点击 **Run workflow** 运行一次构建；成功后在本次运行的 **Artifacts** 中下载 `fanqieduanwan-windows-setup`，解压得到 `fanqieduanwan-setup-x64.exe`（产物保留 14 天，长期留存请用 Releases）。
 2. **本地构建**：需要 Flutter / Rust / Visual Studio (MSVC) / Inno Setup，步骤见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
 ### 安装与首次启动
@@ -112,9 +112,12 @@ Get-FileHash .\fanqieduanwan-setup-x64.exe -Algorithm SHA256
 
 ### 找内容
 
-- **首页**：推荐流混排小说、短剧、漫剧、漫画、听书，可下拉刷新；推荐不可用时自动回退分类搜索。
+- **首页**：推荐流混排小说、短剧、漫剧、漫画、听书；用顶栏刷新按钮或 `F5` / `Ctrl+R` 刷新（桌面端不使用下拉刷新），推荐不可用时自动回退分类搜索。
 - **搜索**：支持关键词与作品 ID 两种方式——输入 15–20 位纯数字自动按 ID 查找，也可用 `id:作品ID` 显式查询；结果按综合、小说、短剧、漫剧、漫画、听书分栏展示。
 - **宽屏布局**：窗口 ≥900 时导航从底部药丸切换为左侧悬浮栏，≥1200 展开为「图标 + 文字」并可收起为纯图标列；首页内容列宽随窗口分级放开（840/920/1080）。窄窗口仍是紧凑布局。
+- **详情两栏**：内容区 ≥1080 时详情页左栏放封面、标题、作者、阅读数据与标签，右栏放简介、目录与评论。
+- **界面缩放**：设置 → 外观 → 界面缩放，可选 90% / 100% / 110% / 125%，整体文字与布局一起缩放（类似浏览器缩放），高分屏或远距离观看更舒服。
+- **页面切换**：`Ctrl+1`–`Ctrl+4` 直达首页 / 短剧 / 书架 / 我的。
 
 ### 读小说
 
@@ -133,6 +136,7 @@ Get-FileHash .\fanqieduanwan-setup-x64.exe -Algorithm SHA256
 - 全屏方向按视频比例自适应（横屏剧集横屏、竖屏剧集竖屏），也可锁定方向。
 - 播放进度自动记录，随时续看。
 - **桌面键盘快捷键**：上下方向键长按连续步进、空格播放 / 暂停、倍速记忆、音量调节（每项均保留可点击控件）。
+- **切集与滚轮**：`PageUp` / `[` 上一集，`PageDown` / `]` 下一集；鼠标滚轮在画面上调节音量（约一格 5%），不再触发上下翻页。换集时有 200ms 淡出过渡。
 
 ### 听书
 
@@ -216,11 +220,11 @@ Thanks to the [LINUX DO](https://linux.do/) community for its support and feedba
 
 ## ⭐ Star History
 
-<a href="https://www.star-history.com/?repos=byazlle%2Ffqapp&type=date&legend=top-left">
+<a href="https://www.star-history.com/?repos=byazlle%2FwinFQAPP&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=byazlle/fqapp&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=byazlle/fqapp&type=date&theme=light&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=byazlle/fqapp&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=byazlle/winFQAPP&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=byazlle/winFQAPP&type=date&theme=light&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=byazlle/winFQAPP&type=date&legend=top-left" />
  </picture>
 </a>
 
