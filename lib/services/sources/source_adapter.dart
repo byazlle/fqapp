@@ -2,6 +2,8 @@ import '../../models/content_source.dart';
 import '../../models/source_item.dart';
 import '../content_source_store.dart';
 import 'cms_source_client.dart';
+import 'hema_source_adapter.dart';
+import 'xifan_source_adapter.dart';
 
 /// 一家内容源的适配器。页面只调这组方法，不直接碰各家字段。
 abstract class SourceAdapter {
@@ -100,7 +102,7 @@ class CmsSourceAdapter extends SourceAdapter {
   }
 }
 
-/// 接口已保留、但适配器尚未实现的来源（红果网页版 / 西饭 / 河马）。
+/// 接口已保留、但适配器尚未实现的来源（目前是红果网页版）。
 /// 选中时会明确提示，而不是静默回退。
 class PendingSourceAdapter extends SourceAdapter {
   PendingSourceAdapter(this.source);
@@ -150,8 +152,10 @@ class SourceRouter {
     if (custom != null) return custom;
     return switch (source.protocol) {
       SourceProtocol.cms => CmsSourceAdapter(source),
+      SourceProtocol.xifan => XifanSourceAdapter(source),
+      SourceProtocol.hema => HemaSourceAdapter(source),
       SourceProtocol.fanqie => null,
-      _ => PendingSourceAdapter(source),
+      SourceProtocol.hongguoWeb => PendingSourceAdapter(source),
     };
   }
 

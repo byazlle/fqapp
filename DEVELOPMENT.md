@@ -354,8 +354,10 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 - `ContentSourceStore` 只负责“选哪个源”，不直接发内容请求；内置番茄源默认启用，
   红果 / 西饭 / 河马默认关闭，自定义源走通用 CMS 协议（`CmsSourceClient`）。
 - 适配器：`SourceAdapter`（browse / search / detail）+ `SourceRouter`
-  （按 `fallbackChain` 降级）。目前完整实现的是 `CmsSourceAdapter`；
-  红果网页版 / 西饭 / 河马用 `PendingSourceAdapter` 保留接口，选中时明确提示。
+  （按 `fallbackChain` 降级）。已实现 `CmsSourceAdapter`、
+  `XifanSourceAdapter`（`xifan-api-cn.youlishipin.com`）、
+  `HemaSourceAdapter`（`www.kuaikaw.cn` 的 `__NEXT_DATA__`）；
+  红果网页版用 `PendingSourceAdapter` 保留接口，选中时明确提示。
 - 浏览链路：`SourceBrowsePage`（列表 / 搜索 / 分页）→ `SourceDetailPage`
   （播放线路 + 分集）→ 复用 `PlayerPage`，通过 `contentLoader` 返回
   `{'video_url': 直链, 'key_hex': ''}`，不重写播放器。
