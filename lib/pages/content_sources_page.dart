@@ -7,6 +7,7 @@ import '../models/content_source.dart';
 import '../services/content_source_store.dart';
 import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
+import 'source_browse_page.dart';
 
 /// 设置 → 内容源。
 ///
@@ -121,10 +122,46 @@ class _ContentSourcesPageState extends State<ContentSourcesPage> {
                     height: 1.5,
                   ),
                 ),
+                const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  key: const Key('browse_active_source'),
+                  onPressed: _kind == 'video' || _kind == 'manju'
+                      ? _browseActive
+                      : null,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: palette.accentText,
+                    side: BorderSide(color: palette.line),
+                    minimumSize: const Size.fromHeight(44),
+                  ),
+                  icon: const Icon(LucideIcons.play, size: 17),
+                  label: const Text('浏览当前来源'),
+                ),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  void _browseActive() {
+    final active = _store.activeFor(_kind);
+    if (active.protocol == SourceProtocol.fanqie) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('内置番茄源请直接使用首页 / 搜索 / 详情')),
+      );
+      return;
+    }
+    if (active.protocol != SourceProtocol.cms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('「${active.name}」的适配器尚未接入')),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SourceBrowsePage(source: active, kind: _kind),
       ),
     );
   }

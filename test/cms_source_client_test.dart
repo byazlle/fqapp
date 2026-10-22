@@ -32,6 +32,17 @@ void main() {
     expect(groups.single.episodes.single.url, 'https://a/1.mp4');
   });
 
+  test('cleans escaped slashes and HTML ampersands in play urls', () {
+    final groups = parseCmsPlayGroups(
+      '线路A',
+      r'第1集$https:\/\/a.example.com\/1.m3u8?x=1&amp;y=2',
+    );
+    expect(
+      groups.single.episodes.single.url,
+      'https://a.example.com/1.m3u8?x=1&y=2',
+    );
+  });
+
   test('probe, list and detail parse against a CMS payload', () async {
     final client = MockClient((request) async {
       final ac = request.url.queryParameters['ac'];

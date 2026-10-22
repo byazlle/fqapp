@@ -200,9 +200,13 @@ class DesktopMediaPlayer extends NativePlayer {
       // 「ensureInitialized must be called」这种指错方向的报错。
       MediaKit.ensureInitialized();
       final mediaUrl = _mediaPlayUrl(cdnUrl, keyHex);
-      // 预检：先确认 loopback 解密流可达并拿到真实 HTTP 状态，避免 libmpv
-      // 把「连接被拒 / 401 / 502」笼统报成「播放失败」。
-      await _preflight(mediaUrl);
+      // 预检只针对本机解密流：第三方明文直链没有 key，Range 探测容易被
+      // 源站的防盗链/416 误判，直接交给 libmpv，由播放器自己报错。
+      if (keyHex.isNotEmpty) {
+        // 预检：先确认 loopback 解密流可达并拿到真实 HTTP 状态，避免 libmpv
+        // 把「连接被拒 / 401 / 502」笼统报成「播放失败」。
+        await _preflight(mediaUrl);
+      }
       late final Player player;
       late final VideoController controller;
       try {
@@ -441,6 +445,19 @@ class DesktopMediaPlayer extends NativePlayer {
     if (!_firstFrameGate.isCompleted) _firstFrameGate.completeError(error);
   }
 
+  static bool _isFanqieCdn(String url) {
+    final host = Uri.tryParse(url)?.host ?? '';
+    return const [
+      'fqnovelvod.com',
+      'fqnovel.com',
+      'snssdk.com',
+      'byteimg.com',
+      'pstatp.com',
+      'douyinpic.com',
+      'douyinvod.com',
+    ].any(host.endsWith);
+  }
+
   /// 拼出 loopback 解密流地址。能力令牌走 `/_session/<cap>/` 路径前缀
   /// （与 Web UI、封面图同一套约定），CDN 地址整体编码，避免它的查询
   /// 参数被误认为是本端的参数。
@@ -450,6 +467,10 @@ class DesktopMediaPlayer extends NativePlayer {
       // 由调用方（播放页）回退在线链路。
       throw NativePlaybackException('桌面版暂不支持离线缓存播放，请联网播放');
     }
+    // 空 key + 非番茄 CDN = 第三方源的明文直链（CMS m3u8/mp4）。`/media/play`
+    // 会把 key 当解密密钥，空 key 必然失败；直接交给 libmpv 走网络播放。
+    // 番茄自己的空 key 仍走原有 loopback（保留其 UA/Referer 与 Range 处理）。
+    if (keyHex.isEmpty && !_isFanqieCdn(cdnUrl)) return cdnUrl;
     final base = BackendService.instance.webUiEntryUrl;
     final query =
         'url=${Uri.encodeComponent(cdnUrl)}&key=${Uri.encodeComponent(keyHex)}';

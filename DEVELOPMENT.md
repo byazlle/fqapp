@@ -353,9 +353,14 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
   `SharedPreferences` 的 `content_sources.v1`（来源列表 + 各类型当前源 + 自动容错开关）。
 - `ContentSourceStore` 只负责“选哪个源”，不直接发内容请求；内置番茄源默认启用，
   红果 / 西饭 / 河马默认关闭，自定义源走通用 CMS 协议（`CmsSourceClient`）。
-- 适配器层尚未接入：`ApiClient` 与各页面仍走番茄接口。后续按
-  `SourceAdapter`（search / detail / episodes / play）+ `SourceRouter`（超时、
-  熔断、按 `fallbackChain` 降级）接。
+- 适配器：`SourceAdapter`（browse / search / detail）+ `SourceRouter`
+  （按 `fallbackChain` 降级）。目前完整实现的是 `CmsSourceAdapter`；
+  红果网页版 / 西饭 / 河马用 `PendingSourceAdapter` 保留接口，选中时明确提示。
+- 浏览链路：`SourceBrowsePage`（列表 / 搜索 / 分页）→ `SourceDetailPage`
+  （播放线路 + 分集）→ 复用 `PlayerPage`，通过 `contentLoader` 返回
+  `{'video_url': 直链, 'key_hex': ''}`，不重写播放器。
+- 番茄源仍走原有首页 / 搜索 / 详情 / 播放；第三方源从设置页的
+  「浏览当前来源」进入，两套流程互不干扰。
 
 ### 阅读器（`reader_page.dart`）
 - 加载解密后的图文正文，保留段落、插图和图注的原始顺序

@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 
+import '../../models/source_item.dart';
+
 /// 通用 CMS（苹果 CMS / TVBox 常用协议）客户端。
 ///
 /// 协议形态来自 `jycao2/hongguoTV` 的 `docs/THIRD_SOURCES.md` 与
@@ -102,11 +104,16 @@ List<CmsPlayGroup> parseCmsPlayGroups(String? from, String? url) {
       if (item.isEmpty) continue;
       final split = item.indexOf(r'$');
       if (split <= 0) {
-        episodes.add(CmsEpisode(name: '第${episodes.length + 1}集', url: item));
+        episodes.add(
+          CmsEpisode(
+            name: '第${episodes.length + 1}集',
+            url: _cleanUrl(item),
+          ),
+        );
         continue;
       }
       final name = item.substring(0, split).trim();
-      final address = item.substring(split + 1).trim();
+      final address = _cleanUrl(item.substring(split + 1));
       if (address.isEmpty) continue;
       episodes.add(
         CmsEpisode(
@@ -201,7 +208,8 @@ class CmsSourceClient {
       if (category != null && category.isNotEmpty) 't': category,
       'pg': '$page',
     });
-    return _parseSeries(json?['list']);
+    if (json == null) throw const SourceException('来源暂不可用或返回异常');
+    return _parseSeries(json['list']);
   }
 
   Future<List<CmsSeries>> search(String keyword, {int page = 1}) async {
@@ -210,12 +218,14 @@ class CmsSourceClient {
       'wd': keyword,
       'pg': '$page',
     });
-    return _parseSeries(json?['list']);
+    if (json == null) throw const SourceException('来源暂不可用或返回异常');
+    return _parseSeries(json['list']);
   }
 
   Future<CmsDetail?> detail(String id) async {
     final json = await _getJson({'ac': 'detail', 'ids': id});
-    final list = json?['list'];
+    if (json == null) throw const SourceException('来源暂不可用或返回异常');
+    final list = json['list'];
     if (list is! List || list.isEmpty) return null;
     final raw = list.first;
     if (raw is! Map) return null;
@@ -223,7 +233,7 @@ class CmsSourceClient {
     return CmsDetail(
       id: rawId.isEmpty ? id : rawId,
       name: _text(raw['vod_name']),
-      cover: _text(raw['vod_pic']),
+      cover: _cleanUrl(_text(raw['vod_pic'])),
       description: _stripHtml(_text(raw['vod_content'])),
       typeName: _text(raw['vod_class']).isEmpty
           ? _text(raw['type_name'])
@@ -250,7 +260,7 @@ class CmsSourceClient {
         CmsSeries(
           id: id,
           name: name,
-          cover: _text(entry['vod_pic']),
+          cover: _cleanUrl(_text(entry['vod_pic'])),
           remarks: _text(entry['vod_remarks']),
         ),
       );
@@ -263,3 +273,9 @@ String _text(Object? value) => value == null ? '' : '$value'.trim();
 
 String _stripHtml(String value) =>
     value.replaceAll(RegExp('<[^>]*>'), '').trim();
+
+/// 部分 CMS 会把 `/` 转义成 `\/`、把 `&` 写成 `&amp;`，播放前统一还原。
+String _cleanUrl(String value) => value
+    .replaceAll(r'\/', '/')
+    .replaceAll('&amp;', '&')
+    .trim();
