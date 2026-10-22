@@ -25,6 +25,7 @@ import '../widgets/home/home_design.dart';
 import 'about_page.dart';
 import 'cached_books_page.dart';
 import 'cached_dramas_page.dart';
+import 'content_sources_page.dart';
 import 'library_backup_page.dart';
 import 'log_viewer_page.dart';
 import 'settings_category_page.dart';
@@ -59,6 +60,13 @@ class _SettingsPageState extends State<SettingsPage> {
         title: '外观',
         subtitle: '深色模式、墨水屏模式、界面缩放',
         items: [_themeModeItem(), _einkModeItem(), _uiScaleItem()],
+      ),
+      SettingsCategory(
+        icon: LucideIcons.globe,
+        title: '内容源',
+        subtitle: '短剧 / 漫剧 / 小说等分别选择来源，支持自动容错',
+        pageBuilder: (_) => const ContentSourcesPage(),
+        items: const [],
       ),
       SettingsCategory(
         icon: LucideIcons.book_open,
@@ -164,6 +172,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     const categoryColors = [
       Brand.primary, // 外观
+      Color(0xFF0EA5E9), // 内容源
       Color(0xFF14B8A6), // 阅读
       Color(0xFF8B5CF6), // 听书
       Color(0xFFF59E0B), // 短剧

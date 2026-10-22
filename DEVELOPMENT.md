@@ -348,6 +348,15 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
 - 底部：听书 / 下载 / 阅读（播放、续看）三键
 - 宽屏（内容区 ≥1080）自动切两栏：左栏封面、标题、作者、阅读数据、标签与作品 ID；右栏简介、演职员、目录与评论。`DetailHero` 的 `column` / `coverWidth` / `showWash` 控制左栏形态
 
+### 内容源（`content_sources_page.dart`）
+- 设置 → 内容源：短剧 / 漫剧 / 漫画 / 小说 / 听书各自独立选择来源，持久化在
+  `SharedPreferences` 的 `content_sources.v1`（来源列表 + 各类型当前源 + 自动容错开关）。
+- `ContentSourceStore` 只负责“选哪个源”，不直接发内容请求；内置番茄源默认启用，
+  红果 / 西饭 / 河马默认关闭，自定义源走通用 CMS 协议（`CmsSourceClient`）。
+- 适配器层尚未接入：`ApiClient` 与各页面仍走番茄接口。后续按
+  `SourceAdapter`（search / detail / episodes / play）+ `SourceRouter`（超时、
+  熔断、按 `fallbackChain` 降级）接。
+
 ### 阅读器（`reader_page.dart`）
 - 加载解密后的图文正文，保留段落、插图和图注的原始顺序
 - 插图保持原比例，分页时整张显示，点击进入全屏并可双指缩放
