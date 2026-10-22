@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/content_source.dart';
+import '../models/source_blocklist.dart';
 import 'sources/cms_source_client.dart';
 
 /// 内容源仓库：按内容类型保存「当前使用哪个源」，并负责自定义源的增删、
@@ -22,6 +23,10 @@ class ContentSourceStore extends ChangeNotifier {
   List<ContentSource> _sources = List<ContentSource>.of(ContentSource.builtins);
   final Map<String, String> _active = {};
   bool _autoFallback = true;
+
+  /// 远程屏蔽名单：命中的源按「已停用」处理——不可选、不进容错链、不能新开。
+  /// 名单只收紧不放宽：即使本地把源打开了，名单命中时依然停用。
+  SourceBlocklist _blocklist = const SourceBlocklist.empty();
   bool _ready = false;
   Future<void>? _loading;
 
@@ -30,9 +35,21 @@ class ContentSourceStore extends ChangeNotifier {
 
   List<ContentSource> get sources => List.unmodifiable(_sources);
 
-  /// 某一内容类型下可用的源（已启用且声明支持该类型）。用于自动容错候选。
+  SourceBlocklist get blocklist => _blocklist;
+
+  /// 该源当前是否被远程名单停用。
+  bool isBlocked(ContentSource source) => _blocklist.blocks(source);
+
+  /// 停用原因文案；名单为空或未填写时给默认说明。
+  String get blocklistNotice =>
+      _blocklist.message.isNotEmpty
+      ? _blocklist.message
+      : '该来源已暂时停用，请更换其他来源';
+
+  /// 某一内容类型下可用的源（已启用、未被停用且声明支持该类型）。
+  /// 用于自动容错候选。
   List<ContentSource> forKind(String kind) => _sources
-      .where((source) => source.enabled && source.supports(kind))
+      .where((source) => source.enabled && !isBlocked(source) && source.supports(kind))
       .toList(growable: false);
 
   /// 某一内容类型下声明支持的全部源（含已关闭的），用于设置页展示与启停。
@@ -51,7 +68,10 @@ class ContentSourceStore extends ChangeNotifier {
 
   ContentSource activeFor(String kind) {
     final selected = sourceById(activeIdFor(kind));
-    if (selected != null && selected.enabled && selected.supports(kind)) {
+    if (selected != null &&
+        selected.enabled &&
+        !isBlocked(selected) &&
+        selected.supports(kind)) {
       return selected;
     }
     return ContentSource.fanqie;
@@ -75,6 +95,7 @@ class ContentSourceStore extends ChangeNotifier {
     _sources = List<ContentSource>.of(ContentSource.builtins);
     _active.clear();
     _autoFallback = true;
+    _blocklist = const SourceBlocklist.empty();
     _ready = false;
     _loading = null;
   }
@@ -135,10 +156,21 @@ class ContentSourceStore extends ChangeNotifier {
   void _normalizeActive() {
     for (final kind in contentKindLabels.keys) {
       final selected = sourceById(activeIdFor(kind));
-      if (selected == null || !selected.supports(kind)) {
+      if (selected == null ||
+          !selected.supports(kind) ||
+          !selected.enabled ||
+          isBlocked(selected)) {
         _active[kind] = defaultSourceId;
       }
     }
+  }
+
+  /// 应用远程屏蔽名单。名单变化时把指向被停用源的当前选择重置回番茄。
+  void applyBlocklist(SourceBlocklist blocklist) {
+    if (_blocklist == blocklist) return;
+    _blocklist = blocklist;
+    _normalizeActive();
+    notifyListeners();
   }
 
   Future<void> setActive(String kind, String sourceId) async {
@@ -146,6 +178,7 @@ class ContentSourceStore extends ChangeNotifier {
     if (selected == null || !selected.supports(kind) || !selected.enabled) {
       return;
     }
+    if (isBlocked(selected)) return; // 被远程名单停用的源不可选
     _active[kind] = sourceId;
     notifyListeners();
     await _persist();
@@ -156,6 +189,7 @@ class ContentSourceStore extends ChangeNotifier {
     if (index < 0) return;
     final source = _sources[index];
     if (source.id == defaultSourceId && !enabled) return; // 内置番茄不可关
+    if (enabled && isBlocked(source)) return; // 被停用的源打不开
     _sources[index] = source.copyWith(enabled: enabled);
     if (!enabled) {
       for (final entry in _active.entries.toList()) {
@@ -185,6 +219,8 @@ class ContentSourceStore extends ChangeNotifier {
       (source) => source.baseUrl == normalized && source.protocol == SourceProtocol.cms,
     );
     if (existing) return null;
+    // 远程名单停用的主机不允许新增自定义源。
+    if (_blocklist.blocksHost(normalized)) return null;
     final source = ContentSource(
       id: _newId(),
       name: trimmed,
@@ -210,7 +246,11 @@ class ContentSourceStore extends ChangeNotifier {
   }
 
   /// 探活：CMS 源发一次 `ac=list&pg=1`；内置源不需要探活。
+  /// 被远程名单停用的源直接返回不可用，不再发请求。
   Future<CmsProbe> probe(ContentSource source) async {
+    if (isBlocked(source)) {
+      return CmsProbe(ok: false, message: '该来源已停用', elapsedMs: 0);
+    }
     if (source.protocol != SourceProtocol.cms || source.baseUrl.isEmpty) {
       return const CmsProbe(ok: true, message: '内置源无需探活', elapsedMs: 0);
     }

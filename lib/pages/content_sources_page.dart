@@ -5,6 +5,7 @@ import 'package:flutter_lucide/flutter_lucide.dart';
 
 import '../models/content_source.dart';
 import '../services/content_source_store.dart';
+import '../services/source_blocklist_service.dart';
 import '../widgets/brand/fused_app_bar.dart';
 import '../widgets/home/home_design.dart';
 import 'source_browse_page.dart';
@@ -29,6 +30,8 @@ class _ContentSourcesPageState extends State<ContentSourcesPage> {
   void initState() {
     super.initState();
     unawaited(_store.load());
+    // 打开设置页时顺带刷新远程屏蔽名单（有缓存先用缓存，拉取失败不打扰用户）。
+    unawaited(SourceBlocklistService.instance.initialize());
   }
 
   @override
@@ -72,6 +75,8 @@ class _ContentSourcesPageState extends State<ContentSourcesPage> {
                           key: ValueKey('source_${source.id}'),
                           source: source,
                           active: source.id == activeId,
+                          blocked: _store.isBlocked(source),
+                          blockedNotice: _store.blocklistNotice,
                           palette: palette,
                           onSelect: () => _store.setActive(_kind, source.id),
                           onToggle: source.id == defaultSourceId
@@ -149,12 +154,6 @@ class _ContentSourcesPageState extends State<ContentSourcesPage> {
     if (active.protocol == SourceProtocol.fanqie) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('内置番茄源请直接使用首页 / 搜索 / 详情')),
-      );
-      return;
-    }
-    if (active.protocol != SourceProtocol.cms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('「${active.name}」的适配器尚未接入')),
       );
       return;
     }
@@ -269,7 +268,7 @@ class _ContentSourcesPageState extends State<ContentSourcesPage> {
                       if (source == null) {
                         setDialogState(() {
                           busy = false;
-                          error = '名称不能为空，地址需为公网 http(s) 且不能重复';
+                          error = '名称不能为空；地址需为公网 http(s)、不重复，且未被远程名单停用';
                         });
                         return;
                       }
@@ -444,6 +443,8 @@ class _SourceRow extends StatelessWidget {
     required this.onToggle,
     required this.onDelete,
     required this.onProbe,
+    this.blocked = false,
+    this.blockedNotice = '',
   });
 
   final ContentSource source;
@@ -454,10 +455,14 @@ class _SourceRow extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onProbe;
 
+  /// 被远程屏蔽名单停用：不可选、打不开，只保留展示。
+  final bool blocked;
+  final String blockedNotice;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: source.enabled ? onSelect : null,
+      onTap: source.enabled && !blocked ? onSelect : null,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
         child: Row(
@@ -492,7 +497,10 @@ class _SourceRow extends StatelessWidget {
                         text: source.builtin ? '内置' : '自定义',
                         palette: palette,
                       ),
-                      if (source.protocol != SourceProtocol.fanqie) ...[
+                      if (blocked) ...[
+                        const SizedBox(width: 4),
+                        _Badge(text: '已停用', palette: palette, warn: true),
+                      ] else if (source.protocol != SourceProtocol.fanqie) ...[
                         const SizedBox(width: 4),
                         _Badge(text: '第三方', palette: palette, warn: true),
                       ],
@@ -500,17 +508,19 @@ class _SourceRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    source.baseUrl.isEmpty
-                        ? source.protocol.label
-                        : '${source.protocol.label} · ${source.baseUrl}',
-                    maxLines: 1,
+                    blocked
+                        ? blockedNotice
+                        : (source.baseUrl.isEmpty
+                              ? source.protocol.label
+                              : '${source.protocol.label} · ${source.baseUrl}'),
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: palette.muted, fontSize: 11.5),
                   ),
                 ],
               ),
             ),
-            if (onProbe != null)
+            if (onProbe != null && !blocked)
               IconButton(
                 key: ValueKey('probe_${source.id}'),
                 tooltip: '检测连接',
@@ -518,11 +528,11 @@ class _SourceRow extends StatelessWidget {
                 icon: Icon(LucideIcons.activity, size: 16, color: palette.muted),
               ),
             Switch(
-              value: source.enabled,
-              onChanged: onToggle,
+              value: source.enabled && !blocked,
+              onChanged: blocked ? null : onToggle,
               activeThumbColor: HomePalette.accent,
             ),
-            if (onDelete != null)
+            if (onDelete != null && !blocked)
               IconButton(
                 key: ValueKey('delete_${source.id}'),
                 tooltip: '删除',

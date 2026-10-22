@@ -363,6 +363,12 @@ App 主要通过 `ApiClient` 调用后端 **`/api/*` 桥接层**（Rust 核心 `
   `{'video_url': 直链, 'key_hex': ''}`，不重写播放器。
 - 番茄源仍走原有首页 / 搜索 / 详情 / 播放；第三方源从设置页的
   「浏览当前来源」进入，两套流程互不干扰。
+- 远程屏蔽名单：`SourceBlocklistService` 启动时拉取仓库默认分支
+  （`winFQAPP`）上的 `remote/source_blocklist.json`（raw.githubusercontent.com），
+  按源 ID / 主机名命中后经 `ContentSourceStore.applyBlocklist` 停用对应源——
+  不可选、不进容错链、不能新增同主机自定义源；拉取失败用本地缓存
+  （`source_blocklist.v1`），没有缓存则不停用任何源。用于第三方源失效时的
+  应急停用，无需发版。用法见 `remote/README.md`。
 
 ### 阅读器（`reader_page.dart`）
 - 加载解密后的图文正文，保留段落、插图和图注的原始顺序

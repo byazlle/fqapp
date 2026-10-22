@@ -15,7 +15,7 @@ class AboutPage extends StatelessWidget {
   /// `version`. Without a package_info dependency the value is
   /// static, so test/about_version_test.dart parses the pubspec and fails the
   /// build check when the two drift apart after a version bump.
-  static const versionText = '1.3.2 (137)';
+  static const versionText = '1.3.3 (138)';
 
   @override
   Widget build(BuildContext context) {

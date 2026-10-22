@@ -148,6 +148,8 @@ class SourceRouter {
 
   SourceAdapter? adapterFor(ContentSource source) {
     if (!source.enabled) return null;
+    // 远程屏蔽名单命中的源一律不接请求（设置里也打不开）。
+    if (_store.isBlocked(source)) return null;
     final custom = adapterFactory?.call(source);
     if (custom != null) return custom;
     return switch (source.protocol) {

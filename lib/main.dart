@@ -36,6 +36,7 @@ import 'services/native_player.dart';
 import 'services/rank_cache.dart';
 import 'services/player_style_config.dart';
 import 'services/short_series_font_scale.dart';
+import 'services/source_blocklist_service.dart';
 import 'services/playlet_share.dart';
 import 'services/poster_cache.dart';
 import 'services/shelf_store.dart';
@@ -90,6 +91,10 @@ void main() {
       // Rust 核心日志的读取入口：日志页「Rust」视图读 runtime_dir/rust.log。
       // 核心只在 Android 落盘（桌面/测试构建不装 logger），读不到时页面给空态。
       RustLogSource.reader = BackendService.instance.readRustLog;
+      // 远程屏蔽名单：先读本地缓存生效，再后台拉最新。万一某家第三方源
+      // （CMS / 西饭 / 河马）失效，改仓库 remote/source_blocklist.json 即可
+      // 让所有客户端停用它，无需发版。拉取失败时保持上次的名单。
+      unawaited(SourceBlocklistService.instance.initialize());
       runApp(const ProviderScope(child: FanqieDuanwanApp()));
     },
     (error, stack) =>
